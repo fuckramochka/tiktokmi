@@ -3,9 +3,9 @@ package io.margyt.mod
 object Config {
 
     /**
-     * Пакеты, в которых работают хуки региона.
-     * cat.narezany.tiktok — наш репак; остальные два оставлены,
-     * чтобы модуль можно было проверить на нетронутом TikTok.
+     * Packages the region hooks apply to.
+     * cat.narezany.tiktok is our repack; the other two are kept so the module
+     * can be tried against an untouched TikTok.
      */
     val TARGET_PACKAGES = setOf(
         "cat.narezany.tiktok",
@@ -13,24 +13,24 @@ object Config {
         "com.ss.android.ugc.trill",
     )
 
-    /** Название под иконкой на рабочем столе. */
+    /** The name under the icon on the home screen. */
     const val APP_LABEL = "MargyT"
 
-    // ---- Регион: Нидерланды ----
-    // Другие NL-операторы, если KPN не устроит:
+    // ---- Region: Netherlands ----
+    // Other NL carriers, if KPN does not suit:
     //   Vodafone NL = 20404, Odido/T-Mobile NL = 20416, Lebara NL = 20409
     const val ISO_COUNTRY = "nl"
     const val MCC_MNC = "20408"
     const val CARRIER_NAME = "KPN"
     const val TIMEZONE = "Europe/Amsterdam"
 
-    /** Менять только страну в Locale, язык интерфейса не трогать. */
+    /** Country only; the interface language is left alone. */
     const val SPOOF_LOCALE_REGION = true
 
-    /** Подменять таймзону внутри приложения. По умолчанию выкл — палится редко, но ломает время постов. */
+    /** Off by default: moving the clock moves the timestamps on posts. */
     const val SPOOF_TIMEZONE = false
 
-    /** Системные пропертя, которые читают через android.os.SystemProperties. */
+    /** Properties read through android.os.SystemProperties. */
     val SYSTEM_PROPS: Map<String, String> = mapOf(
         "gsm.sim.operator.iso-country" to ISO_COUNTRY,
         "gsm.operator.iso-country" to ISO_COUNTRY,

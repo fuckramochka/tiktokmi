@@ -13,10 +13,10 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 /**
- * Экран «Настройки MargyT».
+ * The "MargyT" settings screen.
  *
- * UI собран кодом, без layout-ресурсов: так не надо добавлять ничего
- * в res/ тиктока и ловить конфликты ID при пересборке aapt.
+ * Built in code, without layout resources: adding resources means new ids, and
+ * new ids mean a fight with aapt every time the apk is rebuilt.
  */
 public class MargyTSettingsActivity extends Activity {
 
@@ -43,10 +43,10 @@ public class MargyTSettingsActivity extends Activity {
         scroll.addView(root, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        root.addView(header("Настройки MargyT"));
-        root.addView(caption("Подмена региона"));
+        root.addView(header("MargyT"));
+        root.addView(caption("Region"));
         root.addView(toggleRow());
-        root.addView(caption("Страна"));
+        root.addView(caption("Country"));
 
         mList = new LinearLayout(this);
         mList.setOrientation(LinearLayout.VERTICAL);
@@ -54,16 +54,18 @@ public class MargyTSettingsActivity extends Activity {
         buildCountries();
 
         root.addView(footer(
-                "Меняется то, что приложение читает с устройства: страна SIM, "
-                        + "оператор, MCC/MNC и регион в Locale. Язык интерфейса не трогается.\n\n"
-                        + "Регион аккаунта (store_region) задан на сервере при регистрации "
-                        + "и отсюда не меняется. IP — отдельно, под него нужен VPN.\n\n"
-                        + "После смены страны перезапусти приложение."));
+                "Changes what the app reads from the device: the SIM's country, "
+                        + "the carrier, the MCC/MNC pair and the region in Locale. The "
+                        + "interface language is left alone.\n\n"
+                        + "The account's own region (store_region) is fixed on the server "
+                        + "at registration and cannot be moved from here. Your IP is a "
+                        + "separate matter and wants a VPN.\n\n"
+                        + "Restart the app after changing the country."));
 
         setContentView(scroll);
     }
 
-    // ------------------------------------------------------------------ строки
+    // -------------------------------------------------------------------- rows
 
     private View toggleRow() {
         LinearLayout row = rowBox();
@@ -72,7 +74,7 @@ public class MargyTSettingsActivity extends Activity {
         texts.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams grow =
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        texts.addView(title("Подменять регион"));
+        texts.addView(title("Spoof region"));
         texts.addView(subtitle(Region.labelFor(Region.currentIso())
                 + " · " + Region.carrierFor(Region.currentIso())));
         row.addView(texts, grow);
@@ -125,7 +127,7 @@ public class MargyTSettingsActivity extends Activity {
         }
     }
 
-    // ------------------------------------------------------------- примитивы
+    // --------------------------------------------------------------- building blocks
 
     private LinearLayout rowBox() {
         LinearLayout row = new LinearLayout(this);

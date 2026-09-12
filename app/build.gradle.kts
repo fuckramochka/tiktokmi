@@ -32,6 +32,6 @@ android {
 }
 
 dependencies {
-    // compileOnly — API предоставляет сам LSPosed в рантайме, в APK не пакуется
+    // compileOnly: LSPosed supplies the API at runtime, it is not packed into the apk
     compileOnly("de.robv.android.xposed:api:82")
 }

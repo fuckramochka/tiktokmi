@@ -8,8 +8,9 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 
 /**
- * Работает В ПРОЦЕССЕ ЛАУНЧЕРА, а не тиктока: перехватывает чтение названия и
- * иконки для целевого пакета. Так не нужно трогать сам APK и ломать подпись.
+ * Runs in the LAUNCHER's process, not TikTok's: it intercepts the reads of the
+ * label and the icon for the target package. That way the apk is never touched
+ * and its signature stays intact.
  */
 object AppearanceHook {
 
@@ -28,10 +29,10 @@ object AppearanceHook {
         hookIcons(cl)
     }
 
-    // ---------- название ----------
+    // ---------- label ----------
 
     private fun hookLabels(cl: ClassLoader) {
-        // PackageItemInfo.loadLabel — база для ApplicationInfo и ActivityInfo
+        // PackageItemInfo.loadLabel backs both ApplicationInfo and ActivityInfo
         hookAll(cl, "android.content.pm.PackageItemInfo", "loadLabel") { param ->
             val pkg = XposedHelpers.getObjectField(param.thisObject, "packageName") as? String
             if (isTarget(pkg)) param.result = Config.APP_LABEL
@@ -41,7 +42,7 @@ object AppearanceHook {
                 param.result = Config.APP_LABEL
             }
         }
-        // Современные лаунчеры ходят через LauncherApps
+        // modern launchers go through LauncherApps
         hookAll(cl, "android.content.pm.LauncherActivityInfo", "getLabel") { param ->
             if (isTarget(launcherInfoPackage(param.thisObject))) param.result = Config.APP_LABEL
         }
@@ -51,7 +52,7 @@ object AppearanceHook {
         }
     }
 
-    // ---------- иконка ----------
+    // ---------- icon ----------
 
     private fun hookIcons(cl: ClassLoader) {
         val replaceIcon: (XC_MethodHook.MethodHookParam, String?) -> Unit = { param, pkg ->
@@ -88,7 +89,7 @@ object AppearanceHook {
         }
     }
 
-    // ---------- утилиты ----------
+    // ---------- helpers ----------
 
     private fun launcherInfoPackage(info: Any): String? = runCatching {
         val component = XposedHelpers.callMethod(info, "getComponentName")

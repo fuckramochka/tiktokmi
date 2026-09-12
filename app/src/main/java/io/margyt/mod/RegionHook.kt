@@ -11,15 +11,15 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Подмена страны SIM на уровне фреймворка: приложение видит NL-оператора,
- * NL-пропертя и NL-регион в Locale.
+ * Spoofs the SIM's country at framework level: the app sees an NL carrier,
+ * NL properties and an NL region in Locale.
  */
 object RegionHook {
 
     fun install(cl: ClassLoader) {
         hookTelephony(cl)
         hookSystemProperties(cl)
-        applyDefaults()          // на случай, если что-то читается до Application.attach
+        applyDefaults()          // in case something is read before Application.attach
         hookApplicationAttach(cl)
     }
 
@@ -34,13 +34,13 @@ object RegionHook {
             "getSimOperatorName" to Config.CARRIER_NAME,
             "getNetworkOperatorName" to Config.CARRIER_NAME,
         )
-        // hookAllMethods накрывает и скрытые перегрузки с subId
+        // hookAllMethods also covers the hidden subId overloads
         constants.forEach { (name, value) ->
             XposedBridge.hookAllMethods(tm, name, XC_MethodReplacement.returnConstant(value))
         }
 
-        // Без этого на устройстве без SIM приложение уйдёт в ветку "SIM нет"
-        // и всё вышеперечисленное просто не прочитает.
+        // Without this, a phone with no card takes the "no SIM" branch and
+        // never reads any of the above.
         XposedBridge.hookAllMethods(
             tm, "getSimState",
             XC_MethodReplacement.returnConstant(TelephonyManager.SIM_STATE_READY)
@@ -79,8 +79,8 @@ object RegionHook {
             runCatching {
                 val current = Locale.getDefault()
                 if (!current.country.equals(Config.ISO_COUNTRY, ignoreCase = true)) {
-                    // язык оставляем как есть — меняем только страну,
-                    // иначе интерфейс уедет на нидерландский
+                    // country only: set the whole locale and the interface
+                    // switches to Dutch along with the region
                     Locale.setDefault(
                         Locale.Builder()
                             .setLanguage(current.language.ifEmpty { "en" })

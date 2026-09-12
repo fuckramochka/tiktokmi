@@ -8,7 +8,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
 class Main : IXposedHookLoadPackage, IXposedHookZygoteInit {
 
     companion object {
-        /** Путь к APK самого модуля — нужен, чтобы достать свою иконку в чужом процессе. */
+        /** Path to the module's own apk, needed to load our icon in another process. */
         @Volatile
         var modulePath: String? = null
 
@@ -21,14 +21,14 @@ class Main : IXposedHookLoadPackage, IXposedHookZygoteInit {
 
     override fun handleLoadPackage(lp: XC_LoadPackage.LoadPackageParam) {
         when {
-            // внутри самого TikTok — подменяем регион
+            // inside TikTok itself: spoof the region
             lp.packageName in Config.TARGET_PACKAGES -> {
                 log("region hooks -> ${lp.packageName}")
                 runCatching { RegionHook.install(lp.classLoader) }
                     .onFailure { log("region hooks failed: $it") }
             }
 
-            // в процессе лаунчера — подменяем название и иконку ярлыка
+            // inside the launcher: swap the label and the icon
             else -> {
                 runCatching { AppearanceHook.install(lp.classLoader) }
                     .onFailure { log("appearance hooks failed in ${lp.packageName}: $it") }

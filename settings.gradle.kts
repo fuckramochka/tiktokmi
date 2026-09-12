@@ -11,7 +11,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // Xposed API 82 живёт только здесь (jcenter умер)
+        // Xposed API 82 lives only here (jcenter is gone)
         maven("https://api.xposed.info/")
     }
 }

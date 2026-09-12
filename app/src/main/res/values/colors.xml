@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Фон баннера Margy (narezany/Margelet, assets/banner.png) -->
+    <!-- The Margy banner's background (narezany/Margelet, assets/banner.png) -->
     <color name="margy_mint">#8DD1B0</color>
-    <!-- Тёмный акцент оттуда же -->
+    <!-- The dark accent from the same place -->
     <color name="margy_ink">#1C2C24</color>
 </resources>

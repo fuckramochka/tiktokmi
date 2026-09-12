@@ -9,13 +9,13 @@ import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
 
 /**
- * Обработчик нажатия на ячейку «Настройки MargyT» в списке настроек TikTok.
+ * What happens when the MargyT row in TikTok's settings list is tapped.
  *
- * Ячейки получают событие объектом класса LX/0Ayy, у которого поле LIZ — это
- * Context, а LIZIZ — строковый ключ. Имена обфусцированы и меняются от версии
- * к версии, поэтому Context достаётся рефлексией с перебором кандидатов, а не
- * приведением к типу: промах по имени тогда не роняет приложение, а просто
- * оставляет ячейку неактивной.
+ * Rows are handed an event object -- LX/0Ayy in this build -- whose field LIZ
+ * is the Context and LIZIZ a string key. Those names are obfuscated and move
+ * between releases, so the Context is found by walking the fields and matching
+ * on type rather than by casting: a miss then leaves the row inert instead of
+ * crashing the app.
  */
 public final class SettingsCellAction implements Function1<Object, Object> {
 
@@ -33,7 +33,7 @@ public final class SettingsCellAction implements Function1<Object, Object> {
         return Unit.LIZ;
     }
 
-    /** Первое попавшееся поле типа Context среди публичных полей события. */
+    /** The first public field on the event whose type is a Context. */
     private static Context findContext(Object event) {
         if (event == null) return null;
         for (Field f : event.getClass().getFields()) {

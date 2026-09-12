@@ -8,18 +8,18 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * Цель перенаправления call-site'ов.
+ * Where the rewritten call sites land.
  *
- * Каждый вызов вида
+ * Every
  *     invoke-virtual {v0}, Landroid/telephony/TelephonyManager;->getSimCountryIso()Ljava/lang/String;
- * заменяется на
+ * becomes
  *     invoke-static  {v0}, Lcat/narezany/tiktok/Region;->getSimCountryIso(Landroid/telephony/TelephonyManager;)Ljava/lang/String;
  *
- * Формат инструкции (35c), количество регистров и возвращаемый тип совпадают,
- * поэтому подстановка не требует пересчёта регистров.
+ * The instruction format (35c), the register count and the return type all
+ * match, so nothing has to be renumbered.
  *
- * Ресивер принимается первым аргументом и игнорируется — он нужен только
- * чтобы арность совпала с оригиналом.
+ * The receiver arrives as the first argument and is ignored -- it is there only
+ * to keep the arity the same as the method it replaced.
  */
 public final class Region {
 
@@ -29,32 +29,32 @@ public final class Region {
     public static final String KEY_ENABLED = "region_enabled";
     public static final String KEY_COUNTRY = "region_country";
 
-    /** iso, mcc+mnc, оператор, таймзона, человеческое имя */
+    /** iso, mcc+mnc, carrier, time zone, display name */
     public static final String[][] COUNTRIES = {
-            {"nl", "20408", "KPN",            "Europe/Amsterdam",  "Нидерланды"},
-            {"us", "310410", "AT&T",          "America/New_York",  "США"},
-            {"gb", "23430", "EE",             "Europe/London",     "Великобритания"},
-            {"de", "26201", "Telekom",        "Europe/Berlin",     "Германия"},
-            {"fr", "20801", "Orange",         "Europe/Paris",      "Франция"},
-            {"es", "21401", "Movistar",       "Europe/Madrid",     "Испания"},
-            {"it", "22201", "TIM",            "Europe/Rome",       "Италия"},
-            {"se", "24001", "Telia",          "Europe/Stockholm",  "Швеция"},
-            {"pl", "26003", "Orange",         "Europe/Warsaw",     "Польша"},
-            {"ua", "25503", "Kyivstar",       "Europe/Kyiv",       "Украина"},
-            {"kz", "40101", "Beeline",        "Asia/Almaty",       "Казахстан"},
-            {"ru", "25001", "MTS",            "Europe/Moscow",     "Россия"},
-            {"tr", "28601", "Turkcell",       "Europe/Istanbul",   "Турция"},
-            {"br", "72406", "Vivo",           "America/Sao_Paulo", "Бразилия"},
-            {"mx", "33403", "Telcel",         "America/Mexico_City", "Мексика"},
-            {"ca", "302220", "Telus",         "America/Toronto",   "Канада"},
-            {"au", "50501", "Telstra",        "Australia/Sydney",  "Австралия"},
-            {"jp", "44010", "NTT Docomo",     "Asia/Tokyo",        "Япония"},
-            {"kr", "45005", "SK Telecom",     "Asia/Seoul",        "Южная Корея"},
-            {"in", "40410", "Airtel",         "Asia/Kolkata",      "Индия"},
-            {"id", "51010", "Telkomsel",      "Asia/Jakarta",      "Индонезия"},
-            {"vn", "45201", "Viettel",        "Asia/Ho_Chi_Minh",  "Вьетнам"},
-            {"th", "52001", "AIS",            "Asia/Bangkok",      "Таиланд"},
-            {"ph", "51502", "Globe",          "Asia/Manila",       "Филиппины"},
+            {"nl", "20408",  "KPN",        "Europe/Amsterdam",    "Netherlands"},
+            {"us", "310410", "AT&T",       "America/New_York",    "United States"},
+            {"gb", "23430",  "EE",         "Europe/London",       "United Kingdom"},
+            {"de", "26201",  "Telekom",    "Europe/Berlin",       "Germany"},
+            {"fr", "20801",  "Orange",     "Europe/Paris",        "France"},
+            {"es", "21401",  "Movistar",   "Europe/Madrid",       "Spain"},
+            {"it", "22201",  "TIM",        "Europe/Rome",         "Italy"},
+            {"se", "24001",  "Telia",      "Europe/Stockholm",    "Sweden"},
+            {"pl", "26003",  "Orange",     "Europe/Warsaw",       "Poland"},
+            {"ua", "25503",  "Kyivstar",   "Europe/Kyiv",         "Ukraine"},
+            {"kz", "40101",  "Beeline",    "Asia/Almaty",         "Kazakhstan"},
+            {"ru", "25001",  "MTS",        "Europe/Moscow",       "Russia"},
+            {"tr", "28601",  "Turkcell",   "Europe/Istanbul",     "Turkey"},
+            {"br", "72406",  "Vivo",       "America/Sao_Paulo",   "Brazil"},
+            {"mx", "33403",  "Telcel",     "America/Mexico_City", "Mexico"},
+            {"ca", "302220", "Telus",      "America/Toronto",     "Canada"},
+            {"au", "50501",  "Telstra",    "Australia/Sydney",    "Australia"},
+            {"jp", "44010",  "NTT Docomo", "Asia/Tokyo",          "Japan"},
+            {"kr", "45005",  "SK Telecom", "Asia/Seoul",          "South Korea"},
+            {"in", "40410",  "Airtel",     "Asia/Kolkata",        "India"},
+            {"id", "51010",  "Telkomsel",  "Asia/Jakarta",        "Indonesia"},
+            {"vn", "45201",  "Viettel",    "Asia/Ho_Chi_Minh",    "Vietnam"},
+            {"th", "52001",  "AIS",        "Asia/Bangkok",        "Thailand"},
+            {"ph", "51502",  "Globe",      "Asia/Manila",         "Philippines"},
     };
 
     private static final int ISO = 0, MCCMNC = 1, CARRIER = 2, TZ = 3, LABEL = 4;
@@ -65,7 +65,7 @@ public final class Region {
 
     // ---------------------------------------------------------------- bootstrap
 
-    /** Вызывается из инжекта в AwemeHostApplication.onCreate(). */
+    /** Called from the injection in AwemeHostApplication.onCreate(). */
     public static void init(Context context) {
         if (context == null) return;
         sContext = context.getApplicationContext();
@@ -112,8 +112,8 @@ public final class Region {
     }
 
     /**
-     * Меняем только страну в Locale — язык интерфейса оставляем как есть,
-     * иначе TikTok уедет на нидерландский.
+     * Country only. The language stays whatever the user had -- set the whole
+     * locale and TikTok switches its interface to Dutch along with the region.
      */
     private static void applyLocale() {
         if (!isEnabled()) return;
@@ -125,13 +125,13 @@ public final class Region {
         } catch (Throwable ignored) {}
     }
 
-    /** Таймзону по умолчанию не трогаем: ломает время публикаций. */
+    /** Off by default: moving the clock moves the timestamps on posts. */
     public static void applyTimeZone() {
         if (!isEnabled()) return;
         try { TimeZone.setDefault(TimeZone.getTimeZone(row()[TZ])); } catch (Throwable ignored) {}
     }
 
-    // ------------------------------------------------- цели перенаправления
+    // ---------------------------------------------------- call-site targets
 
     public static String getSimCountryIso(TelephonyManager tm) {
         return isEnabled() ? row()[ISO] : safeIso(tm, true);
@@ -174,8 +174,8 @@ public final class Region {
     }
 
     /**
-     * Без этого на телефоне без SIM приложение уходит в ветку «SIM нет»
-     * и всё остальное просто не читает.
+     * Needed on a phone with no card at all: without it the app takes the
+     * "no SIM" branch and never reads any of the rest.
      */
     public static int getSimState(TelephonyManager tm) {
         if (isEnabled()) return TelephonyManager.SIM_STATE_READY;
@@ -199,7 +199,7 @@ public final class Region {
         return tm == null ? -1 : tm.getSimCarrierId();
     }
 
-    /** android.os.SystemProperties.get(...) — читается рефлексией. */
+    /** android.os.SystemProperties.get(...), which is read by reflection. */
     public static String systemProperty(String key, String fallback) {
         if (!isEnabled() || key == null) return fallback;
         String[] r = row();

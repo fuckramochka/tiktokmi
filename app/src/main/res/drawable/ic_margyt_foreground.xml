@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Белый глиф — как белый самолётик у Margy, только нота.
-  Вся геометрия внутри safe zone адаптивной иконки (центральные 72dp из 108dp).
+  A white glyph, the way Margy has a white paper plane -- a note instead.
+  All of it sits inside the adaptive icon's safe zone (the middle 72 of 108dp).
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -9,23 +9,23 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- левая головка ноты -->
+    <!-- left note head -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M26,76 a11,8 0 1,0 22,0 a11,8 0 1,0 -22,0 z" />
-    <!-- правая головка ноты -->
+    <!-- right note head -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M60,68 a11,8 0 1,0 22,0 a11,8 0 1,0 -22,0 z" />
-    <!-- левый штиль -->
+    <!-- left stem -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M42,30 h6 v46 h-6 z" />
-    <!-- правый штиль -->
+    <!-- right stem -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M76,22 h6 v46 h-6 z" />
-    <!-- ребро -->
+    <!-- beam -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M42,30 L82,22 L82,34 L42,42 Z" />

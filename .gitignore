@@ -1,18 +1,19 @@
-# Чужое: оригинальный APK и всё, что из него получено.
-# В репозиторий едут только наши патчи и исходники.
+# Someone else's: the original apk and everything derived from it.
+# Only our own patches and sources belong here.
 apk/
 work/
 build/
 out/
 
-# Скачиваемые инструменты
+# Downloaded tooling
 tools/
 
-# Промежуточные артефакты сборки инжекта
+# Intermediates from compiling the injected classes
 inject/classes/
+inject/stubs-classes/
 inject/dex/
 
-# Gradle-модуль
+# Gradle module
 .gradle/
 */build/
 local.properties
