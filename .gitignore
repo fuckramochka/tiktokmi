@@ -1,20 +1,11 @@
-# Someone else's: the original apk and everything derived from it.
-# Only our own patches and sources belong here.
+
+# Someone else's: the original apk and anything derived from it.
 apk/
 work/
 build/
-out/
 
 # Downloaded tooling
 tools/
 
-# Intermediates from compiling the injected classes
-inject/classes/
-inject/stubs-classes/
-inject/dex/
-
-# Gradle module
-.gradle/
-*/build/
-local.properties
-.idea/
+__pycache__/
+*.pyc

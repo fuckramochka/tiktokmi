@@ -16,7 +16,6 @@ import struct
 from typing import List, Optional
 
 # chunk types
-RES_NULL = 0x0000
 RES_STRING_POOL = 0x0001
 RES_XML = 0x0003
 RES_XML_START_NAMESPACE = 0x0100
@@ -30,8 +29,6 @@ RES_XML_RESOURCE_MAP = 0x0180
 TYPE_NULL = 0x00
 TYPE_REFERENCE = 0x01
 TYPE_STRING = 0x03
-TYPE_INT_DEC = 0x10
-TYPE_INT_HEX = 0x11
 TYPE_INT_BOOLEAN = 0x12
 
 ANDROID_NS = "http://schemas.android.com/apk/res/android"
@@ -275,6 +272,9 @@ class Axml:
         self.pool = pool
         self.resource_map = resource_map
         self.nodes = nodes
+        # nodes made by make_element that are not in the tree yet: they hold
+        # string indices too, and a pool insert has to move theirs as well
+        self.pending: List[Node] = []
 
     # -- parsing
 
@@ -384,7 +384,11 @@ class Axml:
         def bump(index: int) -> int:
             return index + 1 if index != NO_ENTRY and index >= at else index
 
-        for node in self.nodes:
+        seen = set()
+        for node in self.nodes + self.pending:
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
             if node.kind in (RES_XML_START_NAMESPACE, RES_XML_END_NAMESPACE):
                 node.prefix = bump(node.prefix)
                 node.uri = bump(node.uri)
@@ -440,12 +444,14 @@ class Axml:
         node = Node(RES_XML_START_ELEMENT, 0, NO_ENTRY)
         node.ns = NO_ENTRY
         node.name = self.pool.index(name)
+        self.pending.append(node)
         return node
 
     def close_element(self, start: Node) -> Node:
         node = Node(RES_XML_END_ELEMENT, 0, NO_ENTRY)
         node.ns = start.ns
         node.name = start.name
+        self.pending.append(node)
         return node
 
     def insert_into(self, parent: Node, subtree: List[Node]) -> None:

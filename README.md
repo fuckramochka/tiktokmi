@@ -14,10 +14,12 @@ Built from the official apk with the patches in this repository.
 
 ---
 
-Package `cat.narezany.tiktok`. It installs **next to** the official TikTok,
-not over it. arm64 only. No root.
+Keeps TikTok's own package, `com.zhiliaoapp.musically`, so it goes in **instead
+of** the official app rather than beside it: uninstall TikTok first, then
+install this. arm64 only. No root.
 
-Everything the mod adds lives in one place: **Settings → MargyT**, the first row.
+Everything the mod adds is on one screen — **MargyT settings**, its own entry on
+the launcher, next to the app itself.
 
 ## What it adds
 
@@ -36,26 +38,40 @@ This reaches `carrier_region` and `sys_region`, which is what the feed and a
 good part of the feature gates read. It does not reach `store_region`: that one
 is fixed on the server when the account is registered, and no client can move
 it. Your IP is a separate matter and wants a VPN.
+
+Switched off, the mod is not in the way: every redirected call hands the
+question straight back to the real one, down to the exception it would have
+thrown.
 </details>
 
 <details>
 <summary><b>Its own name and icon</b></summary>
 
 `MargyT`, in the mint the whole line uses — `#8DD1B0`, straight off the Margy
-banner — with a white note where Margy has a white paper plane. Legacy and
-adaptive icons both, at TikTok's own densities, which start at 56dp rather than
-the usual 48.
+banner — with a white note where Margy has a white paper plane.
+
+The icon is not added as a new resource; the files behind TikTok's own icon are
+rewritten where they lie. The adaptive icon's two layers become vector
+drawables compiled by this repository, and each legacy density gets a bitmap
+scaled to exactly the size the one it replaces was. The resource id, the table
+entry and the density each file was chosen for never move.
 </details>
 
 <details>
-<summary><b>A settings screen of its own</b></summary>
+<summary><b>A screen of its own</b></summary>
 
-**Settings → MargyT**, above everything else, in TikTok's own list rather than
-bolted over it. Inside: a switch for the whole thing and the list of countries,
-each with the carrier and MCC/MNC it will report.
+**MargyT settings**, on the launcher. Inside: a switch for the whole thing and
+the list of countries, each with the carrier and MCC/MNC it will report.
 
-The screen is built in code, without layout resources. Adding resources means
-new ids, and new ids mean a fight with aapt every time the app is rebuilt.
+The screen is built in code, with no layout or style resources at all. That is
+not tidiness — adding a resource means rewriting a 25 MB resource table, which
+is the one thing this build refuses to do. It also means the screen looks the
+same whatever theme the app is carrying that week.
+
+It is a separate launcher entry rather than a row inside TikTok's own settings
+because a row inside TikTok's settings means recognising TikTok's settings list
+in obfuscated bytecode, and that recognition breaks on the next release. An
+activity in the manifest does not.
 </details>
 
 <details>
@@ -71,16 +87,20 @@ invoke-virtual {v0}, Landroid/telephony/TelephonyManager;->getSimCountryIso()Lja
 becomes
 
 ```smali
-invoke-static {v0}, Lcat/narezany/tiktok/Region;->getSimCountryIso(Landroid/telephony/TelephonyManager;)Ljava/lang/String;
+invoke-static {v0}, Lcat/narezany/margyt/Region;->getSimCountryIso(Landroid/telephony/TelephonyManager;)Ljava/lang/String;
 ```
 
 The instruction format (35c), the register count and the return type all match,
 so nothing has to be renumbered. The receiver moves to the first argument and is
-ignored; it is there only to keep the arity.
+handed back the real answer whenever the mod is off.
 
-Five of the apk's fifty-two dex files touch telephony at all, twenty-six call
-sites between them. `inject/patch_callsites.py` finds them by signature rather
-than by offset, which is why it should survive the next TikTok release.
+In 46.9.42 that is 26 call sites across three of the apk's fifty-two dex files.
+`margyt/dexpatch.py` finds them by signature rather than by offset, which is why
+it should survive the next TikTok release.
+
+Nothing patches TikTok's `Application` class either. The mod needs a context to
+read its settings and takes it from `ActivityThread.currentApplication()`, which
+every Android process has and which no release can rename.
 </details>
 
 <details>
@@ -93,20 +113,41 @@ and the certificate's SHA-1 — so a repackaged app cannot use it.
 TikTok does not use it. It opens the browser with AppAuth and a custom-scheme
 redirect, `com.googleusercontent.apps.<client_id>`, with PKCE. Google does not
 check package or signature for that kind of client; it only checks that whoever
-claims the scheme receives the redirect. The build keeps all three schemes in
+claims the scheme receives the redirect. The build leaves all three schemes in
 the manifest untouched and the flow goes through.
-
-One catch: leave the official TikTok installed and both apks claim the same
-scheme, so Android will ask which one should take the redirect. The scheme is
-fixed by TikTok's client id and cannot be changed. Pick MargyT.
 </details>
+
+## How the build works
+
+The short version: **the apk is never taken apart.** No apktool, no aapt2,
+nothing that rebuilds a resource table it did not write. The build edits the
+bytes that have to change and copies everything else across exactly as it found
+it, which is why it takes about two minutes rather than an afternoon.
+
+| what | how |
+|---|---|
+| the zip | rewritten entry by entry, each one still compressed the way it arrived; `resources.arsc` stays stored and four-byte aligned |
+| `AndroidManifest.xml` | parsed and rebuilt by `margyt/axml.py`, which round-trips aapt2's own output byte for byte |
+| `resources.arsc` | read to find out where the icon lives, and written only in place: a colour repainted where it lies, never a byte moved |
+| the icon | the files behind the existing resource are replaced, so no new id is ever needed |
+| the dex | only the three or four files that mention telephony go through baksmali and smali; the other forty-eight are copied |
+| the mod | javac and d8, in as the next `classesN.dex` — the run has to be unbroken or the runtime stops reading |
+
+The package name stays TikTok's. Renaming it is what made the earlier version of
+this repository hard to trust: provider authorities collide with the official
+app, the OAuth redirect scheme ends up claimed twice, and every
+`com.zhiliaoapp.musically.something` string inside fifty-two dex files becomes
+half true. The cost of keeping it is that the two cannot be installed side by
+side — the signature differs, so Android will not put this one over the
+official app, and the official app has to go first.
 
 ## Building it yourself
 
-You need JDK 17 or newer, Python 3 with Pillow, and a **universal** apk of
-TikTok — on APKMirror the variant of type **APK**, not **BUNDLE**, `arm64-v8a`,
-`nodpi`. A split bundle cannot be rebuilt: apktool has no way to put the
-resource table back together from the pieces.
+You need a JDK (17 or newer) and Python 3. Nothing else: smali, d8, android.jar
+and the signer are downloaded into `tools/` on the first run, each pinned to a
+version. And a **universal** apk of TikTok — on APKMirror the variant of type
+**APK**, not **BUNDLE**, `arm64-v8a`, `nodpi`. A split has no resource table of
+its own to read.
 
 ```bash
 git clone https://github.com/narezany/MargyT
@@ -114,21 +155,42 @@ cd MargyT
 ./build.sh path/to/tiktok.apk
 ```
 
-The script fetches apktool, uber-apk-signer, d8 and android.jar on its own,
-takes the apk apart, rewrites the call sites, swaps the name and the icon,
-renames the package, puts it back together and signs it. The apk lands in
-`build/`.
+The apk lands in `build/`. Roughly two minutes on four cores, most of it smali
+reassembling the dex files that were touched.
 
-Taking 335 MB of dex apart takes a while. The decoded tree is left in `work/`
-and reused on the next run; delete it to start clean.
+```
+==> Opening the apk
+    26151 entries
+    package com.zhiliaoapp.musically, staying as it is
+==> Rewriting the telephony call sites
+    4 of 52 dex files mention it
+    classes22.dex: 19 call sites
+    classes32.dex: 5 call sites
+    classes4.dex: 2 call sites
+```
 
-The signature is ours, which is the point — with TikTok's own it would install
-over the official app instead of beside it.
+If no call site matches, the build stops rather than handing you an apk that
+quietly does nothing.
+
+## Tests
+
+```bash
+python3 -m unittest discover tests
+```
+
+No toolchain, no network, about a second. They run against
+`tests/data/fixture.apk` — seven kilobytes, built by aapt2 from `tests/fixture/`
+and checked in — which has what the real apk has: a label from a string
+resource, an adaptive icon whose layers are vectors, the icon at two densities,
+a launcher entry that is an alias rather than an activity.
+
+Rebuild the fixture with `tests/make_fixture.sh` if you change it; that is the
+only thing here that wants aapt2.
 
 ## What this repository does not contain
 
-- **TikTok's apk**, and nothing derived from it: not the decoded resources, not
-  the smali. It is someone else's proprietary code and it is not ours to
+- **TikTok's apk**, and nothing derived from it: not the resources, not the
+  smali. It is someone else's proprietary code and it is not ours to
   redistribute. The build needs the apk; you bring your own.
 - **A signing key.** uber-apk-signer generates a debug one on the spot. Ship the
   result to anyone and they will have to uninstall before they can take an
@@ -138,17 +200,21 @@ over the official app instead of beside it.
 
 | | |
 |---|---|
-| `build.sh` | the whole repack, one command |
-| `inject/patch_callsites.py` | rewrites the `TelephonyManager` calls, by signature |
-| `inject/src/` | the Java that becomes `classes53.dex` |
-| `inject/stubs/` | `kotlin.*` declarations the compiler needs and the dex must not have |
+| `build.sh` | the whole thing, one command |
+| `margyt/axml.py` | binary XML: parse, edit, write |
+| `margyt/arsc.py` | the resource table, read and patched in place |
+| `margyt/apkzip.py` | the zip, rewritten entry by entry |
+| `margyt/dexpatch.py` | the call sites, found by signature |
+| `margyt/icon.py` | the icon, replaced file by file |
+| `margyt/png.py` | just enough PNG to resize an icon, so Pillow is not needed |
+| `margyt/vector.py` | vector drawables, compiled without aapt2 |
+| `inject/java/` | the mod itself: the settings screen and the methods the call sites land in |
 | `icon_out/` | the icon, at every density |
-| `assets/` | the banner, and the script that draws it |
-| `app/` | an LSPosed module doing the same thing by hooking, for rooted phones |
+| `tests/` | the fixture apk and what is asserted about it |
 
-`inject/patch_callsites.py` is the file to read before moving the mod to a newer
-TikTok. Everything else is either ours outright or plain resource swapping; the
-call sites are the part that has to find its targets again in a rebuilt apk.
+`margyt/dexpatch.py` is the file to read before moving the mod to a newer
+TikTok. Everything else is either ours outright or finds its own targets; the
+call sites are the part that has to find them again in a rebuilt apk.
 
 ## Licence
 
