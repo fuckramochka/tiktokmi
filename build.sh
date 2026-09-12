@@ -123,17 +123,11 @@ echo "  adaptive icon layers replaced with bitmaps"
 say "Manifest: $PKG_OLD -> $PKG_NEW"
 python3 "$HERE/inject/patch_manifest.py" "$WORK" "$PKG_OLD" "$PKG_NEW"
 
-# The rest of the provider authorities are built as getPackageName() + suffix
-# and follow the rename on their own. These two are spelled out in the code.
-say "Hardcoded authorities"
-grep -rl "$PKG_OLD.draftprovider\|$PKG_OLD.wallpapercaller" "$WORK"/smali* 2>/dev/null \
-    | while read -r f; do
-        sed -i "s/$PKG_OLD\.draftprovider/$PKG_NEW.draftprovider/g; \
-                s/$PKG_OLD\.wallpapercaller/$PKG_NEW.wallpapercaller/g" "$f"
-        echo "  $(basename "$f")"
-      done || true
-
-# ------------------------------------------------------------------- build
+# Two provider authorities are not spelled with the package name at all and
+# are shared with anything else built from the same TikTok. Android refuses to
+# install two apps claiming one authority, so these have to move too.
+say "Making provider authorities unique"
+python3 "$HERE/inject/patch_authorities.py" "$WORK" "$PKG_OLD" "$PKG_NEW"
 
 say "Repairing empty PNGs"
 python3 "$HERE/inject/fix_empty_pngs.py" "$WORK"
@@ -143,17 +137,7 @@ mkdir -p "$OUT"
 java -Xmx10g -jar "$TOOLS/apktool.jar" b "$WORK" -o "$OUT/margyt-unsigned.apk"
 
 say "Adding the injected dex"
-python3 - "$OUT/margyt-unsigned.apk" "$HERE/inject/dex/classes.dex" <<'PY'
-import sys, zipfile, shutil, re, os
-apk, dex = sys.argv[1], sys.argv[2]
-with zipfile.ZipFile(apk) as z:
-    n = max(int(re.search(r'classes(\d*)\.dex', x).group(1) or 1)
-            for x in z.namelist() if re.fullmatch(r'classes\d*\.dex', x))
-name = "classes%d.dex" % (n + 1)
-with zipfile.ZipFile(apk, "a", zipfile.ZIP_DEFLATED) as z:
-    z.write(dex, name)
-print("  added as", name)
-PY
+python3 "$HERE/inject/add_dex.py" "$OUT/margyt-unsigned.apk" "$HERE/inject/dex/classes.dex"
 
 say "Signing"
 java -jar "$TOOLS/uber-apk-signer.jar" -a "$OUT/margyt-unsigned.apk" --allowResign --overwrite
