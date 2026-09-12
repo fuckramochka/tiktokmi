@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Scope для LSPosed. Обязательно добавь СВОЙ лаунчер, если его тут нет —
+      иначе иконка/название на рабочем столе не поменяются.
+      Узнать пакет лаунчера: adb shell cmd shortcut get-default-launcher
+    -->
+    <string-array name="xposed_scope">
+        <!-- цели -->
+        <item>cat.narezany.tiktok</item>
+        <item>com.zhiliaoapp.musically</item>
+        <item>com.ss.android.ugc.trill</item>
+        <!-- лаунчеры -->
+        <item>com.google.android.apps.nexuslauncher</item>
+        <item>com.android.launcher3</item>
+        <item>com.miui.home</item>
+        <item>com.sec.android.app.launcher</item>
+        <item>com.teslacoilsw.launcher</item>
+        <item>com.microsoft.launcher</item>
+        <item>me.hexage.hexlauncher</item>
+    </string-array>
+</resources>
