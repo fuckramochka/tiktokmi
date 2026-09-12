@@ -24,7 +24,7 @@ import os
 import re
 import shutil
 import subprocess
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 TELEPHONY = "Landroid/telephony/TelephonyManager;"
 REGION = "Lcat/narezany/margyt/Region;"
@@ -58,15 +58,49 @@ def rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     return out
 
 
-def interesting(dex: bytes) -> bool:
+def interesting(dex: bytes, literals: Optional[Dict[str, str]] = None) -> bool:
     """A quick look at the raw dex before spending a minute on it.
 
-    Every method a dex calls is named in its string table, so a dex that never
-    spells `TelephonyManager` cannot be calling one of these.
+    Every method a dex calls and every string it holds is in its string table,
+    so a dex that never spells `TelephonyManager` cannot be calling one of
+    these, and one that never spells an authority cannot be looking it up.
     """
+    for old in (literals or {}):
+        if old.encode() in dex:
+            return True
     if TELEPHONY.encode() not in dex:
         return False
     return any(name.encode() in dex for name, _o, _r in TARGETS)
+
+
+def rewrite_literals(root: str, literals: Dict[str, str]) -> Dict[str, int]:
+    """Swap whole string constants, for the authorities the manifest renamed.
+
+    A provider authority renamed in the manifest and not in the code is an app
+    that cannot find its own provider -- so if any of these strings turn out to
+    be in the bytecode after all, they move with it.
+    """
+    counts: Dict[str, int] = {}
+    if not literals:
+        return counts
+    for dirpath, _dirs, files in os.walk(root):
+        for name in files:
+            if not name.endswith(".smali"):
+                continue
+            path = os.path.join(dirpath, name)
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            before = text
+            for old, new in literals.items():
+                needle = '"%s"' % old
+                hits = text.count(needle)
+                if hits:
+                    text = text.replace(needle, '"%s"' % new)
+                    counts[old] = counts.get(old, 0) + hits
+            if text != before:
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+    return counts
 
 
 def rewrite_smali(root: str) -> Dict[str, int]:
@@ -128,8 +162,9 @@ def dex_format(dex: bytes) -> str:
     return dex[4:7].decode("ascii", "replace")
 
 
-def patch(dex: bytes, name: str, smali: Smali, workspace: str) -> Tuple[bytes, Dict[str, int]]:
-    """Take one dex apart, rewrite its call sites, put it back together."""
+def patch(dex: bytes, name: str, smali: Smali, workspace: str,
+          literals: Optional[Dict[str, str]] = None) -> Tuple[bytes, Dict[str, int]]:
+    """Take one dex apart, rewrite what is in it, put it back together."""
     room = os.path.join(workspace, name)
     shutil.rmtree(room, ignore_errors=True)
     os.makedirs(room, exist_ok=True)
@@ -141,6 +176,7 @@ def patch(dex: bytes, name: str, smali: Smali, workspace: str) -> Tuple[bytes, D
 
     smali.disassemble(dex_in, os.path.join(room, "smali"))
     counts = rewrite_smali(os.path.join(room, "smali"))
+    counts.update(rewrite_literals(os.path.join(room, "smali"), literals or {}))
     if not counts:
         shutil.rmtree(room, ignore_errors=True)
         return dex, counts

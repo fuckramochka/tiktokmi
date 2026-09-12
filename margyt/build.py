@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from . import artwork, dexpatch, icon as icon_module, manifest as manifest_module
 from .apkzip import Apk, STORED
@@ -25,6 +25,10 @@ SETTINGS_ACTIVITY = PACKAGE + ".SettingsActivity"
 LABEL = "MargyT"
 SETTINGS_LABEL = "MargyT settings"
 SETTINGS_THEME = "Theme_DeviceDefault_Light_NoActionBar"
+
+# what a renamed provider authority ends in, so two mods of the same app can
+# sit on one phone without the installer refusing the second
+AUTHORITY_MARKER = ".margyt"
 
 
 class Build:
@@ -85,6 +89,17 @@ class Build:
         manifest_module.add_activity(manifest, SETTINGS_ACTIVITY, SETTINGS_LABEL, theme)
         self.detail("%s declared, on the launcher" % SETTINGS_ACTIVITY)
 
+        self.say("Provider authorities")
+        shared = manifest_module.shared_authorities(manifest, package)
+        renames = {old: old + AUTHORITY_MARKER for old in shared}
+        if renames:
+            for new in manifest_module.rename_authorities(manifest, renames):
+                self.detail(new)
+            self.detail("%d the package name does not cover, now ours alone"
+                        % len(renames))
+        else:
+            self.detail("every authority is spelled with the package name, nothing to do")
+
         arsc = Arsc(apk.read("resources.arsc"))
         master = open(os.path.join(self.root, artwork.MASTER_PNG), "rb").read()
         for line in icon_module.replace_everywhere(apk, arsc, manifest, master):
@@ -95,7 +110,7 @@ class Build:
             apk.replace("resources.arsc", arsc.build(), STORED)
 
         self.say("Rewriting the telephony call sites")
-        self.patch_dex_files(apk, api)
+        self.patch_dex_files(apk, api, renames)
 
         name = dexpatch.next_dex_name(apk.names())
         apk.add(name, injected)
@@ -116,19 +131,19 @@ class Build:
 
     # ------------------------------------------------------------------ dex
 
-    def patch_dex_files(self, apk: Apk, api: int) -> None:
+    def patch_dex_files(self, apk: Apk, api: int, literals: Dict[str, str]) -> None:
         smali = Smali(self.tools.smali, api)
         names = sorted(n for n in apk.names() if n.endswith(".dex"))
         candidates: List[str] = []
         for name in names:
-            if dexpatch.interesting(apk.read(name)):
+            if dexpatch.interesting(apk.read(name), literals):
                 candidates.append(name)
         self.detail("%d of %d dex files mention it" % (len(candidates), len(names)))
 
         total = 0
         for name in candidates:
             patched, counts = dexpatch.patch(
-                apk.read(name), name, smali, os.path.join(self.workspace, "dex")
+                apk.read(name), name, smali, os.path.join(self.workspace, "dex"), literals
             )
             if not counts:
                 self.detail("%s: nothing to rewrite after all" % name)

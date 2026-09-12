@@ -26,5 +26,9 @@
     </activity-alias>
     <provider android:name="cat.narezany.fixture.P"
         android:authorities="cat.narezany.fixture.p" android:exported="false"/>
+    <!-- an authority not spelled with the package name: every apk built from
+         this one claims it, so two of them cannot be installed at once -->
+    <provider android:name="cat.narezany.fixture.Shared"
+        android:authorities="com.example.shared.provider1233" android:exported="false"/>
   </application>
 </manifest>

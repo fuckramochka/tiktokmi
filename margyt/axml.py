@@ -44,6 +44,7 @@ ATTR_IDS = {
     "configChanges": 0x0101001F,
     "launchMode": 0x0101001D,
     "roundIcon": 0x0101052C,
+    "authorities": 0x01010018,
     "minSdkVersion": 0x0101020C,
 }
 

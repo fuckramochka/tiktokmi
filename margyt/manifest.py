@@ -89,6 +89,42 @@ def launcher_elements(axml: Axml) -> List[Node]:
     return [node for node, kinds in found.values() if len(kinds) == 2]
 
 
+def shared_authorities(axml: Axml, package: str) -> List[str]:
+    """Provider authorities that are not spelled with the package name.
+
+    Android will not install two apps that claim the same provider authority,
+    and most of TikTok's authorities are safe because they are built out of the
+    package name -- rename the package and they follow. These do not: they are
+    written out in full, identical in every apk built from this one. Keeping
+    TikTok's package name means keeping them too, and then any other mod of the
+    same app on the phone is enough to have the installer refuse this one.
+    """
+    out = []
+    for node in axml.elements("provider"):
+        value = axml.attr_string(node, "authorities")
+        if not value:
+            continue
+        for authority in value.split(";"):
+            if authority and package not in authority and authority not in out:
+                out.append(authority)
+    return out
+
+
+def rename_authorities(axml: Axml, renames: dict) -> List[str]:
+    """Rewrite provider authorities according to `renames`."""
+    touched = []
+    for node in axml.elements("provider"):
+        value = axml.attr_string(node, "authorities")
+        if not value:
+            continue
+        parts = [renames.get(part, part) for part in value.split(";")]
+        new_value = ";".join(parts)
+        if new_value != value:
+            axml.set_attr_string(node, "authorities", new_value)
+            touched.append(new_value)
+    return touched
+
+
 def set_label(axml: Axml, label: str) -> List[str]:
     """Put `label` under the icon, wherever the launcher would read it from."""
     touched = []

@@ -90,6 +90,22 @@ class AxmlTest(unittest.TestCase):
         self.assertIn("cat.narezany.margyt.SettingsActivity", launchers)
         self.assertIn("cat.narezany.fixture.Splash", launchers)
 
+    def test_only_the_authorities_the_package_does_not_cover_move(self):
+        axml = Axml.parse(self.raw)
+        package = manifest_module.package_name(axml)
+        shared = manifest_module.shared_authorities(axml, package)
+        self.assertEqual(shared, ["com.example.shared.provider1233"])
+
+        renames = {old: old + ".margyt" for old in shared}
+        manifest_module.rename_authorities(axml, renames)
+        again = Axml.parse(axml.build())
+
+        authorities = [again.attr_string(n, "authorities") for n in again.elements("provider")]
+        self.assertIn("com.example.shared.provider1233.margyt", authorities)
+        self.assertIn("cat.narezany.fixture.p", authorities)  # named after the package, untouched
+        self.assertEqual(manifest_module.shared_authorities(again, package),
+                         ["com.example.shared.provider1233.margyt"])
+
     def test_inserting_a_string_moves_every_index_that_follows(self):
         """The bug this test exists for: a pool insert renumbers the pool.
 
@@ -378,6 +394,32 @@ class DexPatchTest(unittest.TestCase):
             java = handle.read()
         for name, _original, _replacement in dexpatch.TARGETS:
             self.assertIn(name + "(TelephonyManager tm", java, name)
+
+    def test_a_renamed_authority_moves_in_the_bytecode_too(self):
+        import tempfile as tf
+        room = tf.mkdtemp()
+        try:
+            with open(os.path.join(room, "a.smali"), "w", encoding="utf-8") as handle:
+                handle.write(
+                    '    const-string v0, "com.example.shared.provider1233"\n'
+                    '    const-string v1, "com.example.shared.provider1233.suffix"\n'
+                    '    const-string v2, "untouched"\n'
+                )
+            counts = dexpatch.rewrite_literals(
+                room, {"com.example.shared.provider1233": "com.example.shared.provider1233.margyt"})
+            self.assertEqual(counts, {"com.example.shared.provider1233": 1})
+            with open(os.path.join(room, "a.smali"), encoding="utf-8") as handle:
+                out = handle.read()
+            self.assertIn('"com.example.shared.provider1233.margyt"', out)
+            # a longer string that merely starts the same is not a match
+            self.assertIn('"com.example.shared.provider1233.suffix"', out)
+            self.assertIn('"untouched"', out)
+        finally:
+            shutil.rmtree(room, ignore_errors=True)
+
+    def test_a_dex_holding_a_renamed_authority_is_taken_apart(self):
+        self.assertFalse(dexpatch.interesting(b"nothing", {"com.example.p": "x"}))
+        self.assertTrue(dexpatch.interesting(b"...com.example.p...", {"com.example.p": "x"}))
 
     def test_the_dex_format_is_read_off_the_header(self):
         self.assertEqual(dexpatch.dex_format(b"dex\n035\x00rest"), "035")
