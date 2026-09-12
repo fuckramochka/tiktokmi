@@ -421,6 +421,51 @@ class DexPatchTest(unittest.TestCase):
         self.assertFalse(dexpatch.interesting(b"nothing", {"com.example.p": "x"}))
         self.assertTrue(dexpatch.interesting(b"...com.example.p...", {"com.example.p": "x"}))
 
+    def test_a_forced_method_keeps_its_modifiers_and_loses_its_body(self):
+        import tempfile as tf
+        room = tf.mkdtemp()
+        try:
+            class_name, signature = dexpatch.FORCED_FALSE[0]
+            path = os.path.join(room, *class_name.split("/")) + ".smali"
+            os.makedirs(os.path.dirname(path))
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(
+                    ".class public L%s;\n" % class_name
+                    + ".method public final %s\n" % signature
+                    + "    .registers 4\n\n"
+                    + "    invoke-static {}, Lsomething/Expensive;->check()Z\n\n"
+                    + "    move-result v0\n\n    return v0\n.end method\n"
+                    + ".method public final other()V\n    return-void\n.end method\n"
+                )
+            counts = dexpatch.force_false(room)
+            self.assertEqual(sum(counts.values()), 1)
+            with open(path, encoding="utf-8") as handle:
+                out = handle.read()
+            self.assertIn(".method public final %s\n    .registers 1" % signature, out)
+            self.assertNotIn("Expensive", out)
+            self.assertIn("other()V", out)  # nothing else touched
+        finally:
+            shutil.rmtree(room, ignore_errors=True)
+
+    def test_a_forced_method_that_moved_stops_the_build(self):
+        import tempfile as tf
+        room = tf.mkdtemp()
+        try:
+            class_name, _signature = dexpatch.FORCED_FALSE[0]
+            path = os.path.join(room, *class_name.split("/")) + ".smali"
+            os.makedirs(os.path.dirname(path))
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(".class public L%s;\n" % class_name)
+            with self.assertRaises(RuntimeError):
+                dexpatch.force_false(room)
+        finally:
+            shutil.rmtree(room, ignore_errors=True)
+
+    def test_the_dex_holding_a_forced_class_is_taken_apart(self):
+        class_name = dexpatch.FORCED_FALSE[0][0]
+        self.assertTrue(dexpatch.interesting(("L%s;" % class_name).encode()))
+        self.assertFalse(dexpatch.interesting(b"some other app entirely"))
+
     def test_the_dex_format_is_read_off_the_header(self):
         self.assertEqual(dexpatch.dex_format(b"dex\n035\x00rest"), "035")
         self.assertEqual(dexpatch.dex_format(b"dex\n039\x00rest"), "039")

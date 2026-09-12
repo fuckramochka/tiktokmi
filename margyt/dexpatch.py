@@ -46,6 +46,26 @@ TARGETS: List[Tuple[str, str, str]] = [
 ]
 
 
+# Methods that have to answer no, whatever they would have worked out.
+#
+# TikTok signs in with Google two ways: through Play Services, and through the
+# browser with AppAuth and a custom-scheme redirect. It asks the first one
+# whether it is available and only falls back to the second when it is not.
+#
+# For anything built here the Play Services way cannot work at all: Google
+# checks the package name against the certificate's SHA-1, and the certificate
+# is no longer TikTok's. Left alone it fails with a developer error and no way
+# forward. So the provider that speaks to Play Services reports itself
+# unavailable, and the app takes its own fallback -- the browser, which checks
+# nothing but who receives the redirect.
+#
+# The class name is a real one, not an obfuscated one, which is what makes this
+# safe to anchor on.
+FORCED_FALSE: List[Tuple[str, str]] = [
+    ("com/bytedance/lobby/google/GoogleAuth", "isAvailable()Z"),
+]
+
+
 def rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     out = []
     for name, original, replacement in TARGETS:
@@ -58,6 +78,36 @@ def rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     return out
 
 
+def force_false(root: str) -> Dict[str, int]:
+    """Rewrite the methods in FORCED_FALSE to `return false`, body and all."""
+    counts: Dict[str, int] = {}
+    for class_name, signature in FORCED_FALSE:
+        path = os.path.join(root, *class_name.split("/")) + ".smali"
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        pattern = re.compile(
+            r"^\.method ([^\n]*%s)\n.*?^\.end method$" % re.escape(signature),
+            re.MULTILINE | re.DOTALL,
+        )
+        match = pattern.search(text)
+        if match is None:
+            raise RuntimeError(
+                "%s is in the apk but has no %s to rewrite -- the fallback this "
+                "depends on has moved, and Google sign-in would be dead on arrival"
+                % (class_name, signature)
+            )
+        stub = ".method %s\n    .registers 1\n\n    const/4 v0, 0x0\n\n    return v0\n.end method" % (
+            match.group(1),
+        )
+        text = text[: match.start()] + stub + text[match.end():]
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        counts["%s->%s" % (class_name.rsplit("/", 1)[-1], signature)] = 1
+    return counts
+
+
 def interesting(dex: bytes, literals: Optional[Dict[str, str]] = None) -> bool:
     """A quick look at the raw dex before spending a minute on it.
 
@@ -67,6 +117,9 @@ def interesting(dex: bytes, literals: Optional[Dict[str, str]] = None) -> bool:
     """
     for old in (literals or {}):
         if old.encode() in dex:
+            return True
+    for class_name, _signature in FORCED_FALSE:
+        if ("L%s;" % class_name).encode() in dex:
             return True
     if TELEPHONY.encode() not in dex:
         return False
@@ -177,6 +230,7 @@ def patch(dex: bytes, name: str, smali: Smali, workspace: str,
     smali.disassemble(dex_in, os.path.join(room, "smali"))
     counts = rewrite_smali(os.path.join(room, "smali"))
     counts.update(rewrite_literals(os.path.join(room, "smali"), literals or {}))
+    counts.update(force_false(os.path.join(room, "smali")))
     if not counts:
         shutil.rmtree(room, ignore_errors=True)
         return dex, counts

@@ -109,7 +109,7 @@ class Build:
         if arsc.dirty:
             apk.replace("resources.arsc", arsc.build(), STORED)
 
-        self.say("Rewriting the telephony call sites")
+        self.say("Rewriting the bytecode")
         self.patch_dex_files(apk, api, renames)
 
         name = dexpatch.next_dex_name(apk.names())
@@ -140,6 +140,8 @@ class Build:
                 candidates.append(name)
         self.detail("%d of %d dex files mention it" % (len(candidates), len(names)))
 
+        telephony_labels = {label for label, _pattern, _target in dexpatch.rules()}
+        calls = 0
         total = 0
         for name in candidates:
             patched, counts = dexpatch.patch(
@@ -151,13 +153,14 @@ class Build:
             apk.replace(name, patched)
             hits = sum(counts.values())
             total += hits
+            calls += sum(v for label, v in counts.items() if label in telephony_labels)
             self.detail(
-                "%s: %d call sites (%s)"
+                "%s: %d (%s)"
                 % (name, hits, ", ".join("%s x%d" % (k.split("(")[0], v)
                                          for k, v in sorted(counts.items())))
             )
-        self.detail("%d call sites rewritten" % total)
-        if not total:
+        self.detail("%d telephony call sites rewritten, %d rewrites in all" % (calls, total))
+        if not calls:
             raise RuntimeError(
                 "not one call site matched -- the method signatures have moved, "
                 "and the mod would do nothing at all"

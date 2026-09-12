@@ -106,15 +106,41 @@ every Android process has and which no release can rename.
 <details>
 <summary><b>Signing in with Google still works</b></summary>
 
-It was supposed to be the thing that broke. Resigning an apk changes its
-certificate, and Google Sign-In through Play Services checks the package name
-and the certificate's SHA-1 — so a repackaged app cannot use it.
+Resigning an apk changes its certificate, and Google Sign-In through Play
+Services checks the package name against that certificate's SHA-1. For anything
+built here that check can only fail: the package name is still TikTok's and the
+certificate is not. Left alone the button leads to a developer error and no way
+forward.
 
-TikTok does not use it. It opens the browser with AppAuth and a custom-scheme
-redirect, `com.googleusercontent.apps.<client_id>`, with PKCE. Google does not
-check package or signature for that kind of client; it only checks that whoever
-claims the scheme receives the redirect. The build leaves all three schemes in
-the manifest untouched and the flow goes through.
+TikTok has a second way in, though, and it is the one it falls back to when
+Play Services is not around: AppAuth, with a custom-scheme redirect --
+`com.googleusercontent.apps.<client_id>` -- and PKCE, in the browser. Google
+does not check package or signature for that kind of client; it only checks
+that whoever claims the scheme receives the redirect. So the build makes the
+Play Services provider report itself unavailable, and the app takes its own
+fallback:
+
+```smali
+# com/bytedance/lobby/google/GoogleAuth
+.method public final isAvailable()Z
+    .registers 1
+    const/4 v0, 0x0
+    return v0
+.end method
+```
+
+which is enough, because the decision reads:
+
+```java
+provider = registry.get("google");
+if (provider != null && provider.isAvailable()) return "google";
+return "google_web";
+```
+
+The class name there is a real one rather than an obfuscated one, which is what
+makes it safe to anchor on -- and if a later release moves the method, the build
+stops instead of quietly shipping a dead button.
+
 </details>
 
 ## How the build works
