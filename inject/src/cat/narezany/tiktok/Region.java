@@ -65,10 +65,20 @@ public final class Region {
 
     // ---------------------------------------------------------------- bootstrap
 
-    /** Called from the injection in AwemeHostApplication.onCreate(). */
+    /**
+     * Called from the injections in AwemeHostApplication -- once from
+     * attachBaseContext, which is early enough to beat the app's own startup
+     * work, and again from onCreate.
+     *
+     * getApplicationContext() can still be null that early, so the base context
+     * is kept instead of giving up: worse than the application context, but it
+     * opens SharedPreferences all the same.
+     */
     public static void init(Context context) {
         if (context == null) return;
-        sContext = context.getApplicationContext();
+        Context app = null;
+        try { app = context.getApplicationContext(); } catch (Throwable ignored) {}
+        sContext = app != null ? app : context;
         sRow = null;
         applyLocale();
     }

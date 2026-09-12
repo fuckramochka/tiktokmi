@@ -79,6 +79,12 @@ java -cp "$TOOLS/r8.jar" com.android.tools.r8.D8 \
 say "Rewriting TelephonyManager call sites"
 python3 "$HERE/inject/patch_callsites.py" "$WORK"
 
+say "Handing Region a Context"
+python3 "$HERE/inject/patch_bootstrap.py" "$WORK"
+
+say "Adding the MargyT row to the settings list"
+python3 "$HERE/inject/patch_settings_cell.py" "$WORK"
+
 # --------------------------------------------------------------- resources
 
 say "Name and icon"
