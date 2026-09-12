@@ -162,6 +162,9 @@ grep -rl "$PKG_OLD.draftprovider\|$PKG_OLD.wallpapercaller" "$WORK"/smali* 2>/de
 
 # ------------------------------------------------------------------- build
 
+say "Repairing empty PNGs"
+python3 "$HERE/inject/fix_empty_pngs.py" "$WORK"
+
 say "Building"
 mkdir -p "$OUT"
 java -Xmx10g -jar "$TOOLS/apktool.jar" b "$WORK" -o "$OUT/margyt-unsigned.apk"
