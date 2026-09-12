@@ -57,10 +57,18 @@ fi
 # ------------------------------------------------------------------- инжект
 
 say "Компиляция инжекта в classes53.dex"
-rm -rf "$HERE/inject/classes" "$HERE/inject/dex"
-mkdir -p "$HERE/inject/classes" "$HERE/inject/dex"
+rm -rf "$HERE/inject/classes" "$HERE/inject/stubs-classes" "$HERE/inject/dex"
+mkdir -p "$HERE/inject/classes" "$HERE/inject/stubs-classes" "$HERE/inject/dex"
+
+# Заглушки kotlin.* нужны только компилятору: настоящие классы уже лежат
+# в самом TikTok. В dex они не попадают, иначе перекрыли бы оригиналы.
 javac -nowarn -cp "$TOOLS/android.jar" --release 17 \
+      -d "$HERE/inject/stubs-classes" $(find "$HERE/inject/stubs" -name '*.java')
+
+javac -nowarn -cp "$TOOLS/android.jar:$HERE/inject/stubs-classes" --release 17 \
       -d "$HERE/inject/classes" $(find "$HERE/inject/src" -name '*.java')
+
+# в D8 уходят только наши классы
 java -cp "$TOOLS/r8.jar" com.android.tools.r8.D8 \
      --release --min-api 27 --lib "$TOOLS/android.jar" \
      --output "$HERE/inject/dex" $(find "$HERE/inject/classes" -name '*.class')
