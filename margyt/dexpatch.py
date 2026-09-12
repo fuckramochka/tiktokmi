@@ -123,6 +123,11 @@ class Smali:
         )
 
 
+def dex_format(dex: bytes) -> str:
+    """The three digits after `dex\n`: 035, 038, 039 ..."""
+    return dex[4:7].decode("ascii", "replace")
+
+
 def patch(dex: bytes, name: str, smali: Smali, workspace: str) -> Tuple[bytes, Dict[str, int]]:
     """Take one dex apart, rewrite its call sites, put it back together."""
     room = os.path.join(workspace, name)
@@ -144,6 +149,13 @@ def patch(dex: bytes, name: str, smali: Smali, workspace: str) -> Tuple[bytes, D
     with open(dex_out, "rb") as handle:
         patched = handle.read()
     shutil.rmtree(room, ignore_errors=True)
+
+    if dex_format(patched) != dex_format(dex):
+        raise RuntimeError(
+            "%s came back as dex %s, it went in as dex %s -- an Android old "
+            "enough to be in the apk's minSdk would refuse to load it"
+            % (name, dex_format(patched), dex_format(dex))
+        )
     return patched, counts
 
 

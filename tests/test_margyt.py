@@ -50,6 +50,9 @@ class AxmlTest(unittest.TestCase):
         self.assertEqual(manifest_module.application_class(axml), "cat.narezany.fixture.App")
         self.assertEqual(len(manifest_module.icon_ids(axml)), 1)  # icon and roundIcon agree
 
+    def test_min_sdk_comes_from_the_manifest(self):
+        self.assertEqual(manifest_module.min_sdk(Axml.parse(self.raw)), 24)
+
     def test_the_launcher_entry_is_found_through_the_alias(self):
         axml = Axml.parse(self.raw)
         found = manifest_module.launcher_elements(axml)
@@ -375,6 +378,10 @@ class DexPatchTest(unittest.TestCase):
             java = handle.read()
         for name, _original, _replacement in dexpatch.TARGETS:
             self.assertIn(name + "(TelephonyManager tm", java, name)
+
+    def test_the_dex_format_is_read_off_the_header(self):
+        self.assertEqual(dexpatch.dex_format(b"dex\n035\x00rest"), "035")
+        self.assertEqual(dexpatch.dex_format(b"dex\n039\x00rest"), "039")
 
     def test_the_new_dex_continues_the_run(self):
         self.assertEqual(dexpatch.next_dex_name(["classes.dex", "AndroidManifest.xml"]),

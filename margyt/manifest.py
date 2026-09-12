@@ -17,6 +17,7 @@ from .axml import (
     RES_XML_END_ELEMENT,
     RES_XML_START_ELEMENT,
     TYPE_REFERENCE,
+    TYPE_STRING,
 )
 
 MAIN_ACTION = "android.intent.action.MAIN"
@@ -40,6 +41,20 @@ def package_name(axml: Axml) -> Optional[str]:
 
 def application_class(axml: Axml) -> Optional[str]:
     return axml.attr_string(application(axml), "name")
+
+
+def min_sdk(axml: Axml, fallback: int = 21) -> int:
+    """The oldest Android the apk is built for.
+
+    Everything the build produces has to be readable that far back: a dex
+    assembled for a newer api is stamped with a newer format, and an Android
+    that does not know the format refuses the whole app rather than the file.
+    """
+    for node in axml.elements("uses-sdk"):
+        attr = axml.attr(node, "minSdkVersion")
+        if attr is not None and attr.kind != TYPE_STRING:
+            return attr.data
+    return fallback
 
 
 def icon_ids(axml: Axml) -> List[int]:

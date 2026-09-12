@@ -26,8 +26,6 @@ LABEL = "MargyT"
 SETTINGS_LABEL = "MargyT settings"
 SETTINGS_THEME = "Theme_DeviceDefault_Light_NoActionBar"
 
-MIN_API = 27
-
 
 class Build:
     def __init__(self, apk_path: str, out_path: str, root: str, tools: Toolchain,
@@ -61,12 +59,24 @@ class Build:
         self.detail("package %s, staying as it is" % package)
         self.detail("application class %s" % manifest_module.application_class(manifest))
 
+        # everything built here has to be loadable as far back as the apk goes,
+        # and the apk itself is the only honest source for how far back that is
+        api = manifest_module.min_sdk(manifest)
+        dex_format = dexpatch.dex_format(apk.read("classes.dex"))
+        self.detail("minSdk %d, dex %s" % (api, dex_format))
+
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
-            os.path.join(self.root, "inject", "java"), self.workspace, MIN_API
+            os.path.join(self.root, "inject", "java"), self.workspace, api
         )
         injected = open(dex_path, "rb").read()
-        self.detail("%d bytes" % len(injected))
+        if dexpatch.dex_format(injected) != dex_format:
+            raise RuntimeError(
+                "the mod compiled to dex %s and the apk is dex %s -- an Android "
+                "on the apk's minSdk (%d) would refuse to load it"
+                % (dexpatch.dex_format(injected), dex_format, api)
+            )
+        self.detail("%d bytes, dex %s" % (len(injected), dexpatch.dex_format(injected)))
 
         self.say("Name and icon")
         theme = self.tools.framework_constant(SETTINGS_THEME)
@@ -85,7 +95,7 @@ class Build:
             apk.replace("resources.arsc", arsc.build(), STORED)
 
         self.say("Rewriting the telephony call sites")
-        self.patch_dex_files(apk)
+        self.patch_dex_files(apk, api)
 
         name = dexpatch.next_dex_name(apk.names())
         apk.add(name, injected)
@@ -106,8 +116,8 @@ class Build:
 
     # ------------------------------------------------------------------ dex
 
-    def patch_dex_files(self, apk: Apk) -> None:
-        smali = Smali(self.tools.smali, MIN_API)
+    def patch_dex_files(self, apk: Apk, api: int) -> None:
+        smali = Smali(self.tools.smali, api)
         names = sorted(n for n in apk.names() if n.endswith(".dex"))
         candidates: List[str] = []
         for name in names:

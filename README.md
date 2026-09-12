@@ -162,12 +162,19 @@ reassembling the dex files that were touched.
 ==> Opening the apk
     26151 entries
     package com.zhiliaoapp.musically, staying as it is
+    minSdk 23, dex 035
 ==> Rewriting the telephony call sites
     4 of 52 dex files mention it
     classes22.dex: 19 call sites
     classes32.dex: 5 call sites
     classes4.dex: 2 call sites
 ```
+
+Everything the build produces is made for the apk's own minSdk, and it checks:
+a dex assembled for a newer api is stamped with a newer format, and an Android
+that does not know that format refuses the whole app rather than the one file.
+TikTok's is dex 035, back to Android 6 — which is not where this would have been
+noticed.
 
 If no call site matches, the build stops rather than handing you an apk that
 quietly does nothing.
@@ -209,7 +216,7 @@ only thing here that wants aapt2.
 | `margyt/png.py` | just enough PNG to resize an icon, so Pillow is not needed |
 | `margyt/vector.py` | vector drawables, compiled without aapt2 |
 | `inject/java/` | the mod itself: the settings screen and the methods the call sites land in |
-| `icon_out/` | the icon, at every density |
+| `icon_out/` | the icon: the 512px master the build scales from, and the density set |
 | `tests/` | the fixture apk and what is asserted about it |
 
 `margyt/dexpatch.py` is the file to read before moving the mod to a newer
