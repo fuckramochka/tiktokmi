@@ -121,21 +121,28 @@ def patch_switch_map(text):
 
     # Same shape as the twenty-one blocks above it. The array is sized from
     # values().length at runtime, so it has already grown by one.
+    #
+    # The labels are named rather than numbered. The file's own are hex and run
+    # 0x0..0x14 for this array -- and then the second one, built from
+    # Lifecycle$Event just below, starts over at 0x15. Taking the "next free"
+    # number collides with it, which the assembler catches as
+    # "There is already a label with that name".
     block = (
-        "    :try_start_15\n"
+        "    :try_start_margyt\n"
         "    sget-object v0, %s->%s:%s\n\n"
         "    invoke-virtual {v0}, Ljava/lang/Enum;->ordinal()I\n\n"
         "    move-result v1\n\n"
         "    const/16 v0, 0x16\n\n"
         "    aput v0, v2, v1\n\n"
-        "    goto :goto_15\n"
-        "    :try_end_15\n"
-        "    .catch Ljava/lang/NoSuchFieldError; {:try_start_15 .. :try_end_15} :catch_15\n\n"
-        "    :catch_15\n"
+        "    goto :goto_margyt\n"
+        "    :try_end_margyt\n"
+        "    .catch Ljava/lang/NoSuchFieldError; "
+        "{:try_start_margyt .. :try_end_margyt} :catch_margyt\n\n"
+        "    :catch_margyt\n"
         "    move-exception v0\n\n"
         "    invoke-static {v0}, Lcom/bytedance/tt/reliability/monitor/catchchecker/"
         "TryCatchGuardChecker;->doCheck(Ljava/lang/Throwable;)V\n\n"
-        "    :goto_15\n"
+        "    :goto_margyt\n"
         % (ENUM, CONST, ENUM)
     )
     return once(
@@ -156,7 +163,7 @@ def patch_group(text):
     text = once(
         text,
         "        :pswitch_14\n    .end packed-switch",
-        "        :pswitch_14\n        :pswitch_15\n    .end packed-switch",
+        "        :pswitch_14\n        :pswitch_margyt\n    .end packed-switch",
         "packed-switch table",
     )
 
@@ -164,7 +171,7 @@ def patch_group(text):
     # changes: LX/0CTX is keyed to the state type LX/0CSz, which our cell
     # shares, and the two dispatcher indices are generic plumbing.
     branch = (
-        "    :pswitch_15\n"
+        "    :pswitch_margyt\n"
         "    const/16 v0, 0x155\n\n"
         "    invoke-static {v0}, Lkotlin/jvm/internal/AFwS208S0000000_4;"
         "->get$arr$(I)Lkotlin/jvm/internal/AFwS208S0000000_4;\n\n"
