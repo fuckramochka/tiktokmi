@@ -121,34 +121,7 @@ echo "  adaptive icon layers replaced with bitmaps"
 # ---------------------------------------------------------------- manifest
 
 say "Manifest: $PKG_OLD -> $PKG_NEW"
-python3 - "$WORK" "$PKG_OLD" "$PKG_NEW" <<'PY'
-import sys, re, pathlib
-work, old, new = sys.argv[1], sys.argv[2], sys.argv[3]
-p = pathlib.Path(work) / "AndroidManifest.xml"
-s = p.read_text(encoding="utf-8")
-
-# The OAuth schemes must survive untouched: signing in with Google rides on
-# them (AppAuth with a custom-scheme redirect).
-keep = re.findall(r'android:scheme="com\.googleusercontent\.apps\.[^"]+"', s)
-
-s = s.replace('package="%s"' % old, 'package="%s"' % new)
-s = re.sub(r'(android:(?:authorities|name|scheme|targetPackage)=")%s' % re.escape(old),
-           r'\g<1>%s' % new, s)
-
-for k in keep:
-    assert k in s, "lost an OAuth scheme: %s" % k
-
-# our settings screen
-if "cat.narezany.tiktok.MargyTSettingsActivity" not in s:
-    s = s.replace("</application>",
-        '    <activity android:name="cat.narezany.tiktok.MargyTSettingsActivity"\n'
-        '        android:exported="false"\n'
-        '        android:theme="@android:style/Theme.Material.NoActionBar" />\n'
-        '</application>')
-
-p.write_text(s, encoding="utf-8")
-print("  package renamed, %d OAuth schemes intact, activity declared" % len(keep))
-PY
+python3 "$HERE/inject/patch_manifest.py" "$WORK" "$PKG_OLD" "$PKG_NEW"
 
 # The rest of the provider authorities are built as getPackageName() + suffix
 # and follow the rename on their own. These two are spelled out in the code.
