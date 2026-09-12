@@ -22,6 +22,30 @@ NEW = sys.argv[3] if len(sys.argv) > 3 else "cat.narezany.tiktok"
 
 ACTIVITY = "cat.narezany.tiktok.MargyTSettingsActivity"
 
+# Attributes whose values name this app and therefore have to move with it.
+#
+# Providers and permissions are not cosmetic: two installed apps cannot declare
+# the same authority, and they cannot declare the same custom permission with
+# different signatures either. Miss one and the install fails outright with
+# INSTALL_FAILED_CONFLICTING_PROVIDER or INSTALL_FAILED_DUPLICATE_PERMISSION.
+RENAME = (
+    "authorities",
+    "name",
+    "permission",
+    "readPermission",
+    "writePermission",
+    "process",
+    "targetPackage",
+    "taskAffinity",
+    "scheme",
+)
+
+# android:host is deliberately absent. Those are deep-link hosts that arrive
+# from the server and from web links -- "cct.<package>" is a Custom Tabs host
+# some SDK was configured with. They are not ours to renumber; renaming them
+# breaks incoming links and gains nothing.
+KEEP = ("host",)
+
 
 def main():
     path = pathlib.Path(ROOT) / "AndroidManifest.xml"
@@ -39,16 +63,31 @@ def main():
         r'\s*<meta-data android:name="com\.android\.vending\.splits"[^>]*?/>',
         "", text)
 
-    renamed = 0
-    if 'package="%s"' % OLD in text:
-        text = text.replace('package="%s"' % OLD, 'package="%s"' % NEW)
-        text, renamed = re.subn(
-            r'(android:(?:authorities|name|scheme|targetPackage)=")%s' % re.escape(OLD),
-            r"\g<1>%s" % NEW, text)
+    text = text.replace('package="%s"' % OLD, 'package="%s"' % NEW)
+
+    # Every occurrence inside a whitelisted attribute, not just one at the
+    # front of the value: android:authorities is frequently a ';'-separated
+    # list, and a prefix-anchored replacement renames the first entry and
+    # silently leaves the rest pointing at the original app.
+    renamed = [0]
+
+    def fix(match):
+        attr, value = match.group(1), match.group(2)
+        if attr in KEEP or attr not in RENAME or OLD not in value:
+            return match.group(0)
+        renamed[0] += value.count(OLD)
+        return 'android:%s="%s"' % (attr, value.replace(OLD, NEW))
+
+    text = re.sub(r'android:([A-Za-z]+)="([^"]*)"', fix, text)
 
     for scheme in schemes:
         if scheme not in text:
             raise SystemExit("the rename ate an AppAuth scheme: %s" % scheme)
+
+    left = re.findall(r'android:([A-Za-z]+)="([^"]*%s[^"]*)"' % re.escape(OLD), text)
+    unexpected = [a for a, _ in left if a not in KEEP]
+    if unexpected:
+        raise SystemExit("still naming the old package in: %s" % sorted(set(unexpected)))
 
     added = False
     if ACTIVITY not in text:
@@ -62,7 +101,8 @@ def main():
 
     path.write_text(text, encoding="utf-8")
     print("  split metadata dropped: %d" % dropped)
-    print("  package refs renamed:   %d" % renamed)
+    print("  package refs renamed:   %d" % renamed[0])
+    print("  left alone (deep links): %d" % len(left))
     print("  AppAuth schemes intact: %d" % len(schemes))
     print("  settings activity:      %s" % ("declared" if added else "already there"))
 
