@@ -25,11 +25,6 @@ final class Text {
 
     static final String COUNTRY = pick("Страна", "Країна", "Country");
 
-    static final String ABOUT = pick(
-            "Меняет ленту и то, что закрыто по стране.",
-            "Змінює стрічку і те, що закрите за країною.",
-            "Changes the feed and what is gated by country.");
-
     static final String ACCENT = pick("Цвет TikTok", "Колір TikTok", "TikTok's colour");
 
     static final String ACCENT_COLOUR = pick("Акцент", "Акцент", "Accent");
@@ -53,6 +48,77 @@ final class Text {
 
     static final String RESTART = pick("Перезапустить", "Перезапустити", "Restart");
 
+    // ------------------------------------------------ what TikTok ships off
+
+    static final String HIDDEN = pick("Анти A/B", "Анти A/B", "Anti A/B");
+
+    static final String HIDDEN_NOTE = pick(
+            "Функции у TikTok уже написаны, но выдаются случайной части людей. "
+                    + "Здесь они включаются всем.",
+            "Функції в TikTok уже написані, але видаються випадковій частині людей. "
+                    + "Тут вони вмикаються всім.",
+            "TikTok has written these already and hands them to a random share of "
+                    + "people. Here they are switched on for everyone.");
+
+    static final String CLOSE = pick("Понятно", "Зрозуміло", "Got it");
+
+    static final String SAVE_STICKER = pick(
+            "Сохранить стикер", "Зберегти стікер", "Save the sticker");
+
+    static final String STICKER_FAILED = pick(
+            "Не получилось сохранить стикер", "Не вдалося зберегти стікер",
+            "Could not save the sticker");
+
+    static final String SAVE_AVATAR = pick(
+            "Сохранить аватарку", "Зберегти аватарку", "Save the avatar");
+
+    static final String SAVED = pick("Сохранено", "Збережено", "Saved");
+
+    static final String AVATAR_NOTHING = pick(
+            "Нечего сохранять — откройте аватарку сначала",
+            "Нема чого зберігати — відкрийте аватарку спершу",
+            "Nothing to save yet -- open an avatar first");
+
+    static final String AVATAR_FAILED = pick(
+            "Не получилось сохранить", "Не вдалося зберегти", "Could not save it");
+
+    static final String BADGE_OWNER = pick(
+            "Владелец Margy и MargyT", "Власник Margy і MargyT",
+            "The owner of Margy and MargyT");
+
+    static final String VIDEO = pick("Видео", "Відео", "Video");
+
+    static final String BACKGROUND = pick(
+            "Играть в фоне", "Грати у фоні", "Play in the background");
+
+    static final String SPEED = pick(
+            "Ускорение удержанием", "Прискорення утриманням", "Hold to speed up");
+
+    static final String AUTOSCROLL = pick(
+            "Автопрокрутка ленты", "Автопрокрутка стрічки", "Scroll the feed by itself");
+
+    static final String SOUND = pick(
+            "Звук, снятый по копирайту", "Звук, знятий за копірайтом",
+            "Sound pulled for copyright");
+
+    static final String SEEKBAR = pick(
+            "Перемотка на всех видео", "Перемотка на всіх відео",
+            "The scrubbing bar everywhere");
+
+    static final String VOICE = pick(
+            "Голосовые комментарии", "Голосові коментарі", "Voice comments");
+
+    static final String FAVOURITES = pick(
+            "Избранное по долгому нажатию", "Обране за довгим натисканням",
+            "Favourites on a long press");
+
+    static final String REPOST = pick(
+            "Длинные репосты", "Довгі репости", "Long reposts");
+
+    static final String CONTACTS = pick(
+            "Больше людей при отправке", "Більше людей при надсиланні",
+            "More people at once when sending");
+
     // -------------------------------------------------------- the downloads
 
     static final String DOWNLOADS = pick("Скачивание", "Завантаження", "Downloads");
@@ -60,10 +126,13 @@ final class Text {
     static final String NO_WATERMARK = pick(
             "Без водяного знака", "Без водяного знака", "Without the watermark");
 
-    static final String NO_WATERMARK_NOTE = pick(
-            "Только если TikTok прислал чистый адрес для этого видео.",
-            "Лише якщо TikTok надіслав чисту адресу для цього відео.",
-            "Only where TikTok sent a clean address for the video.");
+    static final String DOWNLOAD_ALWAYS = pick(
+            "Сохранять можно всё", "Зберігати можна все", "Save anything");
+
+    static final String FEED = pick("Лента", "Стрічка", "Feed");
+
+    static final String HIDE_ADS = pick(
+            "Убирать рекламу", "Прибирати рекламу", "Drop the advertisements");
 
     // --------------------------------------------------------- the plugins
 
@@ -163,12 +232,22 @@ final class Text {
 
     static final String COPIED = pick("Скопировано", "Скопійовано", "Copied");
 
-    static final String CLEAR = pick("Очистить журнал", "Очистити журнал", "Clear the diary");
+    static final String CLEAR = pick("Очистить", "Очистити", "Clear");
 
     static final String DIARY = pick(
-            "Что мод видел  (нажми, чтобы очистить)",
-            "Що мод бачив  (натисни, щоб очистити)",
-            "What the mod saw  (tap to clear)");
+            "Что мод видел", "Що мод бачив", "What the mod saw");
+
+    static final String CLEARED = pick("Журнал очищен", "Журнал очищено", "The diary is empty");
+
+    static final String ACCOUNT = pick("Аккаунт", "Акаунт", "Account");
+
+    static final String ACCOUNT_ID = pick("ID", "ID", "ID");
+
+    static final String ACCOUNT_SEC_ID = pick(
+            "ID для ссылки", "ID для посилання", "The id a link is built from");
+
+    static final String ACCOUNT_UNKNOWN = pick(
+            "Пока неизвестен", "Поки невідомий", "Not seen yet");
 
     private static String language() {
         try {

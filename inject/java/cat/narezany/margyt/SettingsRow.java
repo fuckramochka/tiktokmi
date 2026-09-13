@@ -42,11 +42,25 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
 
     // ------------------------------------------------------- the lifecycle
 
+    /** The two screens that show an avatar filling the display. */
+    private static final String[] AVATAR_SCREENS = {
+            "com.ss.android.ugc.profile.business.ur.enlarge.EnlargeAvatarActivity",
+            "com.ss.android.ugc.profile.business.ur.enlarge.EnlargeAvatarOptActivity",
+    };
+
     @Override
     public void onActivityResumed(Activity activity) {
         Plugins.onActivityResumed(activity);
+        Screen.at(activity);
 
         String name = activity.getClass().getName();
+
+        for (String screen : AVATAR_SCREENS) {
+            if (screen.equals(name)) {
+                addSaveAvatar(activity);
+                return;
+            }
+        }
         if (!SETTINGS_ACTIVITY.equals(name)) {
             // every screen would drown the diary; the ones worth knowing about
             // are the ones that might be the settings screen under a new name
@@ -61,6 +75,54 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         decor.getViewTreeObserver().addOnGlobalLayoutListener(new Injector(activity));
     }
 
+    /**
+     * A button over the enlarged avatar, because TikTok offers none.
+     *
+     * Put on the window rather than inside the screen's own layout: whatever
+     * that layout is called this month, a window has a content view, and a
+     * child added to it sits on top of everything already there.
+     */
+    private static void addSaveAvatar(final Activity activity) {
+        try {
+            ViewGroup content = (ViewGroup) activity.getWindow()
+                    .getDecorView().findViewById(android.R.id.content);
+            if (content == null || content.getTag(SAVE_TAG) != null) return;
+            content.setTag(SAVE_TAG, Boolean.TRUE);
+
+            TextView save = new TextView(activity);
+            save.setText(Text.SAVE_AVATAR);
+            save.setTextColor(0xFFFFFFFF);
+            save.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            save.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            save.setGravity(Gravity.CENTER);
+            save.setPadding(dp(activity, 22), dp(activity, 11), dp(activity, 22), dp(activity, 11));
+
+            GradientDrawable pill = new GradientDrawable();
+            pill.setColor(Accent.colour());
+            pill.setCornerRadius(dp(activity, 22));
+            save.setBackground(pill);
+            save.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Avatars.save(activity);
+                }
+            });
+
+            android.widget.FrameLayout.LayoutParams params =
+                    new android.widget.FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            params.bottomMargin = dp(activity, 48) + statusBar(activity);
+            content.addView(save, params);
+            Diary.note("save-avatar button added");
+        } catch (Throwable error) {
+            Diary.note("save-avatar button failed: " + error);
+        }
+    }
+
+    private static final int SAVE_TAG = 0x4D617269;  // "Margi"
+
     @Override
     public void onActivityCreated(Activity activity, Bundle state) {
         Plugins.onActivityCreated(activity);
@@ -72,6 +134,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     @Override
     public void onActivityPaused(Activity activity) {
         Plugins.onActivityPaused(activity);
+        Screen.gone(activity);
     }
 
     @Override

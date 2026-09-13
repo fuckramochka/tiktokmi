@@ -58,8 +58,11 @@ public class SettingsActivity extends Activity {
     /** Where the mod, its people and its money live. */
     private static final String CHANNEL = "https://t.me/margytiktok";
     private static final String FORUM = "https://t.me/margeletforum";
-    private static final String OWNER = "https://t.me/narezany";
-    private static final String HELPER = "https://t.me/OPlusAce5";
+    private static final String OWNER_TELEGRAM = "https://t.me/narezany";
+    private static final String OWNER_TIKTOK =
+            "https://tiktok.com/@narezany?_r=1&_t=ZT-99hPDJ26hji_";
+    private static final String HELPER = "https://www.tiktok.com/@MS4wLjABAAAApBE7v5"
+            + "y_tClqKlwqBpZNwzIBn1K7aRJLDxegPPnx8joas1EmS8NZpVFdWATb4zGf";
     private static final String DOCS =
             "https://github.com/narezany/MargyT/blob/main/docs/plugins.md";
     private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
@@ -145,11 +148,45 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(accent));
 
-        column.addView(caption(Text.ABOUT));
+        column.addView(section(Text.FEED));
+        LinearLayout feed = card();
+        feed.addView(toggleRow(Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
+        column.addView(wrap(feed));
+
+        column.addView(section(Text.VIDEO));
+        LinearLayout video = card();
+        video.addView(toggleRow(Text.SOUND, Sound.isEnabled(), Sound::setEnabled));
+        video.addView(line());
+        video.addView(toggleRow(Text.SEEKBAR, Seekbar.isEnabled(), Seekbar::setEnabled));
+        column.addView(wrap(video));
+
+        column.addView(section(Text.HIDDEN));
+        LinearLayout hidden = card();
+        String[][] antiAb = {
+                {Text.BACKGROUND, Flags.KEY_BACKGROUND},
+                {Text.SPEED, Flags.KEY_SPEED},
+                {Text.AUTOSCROLL, Flags.KEY_AUTOSCROLL},
+                {Text.VOICE, Flags.KEY_VOICE},
+                {Text.FAVOURITES, Flags.KEY_FAVOURITES},
+                {Text.REPOST, Flags.KEY_REPOST},
+                {Text.CONTACTS, Flags.KEY_CONTACTS},
+        };
+        for (int i = 0; i < antiAb.length; i++) {
+            if (i > 0) hidden.addView(line());
+            final String key = antiAb[i][1];
+            hidden.addView(toggleRow(antiAb[i][0], Flags.isOn(key),
+                    on -> Flags.set(key, on)));
+        }
+        column.addView(wrap(hidden));
+        column.addView(caption(Text.HIDDEN_NOTE));
 
         column.addView(section(Text.DOWNLOADS));
         LinearLayout downloads = card();
-        downloads.addView(watermarkRow());
+        downloads.addView(toggleRow(Text.NO_WATERMARK, Download.isEnabled(),
+                Download::setEnabled));
+        downloads.addView(line());
+        downloads.addView(toggleRow(Text.DOWNLOAD_ALWAYS, Download.isAlways(),
+                Download::setAlways));
         column.addView(wrap(downloads));
 
         column.addView(section(Text.PLUGINS));
@@ -182,6 +219,13 @@ public class SettingsActivity extends Activity {
             links.addView(thanks());
         }
         column.addView(wrap(links));
+
+        column.addView(section(Text.ACCOUNT));
+        LinearLayout account = card();
+        account.addView(idRow(Text.ACCOUNT_ID, Account.id()));
+        account.addView(line());
+        account.addView(idRow(Text.ACCOUNT_SEC_ID, Account.secId()));
+        column.addView(wrap(account));
 
         column.addView(section(Text.DIARY));
         LinearLayout diary = card();
@@ -348,30 +392,60 @@ public class SettingsActivity extends Activity {
         return rows;
     }
 
-    private View watermarkRow() {
-        LinearLayout row = row();
+    /** What is set by a setting: one line and a switch, wherever it lives. */
+    private interface Setting {
+        void set(boolean on);
+    }
 
-        LinearLayout text = new LinearLayout(this);
-        text.setOrientation(LinearLayout.VERTICAL);
-        text.addView(label(Text.NO_WATERMARK));
-        text.addView(detail(Text.NO_WATERMARK_NOTE));
-        row.addView(text, grow());
+    private View toggleRow(String title, boolean on, final Setting setting) {
+        LinearLayout row = row();
+        row.addView(label(title), grow());
 
         final M3Switch toggle = new M3Switch(this);
         toggle.colours(Accent.colour(), skin.muted(), skin.card);
-        toggle.setChecked(Download.isEnabled());
+        toggle.setChecked(on);
         toggle.setOnChanged(checked -> {
-            Download.setEnabled(checked);
+            setting.set(checked);
             markChanged();
         });
         row.addView(toggle);
 
         row.setOnClickListener(v -> {
             toggle.setChecked(!toggle.isChecked(), true);
-            Download.setEnabled(toggle.isChecked());
+            setting.set(toggle.isChecked());
             markChanged();
         });
+        return sized(row, 56);
+    }
+
+    /**
+     * An identifier, and a tap to copy it.
+     *
+     * The long one does not fit on a phone, so what is shown is the ends of it
+     * and what is copied is all of it.
+     */
+    private View idRow(String title, final String value) {
+        LinearLayout row = row();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(title));
+
+        TextView shown = detail(value == null ? Text.ACCOUNT_UNKNOWN : shorten(value));
+        if (value != null) shown.setTextColor(skin.text);
+        text.addView(shown);
+        row.addView(text, grow());
+
+        if (value != null) {
+            row.addView(away());
+            row.setOnClickListener(v -> copy(title, value));
+        }
         return sized(row, 64);
+    }
+
+    private static String shorten(String value) {
+        if (value.length() <= 26) return value;
+        return value.substring(0, 14) + "…" + value.substring(value.length() - 8);
     }
 
     // ----------------------------------------------------------- the plugins
@@ -538,9 +612,9 @@ public class SettingsActivity extends Activity {
         rows.setPadding(0, dp(6), 0, dp(10));
 
         rows.addView(quiet(Text.THANKS_NOTE));
-        rows.addView(person("@narezany", Text.THANKS_OWNER, OWNER));
+        rows.addView(owner());
         rows.addView(person("Claude Opus 5", Text.THANKS_CLAUDE, null));
-        rows.addView(person("@OPlusAce5", Text.THANKS_HELPER, HELPER));
+        rows.addView(person("апрель14", Text.THANKS_HELPER, HELPER));
 
         rows.addView(line());
 
@@ -565,6 +639,32 @@ public class SettingsActivity extends Activity {
 
         rows.addView(linkRow(Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
         return rows;
+    }
+
+    /** The one row with two places to go, so it asks which. */
+    private View owner() {
+        LinearLayout row = row();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label("@narezany"));
+        text.addView(detail(Text.THANKS_OWNER));
+        row.addView(text, grow());
+        row.addView(away());
+
+        row.setOnClickListener(v -> {
+            try {
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("@narezany")
+                        .setItems(new CharSequence[]{"Telegram", "TikTok"}, (dialog, which) ->
+                                open(which == 0 ? OWNER_TELEGRAM : OWNER_TIKTOK))
+                        .setNegativeButton(Text.CANCEL, null)
+                        .show();
+            } catch (Throwable error) {
+                open(OWNER_TELEGRAM);
+            }
+        });
+        return sized(row, 60);
     }
 
     private View person(String name, String what, final String url) {
@@ -614,13 +714,39 @@ public class SettingsActivity extends Activity {
     }
 
     private void open(String url) {
+        // a tiktok.com link belongs to the app this is running inside, so it is
+        // offered there first: without this the browser opens, recognises the
+        // link and hands it straight back, which is two screens for nothing
+        url = inApp(url);
+        if (url.contains("tiktok.com") && openWith(url, getPackageName())) return;
+        if (openWith(url, null)) return;
+        Toast.makeText(this, Text.NO_BROWSER, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * The spelling of a link the app answers to.
+     *
+     * TikTok claims `www.tiktok.com` and a dozen others in its manifest, and
+     * does not claim the bare domain -- so a link written without the `www`
+     * resolves to nothing in the app, falls through to the browser, and the
+     * browser hands it straight back. One prefix is the whole difference.
+     */
+    private static String inApp(String url) {
+        if (url.startsWith("https://tiktok.com/")) {
+            return "https://www.tiktok.com/" + url.substring("https://tiktok.com/".length());
+        }
+        return url;
+    }
+
+    private boolean openWith(String url, String packageName) {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            if (packageName != null) intent.setPackage(packageName);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
+            return true;
         } catch (Throwable ignored) {
-            // a phone with no browser and no Telegram is a phone that says so
-            Toast.makeText(this, Text.NO_BROWSER, Toast.LENGTH_SHORT).show();
+            return false;
         }
     }
 
@@ -648,6 +774,19 @@ public class SettingsActivity extends Activity {
         copy.setOnClickListener(v -> copyDiary());
         row.addView(copy);
 
+        TextView clear = new TextView(this);
+        clear.setText(Text.CLEAR);
+        clear.setTextColor(Accent.colour());
+        clear.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        clear.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        clear.setPadding(dp(12), dp(8), dp(4), dp(8));
+        clear.setOnClickListener(v -> {
+            Diary.clear();
+            Toast.makeText(this, Text.CLEARED, Toast.LENGTH_SHORT).show();
+            rebuild();
+        });
+        row.addView(clear);
+
         TextView chevron = new TextView(this);
         chevron.setText(diaryOpen ? "⌃" : "⌄");
         chevron.setTextColor(skin.muted());
@@ -674,16 +813,6 @@ public class SettingsActivity extends Activity {
             view.setPadding(0, dp(2), 0, 0);
             box.addView(view);
         }
-        TextView clear = new TextView(this);
-        clear.setText(Text.CLEAR);
-        clear.setTextColor(skin.muted());
-        clear.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        clear.setPadding(0, dp(12), 0, 0);
-        clear.setOnClickListener(v -> {
-            Diary.clear();
-            rebuild();
-        });
-        box.addView(clear);
         return box;
     }
 

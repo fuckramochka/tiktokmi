@@ -1,15 +1,19 @@
 package cat.narezany.margyt;
 
 /**
- * Written by the build: the accent colour this apk was made with.
+ * Written by the build. Do not edit: every build overwrites it.
  *
- * Everything the mod swaps is swapped by value, and after the build has
- * baked a colour into the resources and the vectors, that value is this
- * one rather than the pink TikTok ships.
+ * ACCENT is the colour baked into this apk. BAKED and FROM are the
+ * shades the build wrote into the resources and the shade each one was
+ * made from -- BAKED is sorted, so a lookup is a binary search, and the
+ * answer is the entry of FROM beside it.
  */
 final class Baked {
 
     private Baked() {}
 
     static final int ACCENT = 0xFFFE2C55;
+
+    static final int[] BAKED = {};
+    static final int[] FROM = {};
 }
