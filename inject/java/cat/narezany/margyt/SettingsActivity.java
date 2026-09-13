@@ -4,15 +4,18 @@ import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -36,10 +39,31 @@ import java.util.Locale;
 public class SettingsActivity extends Activity {
 
     private Skin skin;
+    private FrameLayout root;
     private LinearLayout column;
+    private View restartBar;
+
+    /**
+     * Whether a setting was changed in this process.
+     *
+     * Static, because the bar is about the process and not about the screen:
+     * leaving the settings and coming back does not un-change what was changed,
+     * and only a restart -- which is a new process, where this is false again --
+     * does.
+     */
+    private static boolean pending;
+
+    /** Where the mod, its people and its money live. */
+    private static final String CHANNEL = "https://t.me/margytiktok";
+    private static final String FORUM = "https://t.me/margeletforum";
+    private static final String OWNER = "https://t.me/narezany";
+    private static final String HELPER = "https://t.me/OPlusAce5";
+    private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
+    private static final String CARD_NUMBER = "2204120143055305";
 
     private boolean countriesOpen;
     private boolean accentOpen;
+    private boolean thanksOpen;
     private boolean diaryOpen;
 
     @Override
@@ -59,7 +83,11 @@ public class SettingsActivity extends Activity {
         scroll.addView(column, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        setContentView(scroll);
+        root = new FrameLayout(this);
+        root.addView(scroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        setContentView(root);
         rebuild();
     }
 
@@ -115,6 +143,19 @@ public class SettingsActivity extends Activity {
 
         column.addView(caption(Text.ABOUT));
 
+        column.addView(section(Text.LINKS));
+        LinearLayout links = card();
+        links.addView(linkRow(Text.CHANNEL, "@margytiktok", CHANNEL));
+        links.addView(line());
+        links.addView(linkRow(Text.FORUM, "@margeletforum", FORUM));
+        links.addView(line());
+        links.addView(thanksHead());
+        if (thanksOpen) {
+            links.addView(line());
+            links.addView(thanks());
+        }
+        column.addView(wrap(links));
+
         column.addView(section(Text.DIARY));
         LinearLayout diary = card();
         diary.addView(diaryHead());
@@ -123,6 +164,37 @@ public class SettingsActivity extends Activity {
             diary.addView(diaryLines());
         }
         column.addView(wrap(diary));
+
+        showRestartBar();
+    }
+
+    /**
+     * The bar that says a restart is due, pinned to the foot of the screen.
+     *
+     * It sits in the root frame rather than in the column, so it stays put
+     * while the page scrolls under it, and it is built again on every rebuild
+     * because the accent it is painted with may be what just changed.
+     */
+    private void showRestartBar() {
+        if (restartBar != null) {
+            root.removeView(restartBar);
+            restartBar = null;
+        }
+        if (pending) {
+            restartBar = restartBar();
+            root.addView(restartBar, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+        }
+        // the last card has to be able to clear the bar when it is there
+        column.setPadding(0, statusBar(), 0,
+                dp(32) + (pending ? dp(64) + navigationBar() : 0));
+    }
+
+    /** A setting changed: redraw, and from now on the bar is up. */
+    private void markChanged() {
+        pending = true;
+        rebuild();
     }
 
     // ----------------------------------------------------------- the rows
@@ -136,14 +208,14 @@ public class SettingsActivity extends Activity {
         toggle.setChecked(Margy.isEnabled());
         toggle.setOnChanged(checked -> {
             Margy.setEnabled(checked);
-            rebuild();
+            markChanged();
         });
         row.addView(toggle);
 
         row.setOnClickListener(v -> {
             toggle.setChecked(!toggle.isChecked(), true);
             Margy.setEnabled(toggle.isChecked());
-            rebuild();
+            markChanged();
         });
         return sized(row, 56);
     }
@@ -191,7 +263,7 @@ public class SettingsActivity extends Activity {
         row.setOnClickListener(v -> {
             Margy.setIso(country[Margy.ISO]);
             countriesOpen = false;
-            rebuild();
+            markChanged();
         });
         return sized(row, 60);
     }
@@ -233,28 +305,12 @@ public class SettingsActivity extends Activity {
             Dot dot = new Dot(this, colour, colour == Accent.colour());
             dot.setOnClickListener(v -> {
                 Accent.set(colour);
-                rebuild();
+                markChanged();
             });
             LinearLayout.LayoutParams params =
                     new LinearLayout.LayoutParams(dp(36), dp(36), 1f);
             line.addView(dot, params);
         }
-
-        TextView restart = new TextView(this);
-        restart.setText(Text.RESTART);
-        restart.setTextColor(Accent.colour());
-        restart.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        restart.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        restart.setPadding(0, dp(16), 0, dp(4));
-        restart.setOnClickListener(v -> restartTikTok());
-        rows.addView(restart);
-
-        TextView restartNote = new TextView(this);
-        restartNote.setText(Text.RESTART_NOTE);
-        restartNote.setTextColor(skin.muted());
-        restartNote.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        restartNote.setPadding(0, dp(4), 0, dp(8));
-        rows.addView(restartNote);
 
         TextView note = new TextView(this);
         note.setText(Text.ACCENT_NOTE);
@@ -263,6 +319,143 @@ public class SettingsActivity extends Activity {
         note.setPadding(0, dp(10), 0, 0);
         rows.addView(note);
         return rows;
+    }
+
+    // ------------------------------------------------------------- the links
+
+    private View linkRow(String title, String handle, final String url) {
+        LinearLayout row = row();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(title));
+        text.addView(detail(handle));
+        row.addView(text, grow());
+        row.addView(away());
+
+        row.setOnClickListener(v -> open(url));
+        return sized(row, 64);
+    }
+
+    private View thanksHead() {
+        LinearLayout row = row();
+        row.addView(label(Text.THANKS), grow());
+
+        TextView chevron = new TextView(this);
+        chevron.setText(thanksOpen ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        row.addView(chevron);
+
+        row.setOnClickListener(v -> {
+            thanksOpen = !thanksOpen;
+            rebuild();
+        });
+        return sized(row, 56);
+    }
+
+    /** Who made this, and the two ways to pay for it. */
+    private View thanks() {
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        rows.setPadding(0, dp(6), 0, dp(10));
+
+        rows.addView(quiet(Text.THANKS_NOTE));
+        rows.addView(person("@narezany", Text.THANKS_OWNER, OWNER));
+        rows.addView(person("Claude Opus 5", Text.THANKS_CLAUDE, null));
+        rows.addView(person("@OPlusAce5", Text.THANKS_HELPER, HELPER));
+
+        rows.addView(line());
+
+        TextView heading = new TextView(this);
+        heading.setText(Text.DONATE);
+        heading.setTextColor(skin.text);
+        heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        heading.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        heading.setPadding(dp(16), dp(14), dp(16), dp(2));
+        rows.addView(heading);
+
+        rows.addView(quiet(Text.DONATE_NOTE));
+
+        LinearLayout card = row();
+        LinearLayout cardText = new LinearLayout(this);
+        cardText.setOrientation(LinearLayout.VERTICAL);
+        cardText.addView(label(spaced(CARD_NUMBER)));
+        cardText.addView(detail(Text.CARD + "  ·  " + Text.TAP_TO_COPY));
+        card.addView(cardText, grow());
+        card.setOnClickListener(v -> copy(Text.CARD, CARD_NUMBER));
+        rows.addView(sized(card, 64));
+
+        rows.addView(linkRow(Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
+        return rows;
+    }
+
+    private View person(String name, String what, final String url) {
+        LinearLayout row = row();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(name));
+        text.addView(detail(what));
+        row.addView(text, grow());
+
+        if (url != null) {
+            row.addView(away());
+            row.setOnClickListener(v -> open(url));
+        }
+        return sized(row, 60);
+    }
+
+    /** The mark on a row that leaves the app. */
+    private TextView away() {
+        TextView arrow = new TextView(this);
+        arrow.setText("↗");
+        arrow.setTextColor(skin.muted());
+        arrow.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        arrow.setPadding(dp(12), 0, 0, 0);
+        return arrow;
+    }
+
+    /** A paragraph that is there to be read once and then ignored. */
+    private TextView quiet(String message) {
+        TextView view = new TextView(this);
+        view.setText(message);
+        view.setTextColor(skin.muted());
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        view.setPadding(dp(16), dp(2), dp(16), dp(8));
+        return view;
+    }
+
+    /** A card number is read off the screen by a person, so it is grouped. */
+    private static String spaced(String digits) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < digits.length(); i++) {
+            if (i > 0 && i % 4 == 0) out.append(' ');
+            out.append(digits.charAt(i));
+        }
+        return out.toString();
+    }
+
+    private void open(String url) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Throwable ignored) {
+            // a phone with no browser and no Telegram is a phone that says so
+            Toast.makeText(this, Text.NO_BROWSER, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void copy(String what, String text) {
+        try {
+            ClipboardManager clipboard =
+                    (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            clipboard.setPrimaryClip(ClipData.newPlainText(what, text));
+            Toast.makeText(this, Text.COPIED, Toast.LENGTH_SHORT).show();
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
     }
 
     private View diaryHead() {
@@ -450,6 +643,68 @@ public class SettingsActivity extends Activity {
         view.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(height)));
         return view;
+    }
+
+    /**
+     * The bar itself: one line of why, and the button that does it.
+     *
+     * Painted in the card colour with a hairline above, so it reads as resting
+     * on the page rather than floating over it, and padded underneath by
+     * whatever the navigation bar takes -- otherwise the button sits under the
+     * gesture pill.
+     */
+    private View restartBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.VERTICAL);
+        bar.setBackgroundColor(skin.card);
+        bar.addView(line());
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.HORIZONTAL);
+        content.setGravity(Gravity.CENTER_VERTICAL);
+        content.setPadding(skin.margin, dp(12), skin.margin, dp(12) + navigationBar());
+
+        TextView why = new TextView(this);
+        why.setText(Text.RESTART_PENDING);
+        why.setTextColor(skin.text);
+        why.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        content.addView(why, grow());
+
+        TextView button = new TextView(this);
+        button.setText(Text.RESTART);
+        button.setTextColor(onAccent());
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        button.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        button.setPadding(dp(18), dp(9), dp(18), dp(9));
+        GradientDrawable pill = new GradientDrawable();
+        pill.setColor(Accent.colour());
+        pill.setCornerRadius(dp(20));
+        button.setBackground(pill);
+        button.setOnClickListener(v -> restartTikTok());
+        content.addView(button);
+
+        bar.addView(content);
+        return bar;
+    }
+
+    /**
+     * What to write on the accent: the palette holds a mint and a near-white
+     * as well as the pink, and white letters on either of those are unreadable.
+     */
+    private int onAccent() {
+        int colour = Accent.colour();
+        int red = (colour >> 16) & 0xFF, green = (colour >> 8) & 0xFF, blue = colour & 0xFF;
+        int brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+        return brightness > 150 ? 0xFF1C2C24 : 0xFFFFFFFF;
+    }
+
+    private int navigationBar() {
+        try {
+            android.view.WindowInsets insets = getWindow().getDecorView().getRootWindowInsets();
+            if (insets != null) return insets.getSystemWindowInsetBottom();
+        } catch (Throwable ignored) {
+        }
+        return 0;
     }
 
     private int statusBar() {

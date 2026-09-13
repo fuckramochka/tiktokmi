@@ -51,16 +51,64 @@ final class Text {
                     + "are pictures rather than code; their colour is settled at build "
                     + "time and does not follow.");
 
-    static final String RESTART = pick(
-            "Перезапустить TikTok", "Перезапустити TikTok", "Restart TikTok");
+    /** The bar at the foot of the screen: one line, not a paragraph. */
+    static final String RESTART_PENDING = pick(
+            "Изменения применятся после перезапуска",
+            "Зміни застосуються після перезапуску",
+            "Changes apply after a restart");
 
-    static final String RESTART_NOTE = pick(
-            "Цвет меняется у того, что рисуется заново. Уже нарисованные экраны "
-                    + "останутся прежними до перезапуска.",
-            "Колір змінюється у того, що малюється наново. Уже намальовані екрани "
-                    + "лишаться колишніми до перезапуску.",
-            "The colour changes wherever something is drawn again. Screens already "
-                    + "drawn keep the old one until the app is restarted.");
+    static final String RESTART = pick("Перезапустить", "Перезапустити", "Restart");
+
+    // ----------------------------------------------------------- the links
+
+    static final String LINKS = pick("Ссылки", "Посилання", "Links");
+
+    static final String CHANNEL = pick("Канал", "Канал", "Channel");
+
+    static final String FORUM = pick("Форум", "Форум", "Forum");
+
+    static final String THANKS = pick("Благодарности", "Подяки", "Thanks");
+
+    static final String THANKS_NOTE = pick(
+            "Люди, без которых мода бы не было.",
+            "Люди, без яких мода б не було.",
+            "The people the mod would not exist without.");
+
+    static final String THANKS_OWNER = pick(
+            "Владелец мода", "Власник мода", "The mod's owner");
+
+    static final String THANKS_CLAUDE = pick(
+            "Написал большую часть того, что в моде есть",
+            "Написав більшу частину того, що в моді є",
+            "Wrote most of what is in the mod");
+
+    static final String THANKS_HELPER = pick(
+            "Помог с несколькими фичами",
+            "Допоміг з кількома фічами",
+            "Helped with several of the features");
+
+    static final String DONATE = pick("Поддержать", "Підтримати", "Support the project");
+
+    static final String DONATE_NOTE = pick(
+            "Каждый ваш рубль помогает держать проект на плаву и развивать открытое "
+                    + "сообщество моддинга. Спасибо.",
+            "Кожен ваш рубль допомагає тримати проєкт на плаву та розвивати відкриту "
+                    + "спільноту модингу. Дякуємо.",
+            "Every rouble keeps the project afloat and goes back into the open source "
+                    + "modding community. Thank you.");
+
+    static final String CARD = pick("Карта", "Картка", "Card");
+
+    static final String TAP_TO_COPY = pick(
+            "Нажми, чтобы скопировать", "Натисни, щоб скопіювати", "Tap to copy");
+
+    static final String YOOMONEY = pick("ЮMoney", "ЮMoney", "YooMoney");
+
+    static final String YOOMONEY_NOTE = pick(
+            "Перевод напрямую", "Переказ напряму", "Straight to the transfer page");
+
+    static final String NO_BROWSER = pick(
+            "Нечем открыть ссылку", "Нема чим відкрити посилання", "Nothing here opens links");
 
     static final String DIARY_TITLE = pick("Журнал мода", "Журнал мода", "The mod's diary");
 
