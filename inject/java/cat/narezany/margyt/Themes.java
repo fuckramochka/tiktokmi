@@ -42,7 +42,8 @@ public final class Themes {
     // ---------------------------------------------------------- the switches
 
     public static boolean isEnabled() {
-        return flag(KEY_ON, false);
+        Settled now = settled;
+        return (now == null ? read() : now).on;
     }
 
     public static void setEnabled(boolean on) {
@@ -52,7 +53,8 @@ public final class Themes {
     }
 
     public static boolean isMaterial() {
-        return flag(KEY_MATERIAL, false);
+        Settled now = settled;
+        return (now == null ? read() : now).material;
     }
 
     public static void setMaterial(boolean on) {
@@ -62,19 +64,57 @@ public final class Themes {
     }
 
     public static int text() {
-        if (isMaterial()) {
-            int chosen = fromSystem(true);
-            if (chosen != 0) return chosen;
-        }
-        return number(KEY_TEXT, TEXT);
+        Settled now = settled;
+        return (now == null ? read() : now).text;
     }
 
     public static int background() {
-        if (isMaterial()) {
-            int chosen = fromSystem(false);
-            if (chosen != 0) return chosen;
+        Settled now = settled;
+        return (now == null ? read() : now).background;
+    }
+
+    /**
+     * What the settings say, read once and kept.
+     *
+     * This is asked on every colour the app draws -- `Paint.setColor` alone is
+     * nine thousand call sites -- and the answer changes only when somebody
+     * opens the mod's own screen and changes it. Reading the preferences that
+     * often would put a lock on the drawing path for no reason at all.
+     *
+     * One object holds the whole answer, so a reader either sees the old
+     * settings or the new ones and never half of each.
+     */
+    private static final class Settled {
+        final boolean on;
+        final boolean material;
+        final int text;
+        final int background;
+
+        Settled(boolean on, boolean material, int text, int background) {
+            this.on = on;
+            this.material = material;
+            this.text = text;
+            this.background = background;
         }
-        return number(KEY_BACKGROUND, BACKGROUND);
+    }
+
+    private static volatile Settled settled;
+
+    private static Settled read() {
+        boolean on = flag(KEY_ON, false);
+        boolean material = flag(KEY_MATERIAL, false);
+        int chosenText = 0;
+        int chosenBackground = 0;
+        if (material) {
+            chosenText = fromSystem(true);
+            chosenBackground = fromSystem(false);
+        }
+        if (chosenText == 0) chosenText = number(KEY_TEXT, TEXT);
+        if (chosenBackground == 0) chosenBackground = number(KEY_BACKGROUND, BACKGROUND);
+
+        Settled fresh = new Settled(on, material, chosenText, chosenBackground);
+        settled = fresh;
+        return fresh;
     }
 
     public static void setText(int colour) {
@@ -116,18 +156,17 @@ public final class Themes {
      * hand anything to this and use the answer without asking.
      */
     public static int recolour(int colour) {
-        if (!isEnabled()) return colour;
+        Settled now = settled;
+        if (now == null) now = read();
+        if (!now.on) return colour;
         if (!Nightly.owns(colour)) return colour;
-
-        int chosenText = text();
-        int chosenBackground = background();
 
         // how far this colour is from its own theme's background: in the dark
         // theme the background is the black end, in the light theme the white
         float level = brightness(colour);
         if (!isDark()) level = 1.0f - level;
 
-        int mixed = mix(chosenBackground, chosenText, level);
+        int mixed = mix(now.background, now.text, level);
         return (colour & 0xFF000000) | (mixed & 0xFFFFFF);
     }
 
@@ -180,6 +219,7 @@ public final class Themes {
     /** Something the answers depend on has changed; nothing remembered stands. */
     static void forget() {
         mode = 0;
+        settled = null;
         Accent.forget();
     }
 
