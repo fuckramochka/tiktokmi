@@ -31,17 +31,175 @@ TELEPHONY = "Landroid/telephony/TelephonyManager;"
 REGION = "Lcat/narezany/margyt/Region;"
 ACCENT = "Lcat/narezany/margyt/Accent;"
 DOWNLOAD = "Lcat/narezany/margyt/Download;"
+FEED = "Lcat/narezany/margyt/Feed;"
 
-# TikTok's own model, and the two addresses it carries for the same video: the
-# one the save button uses, which is stamped, and the one beside it, which is
-# not. Both names are real rather than obfuscated, and both return the same
-# type -- which is what makes the swap a rewritten call site rather than
-# anything that has to understand the download.
+# TikTok's own models. Every name here is a real one, read out of the apk's
+# method and field tables rather than guessed, and each is answered by a static
+# of ours with the receiver moved into the first argument -- the same 35c
+# instruction, the same register count, the same return type.
 VIDEO = "Lcom/ss/android/ugc/aweme/feed/model/Video;"
-URL_MODEL = "Lcom/ss/android/ugc/aweme/base/model/UrlModel;"
+ACL = "Lcom/ss/android/ugc/aweme/feed/model/ACLCommonShare;"
+AWEME = "Lcom/ss/android/ugc/aweme/feed/model/Aweme;"
+USER = "Lcom/ss/android/ugc/aweme/profile/model/User;"
+VIDEO_CONTROL = "Lcom/ss/android/ugc/aweme/feed/model/VideoControl;"
+FEED_ITEM_LIST = "Lcom/ss/android/ugc/aweme/feed/model/FeedItemList;"
+PHOTO_IMAGE = "Lcom/ss/android/ugc/aweme/feed/model/PhotoModeImageUrlModel;"
+ACCOUNT_SERVICE = "Lcom/ss/android/ugc/aweme/IAccountUserService;"
+ACCOUNT = "Lcat/narezany/margyt/Account;"
+COMMENTS = "Lcat/narezany/margyt/Comments;"
+COMMENT_IMAGE = "Lcom/ss/android/ugc/aweme/comment/model/CommentImageStruct;"
+WATERMARK = "Lcat/narezany/margyt/Watermark;"
+FLAGS = "Lcat/narezany/margyt/Flags;"
+SOUND = "Lcat/narezany/margyt/Sound;"
+BADGE = "Lcat/narezany/margyt/Badge;"
+AVATARS = "Lcat/narezany/margyt/Avatars;"
+STICKERS = "Lcat/narezany/margyt/Stickers;"
+STICKER_CLICK = "Lcom/ss/android/ugc/aweme/im/messagelist/api/ability/MessageListStickerClickAbility;"
+STICKER_TEMPLATE = "Lcom/ss/android/ugc/aweme/im/message/template/card/StickerTemplate;"
+TEXT_VIEW = "Landroid/widget/TextView;"
+CHAR_SEQUENCE = "Ljava/lang/CharSequence;"
+SEEKBAR = "Lcat/narezany/margyt/Seekbar;"
+MUSIC = "Lcom/ss/android/ugc/aweme/music/model/Music;"
 
-DOWNLOAD_SOURCES: List[Tuple[str, str, str, str]] = [
-    (VIDEO, "getDownloadAddr", "()%s" % URL_MODEL, "(%s)%s" % (VIDEO, URL_MODEL)),
+# A method whose name is real on a class whose name is not. Matching the owner
+# would mean writing down an obfuscated name that changes every release, so the
+# owner is left open and the receiver arrives as a plain Object -- which is why
+# the mod calls the original back by reflection rather than directly.
+WILD_SOURCES: List[Tuple[str, str, str, str]] = [
+    ("setSeekBarShowType", "(I)V", "(Ljava/lang/Object;I)V", SEEKBAR),
+]
+
+# A sticker touched in a conversation.
+#
+# The interface is MessageListStickerClickAbility and the type it is handed is
+# StickerTemplate, both real names -- but a call site names whatever static
+# type it is holding, which is the class implementing the interface, so the
+# owner is left open. What is written down instead is each method's exact
+# shape, obfuscated parameter types and all: those move between releases, and a
+# release that moves them leaves the rules matching nothing, which is a feature
+# that does not appear rather than an app that breaks.
+#
+# Everything but the sticker itself arrives as Object -- a reference is a
+# reference as far as the verifier is concerned -- which is what keeps a fifth
+# obfuscated name out of the mod's own source.
+_TAP = "Landroid/view/View;LX/1CpA;LX/13Vd;" + STICKER_TEMPLATE
+_SHEET = ("Landroid/view/View;Landroidx/fragment/app/FragmentManager;LX/13Vd;"
+          + STICKER_TEMPLATE)
+_INNER = "LX/1CpA;LX/13Vd;" + STICKER_TEMPLATE
+_CORNER = "Lcom/ss/android/ugc/aweme/views/RoundingCornerLayout;" + STICKER_TEMPLATE
+_ANY = "Ljava/lang/Object;"
+
+WILD_SOURCES += [
+    ("UP", "(%s)V" % _TAP, "(%s%s)V" % (_ANY * 4, STICKER_TEMPLATE), STICKERS),
+    ("tR1", "(%s)V" % _TAP, "(%s%s)V" % (_ANY * 4, STICKER_TEMPLATE), STICKERS),
+    ("dy1", "(%s)V" % _SHEET, "(%s%s)V" % (_ANY * 4, STICKER_TEMPLATE), STICKERS),
+    ("Yt1", "(%s)V" % _INNER, "(%s%s)V" % (_ANY * 3, STICKER_TEMPLATE), STICKERS),
+    ("XQ1", "(%s)V" % _CORNER, "(%s%s)V" % (_ANY * 2, STICKER_TEMPLATE), STICKERS),
+]
+
+# TikTok's A/B facade. The class name is real; the method names are what the
+# obfuscator made of them in 46.9.42, one per type, each taking the flag's name
+# and what to answer when the server said nothing. A release that renames them
+# leaves the rules matching nothing, which turns the overrides off and breaks
+# no part of the app.
+SETTINGS_MANAGER = "Lcom/bytedance/ies/abmock/SettingsManager;"
+AB_READERS: List[Tuple[str, str, str]] = [
+    ("LIZ", "Ljava/lang/String;Z", "Z"),
+    ("LJ", "Ljava/lang/String;I", "I"),
+    ("LJFF", "Ljava/lang/String;J", "J"),
+    ("LJI", "Ljava/lang/String;Ljava/lang/String;", "Ljava/lang/String;"),
+    ("LIZJ", "Ljava/lang/String;F", "F"),
+    ("LIZIZ", "Ljava/lang/String;D", "D"),
+]
+CANVAS = "Landroid/graphics/Canvas;"
+
+# Rules that apply inside one class and nowhere else, found by a string the
+# class carries rather than by its name.
+#
+# The stamp on a saved picture is assembled on the phone -- text and a logo
+# drawn into a bitmap of their own -- and then put on the picture with a single
+# Canvas.drawBitmap. Redirecting every drawBitmap in the apk would be absurd;
+# redirecting the one in the class that builds the label is a rewrite of a
+# single instruction. The class is X.0Hnc in 46.9.42 and will be something else
+# in 46.10, but the marker in its template stays.
+#
+# anchor, owner, method, its descriptor, ours, the class ours lives in
+ANCHORED_SOURCES: List[Tuple[str, str, str, str, str, str]] = [
+    ("[tiktok_logo]", CANVAS, "drawBitmap",
+     "(Landroid/graphics/Bitmap;FFLandroid/graphics/Paint;)V",
+     "(%sLandroid/graphics/Bitmap;FFLandroid/graphics/Paint;)V" % CANVAS, WATERMARK),
+]
+STRING = "Ljava/lang/String;"
+URL_MODEL = "Lcom/ss/android/ugc/aweme/base/model/UrlModel;"
+BOXED_BOOLEAN = "Ljava/lang/Boolean;"
+LIST = "Ljava/util/List;"
+
+# owner, method, its descriptor, ours, the class ours lives in
+MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
+    # the save button's address: stamped, and the clean one beside it
+    (VIDEO, "getDownloadAddr", "()%s" % URL_MODEL, "(%s)%s" % (VIDEO, URL_MODEL), DOWNLOAD),
+    # what the post says may be done with it, which TikTok reads before it
+    # offers a download at all
+    (ACL, "getCode", "()I", "(%s)I" % ACL, DOWNLOAD),
+    (ACL, "getShowType", "()I", "(%s)I" % ACL, DOWNLOAD),
+    (ACL, "getTranscode", "()I", "(%s)I" % ACL, DOWNLOAD),
+    # the ban on saving, on the post and on the account that made it
+    (AWEME, "isPreventDownload", "()Z", "(%s)Z" % AWEME, DOWNLOAD),
+    (USER, "isPreventDownload", "()Z", "(%s)Z" % USER, DOWNLOAD),
+    # the page of the feed, before anything has looked at it
+    (FEED_ITEM_LIST, "getItems", "()%s" % LIST, "(%s)%s" % (FEED_ITEM_LIST, LIST), FEED),
+    # who is signed in. The mod does not ask -- there is no unobfuscated way to
+    # reach the service -- so it listens instead: the app asks often enough,
+    # and the answer goes past on its way back.
+    (ACCOUNT_SERVICE, "getCurUserId", "()%s" % STRING,
+     "(%s)%s" % (ACCOUNT_SERVICE, STRING), ACCOUNT),
+    (ACCOUNT_SERVICE, "getCurSecUserId", "()%s" % STRING,
+     "(%s)%s" % (ACCOUNT_SERVICE, STRING), ACCOUNT),
+    # temporary: a comment image has no clean copy in its struct, so the two
+    # addresses it does have are written into the diary to be compared
+    (COMMENT_IMAGE, "getCropUrl", "()%s" % URL_MODEL,
+     "(%s)%s" % (COMMENT_IMAGE, URL_MODEL), COMMENTS),
+    (COMMENT_IMAGE, "getOriginUrl", "()%s" % URL_MODEL,
+     "(%s)%s" % (COMMENT_IMAGE, URL_MODEL), COMMENTS),
+    # a name, and every place that writes one. The mark rides out on the name
+    # and becomes a picture on the way into the view that shows it
+    (USER, "getNickname", "()Ljava/lang/String;",
+     "(%s)Ljava/lang/String;" % USER, BADGE),
+
+    # the avatar, at the sizes the app actually asks for: the mod does not need
+    # to know whose profile is open, only which picture was last wanted
+    (USER, "getAvatarLarger", "()%s" % URL_MODEL, "(%s)%s" % (USER, URL_MODEL), AVATARS),
+    (USER, "getAvatar300", "()%s" % URL_MODEL, "(%s)%s" % (USER, URL_MODEL), AVATARS),
+    (USER, "getAvatarMedium", "()%s" % URL_MODEL, "(%s)%s" % (USER, URL_MODEL), AVATARS),
+    (TEXT_VIEW, "setText", "(%s)V" % CHAR_SEQUENCE,
+     "(%s%s)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
+    (TEXT_VIEW, "setText", "(%sLandroid/widget/TextView$BufferType;)V" % CHAR_SEQUENCE,
+     "(%s%sLandroid/widget/TextView$BufferType;)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
+
+    # a sound pulled for copyright: the video stays and these four mute it
+    (MUSIC, "available", "()Z", "(%s)Z" % MUSIC, SOUND),
+    (MUSIC, "getMusicStatus", "()I", "(%s)I" % MUSIC, SOUND),
+    (MUSIC, "isMuteShare", "()Z", "(%s)Z" % MUSIC, SOUND),
+    (MUSIC, "getMuteType", "()I", "(%s)I" % MUSIC, SOUND),
+]
+
+# Statics of TikTok's own, which is how the flags are actually read: there is
+# no receiver, so the instruction keeps its shape and only the class it lands
+# in changes -- and the mod calls the original back by the same static.
+MODEL_STATICS: List[Tuple[str, str, str, str, str]] = [
+    (SETTINGS_MANAGER, (name, "flag"), "(%s)%s" % (args, kind),
+     "(%s)%s" % (args, kind), FLAGS)
+    for name, args, kind in AB_READERS
+]
+
+# owner, field, its type, ours, the class ours lives in. A field rather than a
+# getter, so the read is an instruction of a different shape and becomes two.
+FIELD_SOURCES: List[Tuple[str, str, str, str, str]] = [
+    (VIDEO_CONTROL, "allowDownload", BOXED_BOOLEAN, "allowDownload", DOWNLOAD),
+    # a slideshow is not a video and never goes near getDownloadAddr: its
+    # images carry the stamp themselves, with the clean one beside them
+    (PHOTO_IMAGE, "ownerWatermarkImage", URL_MODEL, "ownerWatermarkImage", DOWNLOAD),
+    (PHOTO_IMAGE, "userWatermarkImage", URL_MODEL, "userWatermarkImage", DOWNLOAD),
 ]
 
 # The pink TikTok is built around. Most of the places it is drawn hold it as a
@@ -53,6 +211,12 @@ TIKTOK_PINK = 0xFFFE2C55
 
 # Colours that arrive through the framework rather than as a constant. Same
 # rewrite as the telephony calls: the receiver becomes the first argument.
+#
+# Reading a colour is only half of it. One that was never read -- computed,
+# blended, carried in from somewhere the mod cannot see -- still has to be
+# applied to something before it reaches the screen, and the places it can be
+# applied are few and have real names. Those are the second half of the list,
+# and they are what reaches the parts a resource table never could.
 COLOUR_SOURCES: List[Tuple[str, str, str]] = [
     ("Landroid/content/res/Resources;", "getColor",
      "(I)I", "(Landroid/content/res/Resources;I)I"),
@@ -63,6 +227,31 @@ COLOUR_SOURCES: List[Tuple[str, str, str]] = [
      "(II)I", "(Landroid/content/res/TypedArray;II)I"),
     ("Landroid/content/Context;", "getColor",
      "(I)I", "(Landroid/content/Context;I)I"),
+
+    # where a colour is put to use: the brush, the shape, the tint, the text
+    ("Landroid/graphics/Paint;", "setColor",
+     "(I)V", "(Landroid/graphics/Paint;I)V"),
+    ("Landroid/graphics/drawable/GradientDrawable;", "setColor",
+     "(I)V", "(Landroid/graphics/drawable/GradientDrawable;I)V"),
+    ("Landroid/widget/ImageView;", "setColorFilter",
+     "(I)V", "(Landroid/widget/ImageView;I)V"),
+    ("Landroid/widget/ImageView;", "setColorFilter",
+     "(ILandroid/graphics/PorterDuff$Mode;)V",
+     "(Landroid/widget/ImageView;ILandroid/graphics/PorterDuff$Mode;)V"),
+    ("Landroid/widget/TextView;", "setTextColor",
+     "(I)V", "(Landroid/widget/TextView;I)V"),
+    ("Landroid/view/View;", "setBackgroundColor",
+     "(I)V", "(Landroid/view/View;I)V"),
+    # TikTok's own icon view, and a real name at that
+    ("Lcom/bytedance/tux/icon/TuxIconView;", "setColor",
+     "(I)V", "(Lcom/bytedance/tux/icon/TuxIconView;I)V"),
+]
+
+# A static of the framework's own: no receiver, so the call keeps its shape
+# exactly and only the class it lands in changes.
+COLOUR_STATICS: List[Tuple[str, str, str]] = [
+    ("Landroid/content/res/ColorStateList;", "valueOf",
+     "(I)Landroid/content/res/ColorStateList;"),
 ]
 
 # method name -> (descriptor as TikTok calls it, descriptor of the static that
@@ -132,26 +321,70 @@ def accent_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
                        % (re.escape(owner), name, re.escape(original))),
             r"invoke-static\1 \2, %s->%s%s" % (ACCENT, name, replacement),
         ))
-    return out
-
-
-def download_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
-    """The save button's address, swapped for the one without the stamp."""
-    out = []
-    for owner, name, original, replacement in DOWNLOAD_SOURCES:
+    for owner, name, signature in COLOUR_STATICS:
         out.append((
-            "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], name),
-            re.compile(r"invoke-virtual(/range)? (\{[^}]*\}), %s->%s%s"
-                       % (re.escape(owner), name, re.escape(original))),
-            r"invoke-static\1 \2, %s->%s%s" % (DOWNLOAD, name, replacement),
+            "%s->%s" % (owner.split("/")[-1][:-1], name),
+            re.compile(r"invoke-static(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), name, re.escape(signature))),
+            r"invoke-static\1 \2, %s->%s%s" % (ACCENT, name, signature),
         ))
     return out
 
 
-def rewrite_download(root: str) -> Dict[str, int]:
-    """Rewrite the save button's call sites, counting them by signature."""
+def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
+    """Calls on TikTok's own models, answered by the mod instead."""
+    out = []
+    for owner, name, original, replacement, target in MODEL_SOURCES:
+        # a pair when what the mod calls it differs from what TikTok does:
+        # the app's obfuscated name on the way in, a readable one on the way out
+        theirs, ours = name if isinstance(name, tuple) else (name, name)
+        out.append((
+            "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], theirs),
+            # an interface call is the same 35c instruction under another
+            # mnemonic, and a service reached through one is still a receiver
+            re.compile(r"invoke-(?:virtual|interface)(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), theirs, re.escape(original))),
+            r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
+        ))
+    for owner, name, original, replacement, target in MODEL_STATICS:
+        theirs, ours = name if isinstance(name, tuple) else (name, name)
+        out.append((
+            "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], theirs),
+            re.compile(r"invoke-static(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), theirs, re.escape(original))),
+            r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
+        ))
+    for name, original, replacement, target in WILD_SOURCES:
+        out.append((
+            "%s (any owner)" % name,
+            re.compile(r"invoke-(?:virtual|interface)(/range)? (\{[^}]*\}), L[^;]+;->%s%s"
+                       % (name, re.escape(original))),
+            r"invoke-static\1 \2, %s->%s%s" % (target, name, replacement),
+        ))
+    for owner, field, kind, name, target in FIELD_SOURCES:
+        # iget-object vA, vB, Owner->field:Type
+        #   -> invoke-static {vB}, Ours->name(Owner)Type ; move-result-object vA
+        out.append((
+            "%s.%s" % (owner.rsplit("/", 1)[-1][:-1], field),
+            re.compile(r"^(\s*)iget-object ([vp]\d+), ([vp]\d+), %s->%s:%s$"
+                       % (re.escape(owner), re.escape(field), re.escape(kind)),
+                       re.MULTILINE),
+            r"\1invoke-static {\3}, %s->%s(%s)%s\n\n\1move-result-object \2"
+            % (target, name, owner, kind),
+        ))
+    return out
+
+
+def rewrite_models(root: str) -> Dict[str, int]:
+    """Rewrite every call on TikTok's models, counting them by signature."""
     counts: Dict[str, int] = {}
-    prepared = download_rules()
+    prepared = model_rules()
+    owners = tuple(set([owner for owner, _n, _o, _r, _t in MODEL_SOURCES]
+                       + [owner for owner, _n, _o, _r, _t in MODEL_STATICS]
+                       + [owner for owner, _f, _k, _n, _t in FIELD_SOURCES]
+                       # a rule with no owner of its own is recognised by the
+                       # method it is looking for, or its file is never opened
+                       + [name for name, _o, _r, _t in WILD_SOURCES]))
     for dirpath, _dirs, files in os.walk(root):
         for name in files:
             if not name.endswith(".smali"):
@@ -159,7 +392,7 @@ def rewrite_download(root: str) -> Dict[str, int]:
             path = os.path.join(dirpath, name)
             with open(path, encoding="utf-8") as handle:
                 text = handle.read()
-            if VIDEO not in text:
+            if not any(owner in text for owner in owners):
                 continue
             before = text
             for label, pattern, target in prepared:
@@ -172,11 +405,61 @@ def rewrite_download(root: str) -> Dict[str, int]:
     return counts
 
 
-def wants_the_download(dex: bytes) -> bool:
-    """Whether a dex asks the model for the address the save button uses."""
-    if VIDEO.encode() not in dex:
-        return False
-    return any(name.encode() in dex for _o, name, _a, _b in DOWNLOAD_SOURCES)
+def anchored_rules() -> List[Tuple[str, str, "re.Pattern[str]", str]]:
+    """Rules and the marker the class they belong in has to carry."""
+    out = []
+    for anchor, owner, name, original, replacement, target in ANCHORED_SOURCES:
+        out.append((
+            anchor,
+            "%s->%s (in the class marked %s)" % (owner.rsplit("/", 1)[-1][:-1], name, anchor),
+            re.compile(r"invoke-virtual(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), name, re.escape(original))),
+            r"invoke-static\1 \2, %s->%s%s" % (target, name, replacement),
+        ))
+    return out
+
+
+def rewrite_anchored(root: str) -> Dict[str, int]:
+    """Rewrite calls inside the one class that carries the marker."""
+    counts: Dict[str, int] = {}
+    prepared = anchored_rules()
+    for dirpath, _dirs, files in os.walk(root):
+        for name in files:
+            if not name.endswith(".smali"):
+                continue
+            path = os.path.join(dirpath, name)
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            before = text
+            for anchor, label, pattern, target in prepared:
+                if anchor not in text:
+                    continue
+                text, hits = pattern.subn(target, text)
+                if hits:
+                    counts[label] = counts.get(label, 0) + hits
+            if text != before:
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+    return counts
+
+
+def carries_an_anchor(dex: bytes) -> bool:
+    return any(anchor.encode() in dex for anchor, *_rest in ANCHORED_SOURCES)
+
+
+def touches_a_model(dex: bytes) -> bool:
+    """Whether a dex names one of TikTok's models and something we want on it."""
+    for owner, name, _original, _replacement, _target in MODEL_SOURCES + MODEL_STATICS:
+        theirs = name[0] if isinstance(name, tuple) else name
+        if owner.encode() in dex and theirs.encode() in dex:
+            return True
+    for owner, field, _kind, _name, _target in FIELD_SOURCES:
+        if owner.encode() in dex and field.encode() in dex:
+            return True
+    for name, _original, _replacement, _target in WILD_SOURCES:
+        if name.encode() in dex:
+            return True
+    return False
 
 
 def reads_a_colour(dex: bytes) -> bool:
@@ -188,6 +471,9 @@ def reads_a_colour(dex: bytes) -> bool:
     build takes a quarter of an hour rather than two minutes.
     """
     for owner, name, _original, _replacement in COLOUR_SOURCES:
+        if owner.encode() in dex and name.encode() in dex:
+            return True
+    for owner, name, _signature in COLOUR_STATICS:
         if owner.encode() in dex and name.encode() in dex:
             return True
     return False
@@ -271,7 +557,8 @@ def interesting(dex: bytes, literals: Optional[Dict[str, str]] = None) -> bool:
     for old in (literals or {}):
         if old.encode() in dex:
             return True
-    if holds_the_pink(dex) or reads_a_colour(dex) or wants_the_download(dex):
+    if (holds_the_pink(dex) or reads_a_colour(dex) or touches_a_model(dex)
+            or carries_an_anchor(dex)):
         return True
     for class_name, _signature in FORCED_FALSE:
         if ("L%s;" % class_name).encode() in dex:
@@ -388,8 +675,17 @@ def rewrite_targets() -> List[str]:
         out.append("%s->%s%s" % (REGION, name, replacement))
     for _owner, name, _original, replacement in COLOUR_SOURCES:
         out.append("%s->%s%s" % (ACCENT, name, replacement))
-    for _owner, name, _original, replacement in DOWNLOAD_SOURCES:
-        out.append("%s->%s%s" % (DOWNLOAD, name, replacement))
+    for _owner, name, signature in COLOUR_STATICS:
+        out.append("%s->%s%s" % (ACCENT, name, signature))
+    for _owner, name, _original, replacement, target in MODEL_SOURCES + MODEL_STATICS:
+        _theirs, ours = name if isinstance(name, tuple) else (name, name)
+        out.append("%s->%s%s" % (target, ours, replacement))
+    for owner, _field, kind, name, target in FIELD_SOURCES:
+        out.append("%s->%s(%s)%s" % (target, name, owner, kind))
+    for _anchor, _owner, name, _original, replacement, target in ANCHORED_SOURCES:
+        out.append("%s->%s%s" % (target, name, replacement))
+    for name, _original, replacement, target in WILD_SOURCES:
+        out.append("%s->%s%s" % (target, name, replacement))
     return out
 
 
@@ -490,7 +786,8 @@ def patch(dex: bytes, name: str, smali: Smali, workspace: str,
     counts.update(rewrite_literals(os.path.join(room, "smali"), literals or {}))
     counts.update(force_false(os.path.join(room, "smali")))
     counts.update(rewrite_accent(os.path.join(room, "smali")))
-    counts.update(rewrite_download(os.path.join(room, "smali")))
+    counts.update(rewrite_models(os.path.join(room, "smali")))
+    counts.update(rewrite_anchored(os.path.join(room, "smali")))
     if not counts:
         shutil.rmtree(room, ignore_errors=True)
         return dex, counts

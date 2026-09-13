@@ -592,7 +592,7 @@ class DexPatchTest(unittest.TestCase):
                 "->getDownloadAddr()Lcom/ss/android/ugc/aweme/base/model/UrlModel;\n"
                 "    invoke-virtual {v3}, Lcom/example/Other;"
                 "->getDownloadAddr()Lcom/ss/android/ugc/aweme/base/model/UrlModel;\n")
-        for _label, pattern, target in dexpatch.download_rules():
+        for _label, pattern, target in dexpatch.model_rules():
             text = pattern.sub(target, text)
         self.assertIn("invoke-static {v3}, Lcat/narezany/margyt/Download;->getDownloadAddr("
                       "Lcom/ss/android/ugc/aweme/feed/model/Video;)"
@@ -601,11 +601,76 @@ class DexPatchTest(unittest.TestCase):
         self.assertIn("Lcom/example/Other;->getDownloadAddr()", text)
 
     def test_a_dex_without_the_model_is_left_alone(self):
-        self.assertFalse(dexpatch.wants_the_download(b"nothing here"))
-        self.assertFalse(dexpatch.wants_the_download(
+        self.assertFalse(dexpatch.touches_a_model(b"nothing here"))
+        self.assertFalse(dexpatch.touches_a_model(
             b"Lcom/ss/android/ugc/aweme/feed/model/Video;\x00getPlayAddr"))
-        self.assertTrue(dexpatch.wants_the_download(
+        self.assertTrue(dexpatch.touches_a_model(
             b"Lcom/ss/android/ugc/aweme/feed/model/Video;\x00getDownloadAddr"))
+        self.assertTrue(dexpatch.touches_a_model(
+            b"Lcom/ss/android/ugc/aweme/feed/model/FeedItemList;\x00getItems"))
+
+    def test_the_feed_page_comes_through_the_mod(self):
+        """The ads are dropped where the page is read, not hidden per screen."""
+        text = ("    invoke-virtual {v3}, Lcom/ss/android/ugc/aweme/feed/model/"
+                "FeedItemList;->getItems()Ljava/util/List;\n")
+        for _label, pattern, target in dexpatch.model_rules():
+            text = pattern.sub(target, text)
+        self.assertIn("Lcat/narezany/margyt/Feed;->getItems("
+                      "Lcom/ss/android/ugc/aweme/feed/model/FeedItemList;)"
+                      "Ljava/util/List;", text)
+
+    def test_a_field_read_becomes_a_call_and_a_move(self):
+        """allowDownload is a field, so one instruction has to become two."""
+        text = ("    iget-object v2, v5, Lcom/ss/android/ugc/aweme/feed/model/"
+                "VideoControl;->allowDownload:Ljava/lang/Boolean;\n")
+        for _label, pattern, target in dexpatch.model_rules():
+            text = pattern.sub(target, text)
+        self.assertIn("invoke-static {v5}, Lcat/narezany/margyt/Download;->allowDownload("
+                      "Lcom/ss/android/ugc/aweme/feed/model/VideoControl;)"
+                      "Ljava/lang/Boolean;", text)
+        self.assertIn("move-result-object v2", text)
+        # the receiver is read into the call, the result lands in the original
+        self.assertLess(text.index("invoke-static"), text.index("move-result-object"))
+
+    def test_a_colour_being_applied_is_redirected_too(self):
+        """Reading a colour is half of it; the other half is using one."""
+        text = ("    invoke-virtual {v2, v1}, Landroid/graphics/Paint;->setColor(I)V\n"
+                "    invoke-virtual {v3, v1}, Landroid/widget/TextView;->setTextColor(I)V\n"
+                "    invoke-static {v1}, Landroid/content/res/ColorStateList;"
+                "->valueOf(I)Landroid/content/res/ColorStateList;\n"
+                "    invoke-virtual {v4, v1}, Lcom/example/Own;->setColor(I)V\n")
+        for _label, pattern, target in dexpatch.accent_rules():
+            text = pattern.sub(target, text)
+        self.assertIn("Lcat/narezany/margyt/Accent;->setColor(Landroid/graphics/Paint;I)V", text)
+        self.assertIn("Lcat/narezany/margyt/Accent;->setTextColor("
+                      "Landroid/widget/TextView;I)V", text)
+        # a static keeps its shape exactly: no receiver to move
+        self.assertIn("invoke-static {v1}, Lcat/narezany/margyt/Accent;->valueOf(I)"
+                      "Landroid/content/res/ColorStateList;", text)
+        self.assertIn("Lcom/example/Own;->setColor(I)V", text)  # not ours to touch
+
+    def test_the_stamp_is_only_dropped_in_the_class_that_draws_it(self):
+        """Every drawBitmap in the apk is not ours to touch -- one of them is."""
+        call = ("    invoke-virtual {v6, v3, v0, v0, v5}, Landroid/graphics/Canvas;"
+                "->drawBitmap(Landroid/graphics/Bitmap;FFLandroid/graphics/Paint;)V\n")
+
+        marked = '    const-string v1, "[tiktok_logo]"\n' + call
+        other = "    const-string v1, \"something else\"\n" + call
+        for anchor, _label, pattern, target in dexpatch.anchored_rules():
+            if anchor in marked:
+                marked = pattern.sub(target, marked)
+            if anchor in other:
+                other = pattern.sub(target, other)
+
+        self.assertIn("Lcat/narezany/margyt/Watermark;->drawBitmap("
+                      "Landroid/graphics/Canvas;Landroid/graphics/Bitmap;FF"
+                      "Landroid/graphics/Paint;)V", marked)
+        self.assertIn("invoke-static {v6, v3, v0, v0, v5}", marked)  # same registers
+        self.assertNotIn("margyt", other)  # a class without the marker is left alone
+
+    def test_a_dex_without_the_marker_is_left_alone(self):
+        self.assertTrue(dexpatch.carries_an_anchor(b"...[tiktok_logo]..."))
+        self.assertFalse(dexpatch.carries_an_anchor(b"nothing of the sort"))
 
     def test_a_colour_asked_of_the_framework_is_redirected(self):
         text = ("    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getColor(I)I\n"

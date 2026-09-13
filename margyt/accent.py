@@ -25,7 +25,7 @@ from .palette import captures, map_colour
 COLOUR_TYPES = (0x1C, 0x1D, 0x1E, 0x1F)
 
 
-def bake(apk: Apk, arsc: Arsc, old: int, new: int) -> List[str]:
+def bake(apk: Apk, arsc: Arsc, old: int, new: int, pairs: Dict[int, int] = None) -> List[str]:
     """Move TikTok's red family onto the accent, in the table and in compiled XML.
 
     Not one value: the family, at every opacity it is used at, mapped by the
@@ -39,8 +39,10 @@ def bake(apk: Apk, arsc: Arsc, old: int, new: int) -> List[str]:
     """
     writing = old != new
     report = []
+    if pairs is None:
+        pairs = {}
 
-    entries, shades = _walk_table(arsc, old, new, writing)
+    entries, shades = _walk_table(arsc, old, new, writing, pairs)
 
     files = 0
     changes = 0
@@ -57,7 +59,11 @@ def bake(apk: Apk, arsc: Arsc, old: int, new: int) -> List[str]:
                 if attribute.kind in COLOUR_TYPES and captures(attribute.data, old):
                     shades.add(attribute.data)
                     if writing:
-                        attribute.data = map_colour(attribute.data, old, new)
+                        moved = map_colour(attribute.data, old, new)
+                        # what the app will now hold, and what it used to be:
+                        # the runtime needs the original to know where to send it
+                        pairs[moved] = attribute.data
+                        attribute.data = moved
                     here += 1
         if here:
             if writing:
@@ -79,7 +85,7 @@ def bake(apk: Apk, arsc: Arsc, old: int, new: int) -> List[str]:
     return report
 
 
-def _walk_table(arsc: Arsc, old: int, new: int, writing: bool):
+def _walk_table(arsc: Arsc, old: int, new: int, writing: bool, pairs: Dict[int, int]):
     """Every typed value in the table that belongs to the family."""
     found = 0
     shades = set()
@@ -89,8 +95,9 @@ def _walk_table(arsc: Arsc, old: int, new: int, writing: bool):
                 if entry.kind in COLOUR_TYPES and captures(entry.data, old):
                     shades.add(entry.data)
                     if writing:
-                        arsc.set_value(entry, entry.kind,
-                                       map_colour(entry.data, old, new))
+                        moved = map_colour(entry.data, old, new)
+                        pairs[moved] = entry.data
+                        arsc.set_value(entry, entry.kind, moved)
                     found += 1
     return found, shades
 

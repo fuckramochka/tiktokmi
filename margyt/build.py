@@ -9,6 +9,7 @@ of fifty-two dex files only the ones that call telephony are taken apart.
 
 from __future__ import annotations
 
+import base64
 import os
 import time
 from typing import Dict, List, Optional
@@ -83,7 +84,18 @@ class Build:
         dex_format = dexpatch.dex_format(apk.read("classes.dex"))
         self.detail("minSdk %d, dex %s" % (api, dex_format))
 
-        self.write_baked_colour()
+        arsc = Arsc(apk.read("resources.arsc"))
+
+        self.say("The accent colour")
+        self.detail("#%06X" % (self.accent & 0xFFFFFF))
+        moved: Dict[int, int] = {}
+        for line in accent_module.bake(apk, arsc, dexpatch.TIKTOK_PINK, self.accent, moved):
+            self.detail(line)
+
+        # the mod is told what was moved and where from, so it can send those
+        # shades on to whatever colour is chosen while the app runs
+        self.write_baked_colour(moved)
+        self.write_emblem()
 
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
@@ -139,13 +151,6 @@ class Build:
         else:
             self.detail("every authority is spelled with the package name, nothing to do")
 
-        arsc = Arsc(apk.read("resources.arsc"))
-
-        self.say("The accent colour")
-        self.detail("#%06X" % (self.accent & 0xFFFFFF))
-        for line in accent_module.bake(apk, arsc, dexpatch.TIKTOK_PINK, self.accent):
-            self.detail(line)
-
         master = open(os.path.join(self.root, artwork.MASTER_PNG), "rb").read()
         for line in icon_module.replace_everywhere(apk, arsc, manifest, master):
             self.detail(line.strip())
@@ -174,30 +179,79 @@ class Build:
         self.say("Done in %.0f s: %s" % (time.time() - self.started, self.out_path))
         return self.out_path
 
-    def write_baked_colour(self) -> None:
-        """Tell the mod which colour this apk was built with.
+    def write_baked_colour(self, moved: Dict[int, int]) -> None:
+        """Tell the mod what this apk was built with, and what was moved.
 
-        The dex patch swaps colours by value, so it has to know what value to
-        look for -- and after baking, the apk's own colour is no longer the
-        pink it shipped with.
+        Two things the app cannot work out for itself. The first is the accent
+        the build baked, which is what its own screen is painted with before
+        anyone chooses otherwise.
+
+        The second is the list of shades that were moved and where each came
+        from. TikTok's pink family is recognised at runtime by its hue, but the
+        colours this build wrote in its place are a different family entirely --
+        and one that sits near colours which are nobody's accent, like the green
+        of somebody being online. So they are not recognised by hue at all:
+        they are listed, exactly, with the shade each was made from. A colour
+        the app hands over is looked up in that list, and what the mod sends on
+        is wherever its original would go now.
         """
+        # java reads these as signed ints, and a colour with full alpha is a
+        # negative one there: sorted any other way, the binary search that
+        # looks them up would walk off in the wrong direction
+        keys = sorted(moved, key=_signed)
         path = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
                             "Baked.java")
         with open(path, "w", encoding="utf-8") as handle:
             handle.write(
                 "package cat.narezany.margyt;\n\n"
                 "/**\n"
-                " * Written by the build: the accent colour this apk was made with.\n"
+                " * Written by the build. Do not edit: every build overwrites it.\n"
                 " *\n"
-                " * Everything the mod swaps is swapped by value, and after the build has\n"
-                " * baked a colour into the resources and the vectors, that value is this\n"
-                " * one rather than the pink TikTok ships.\n"
+                " * ACCENT is the colour baked into this apk. BAKED and FROM are the\n"
+                " * shades the build wrote into the resources and the shade each one was\n"
+                " * made from -- BAKED is sorted, so a lookup is a binary search, and the\n"
+                " * answer is the entry of FROM beside it.\n"
                 " */\n"
                 "final class Baked {\n\n"
                 "    private Baked() {}\n\n"
-                "    static final int ACCENT = 0x%08X;\n"
-                "}\n" % self.accent
+                "    static final int ACCENT = 0x%08X;\n\n"
+                "%s"
+                "}\n" % (self.accent, _tables(keys, moved))
             )
+        if keys:
+            self.detail("%d shades listed for the mod to recognise" % len(keys))
+
+    def write_emblem(self) -> None:
+        """Put the badge's picture into the code.
+
+        This build adds no resources -- rewriting a 25 MB resource table is the
+        one thing it refuses to do -- so the emblem travels as bytes in a class
+        instead, and is decoded once when it is first drawn.
+        """
+        source = os.path.join(self.root, "icon_out", "mipmap-xxhdpi",
+                              "ic_launcher_foreground.png")
+        with open(source, "rb") as handle:
+            png = base64.b64encode(handle.read()).decode("ascii")
+        chunks = [png[at:at + 76] for at in range(0, len(png), 76)]
+        body = "\n                    + ".join('"%s"' % chunk for chunk in chunks)
+
+        path = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                            "Emblem.java")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "/**\n"
+                " * Written by the build from icon_out/. Do not edit.\n"
+                " *\n"
+                " * The badge, as a png in base64. It is here rather than in res/ because\n"
+                " * this build adds no resources to somebody else's apk.\n"
+                " */\n"
+                "final class Emblem {\n\n"
+                "    private Emblem() {}\n\n"
+                "    static final String PNG =\n            %s;\n"
+                "}\n" % body
+            )
+        self.detail("emblem: %d bytes of png in the code" % os.path.getsize(source))
 
     # ------------------------------------------------------------------ dex
 
@@ -241,3 +295,20 @@ class Build:
                 "not one call site matched -- the method signatures have moved, "
                 "and the mod would do nothing at all"
             )
+
+
+def _tables(keys: List[int], moved: Dict[int, int]) -> str:
+    """The two arrays, wrapped so the file stays readable."""
+    if not keys:
+        return "    static final int[] BAKED = {};\n    static final int[] FROM = {};\n"
+    out = []
+    for name, values in (("BAKED", keys), ("FROM", [moved[k] for k in keys])):
+        lines = []
+        for at in range(0, len(values), 6):
+            lines.append("        " + ", ".join("0x%08X" % v for v in values[at:at + 6]))
+        out.append("    static final int[] %s = {\n%s,\n    };\n" % (name, ",\n".join(lines)))
+    return "\n".join(out)
+
+
+def _signed(value: int) -> int:
+    return value - (1 << 32) if value >= (1 << 31) else value

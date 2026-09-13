@@ -19,4 +19,12 @@ public class Video {
     public UrlModel getDownloadNoWatermarkAddr() {
         throw new UnsupportedOperationException("stub");
     }
+
+    /**
+     * The stream the video is played from, and the one that is never stamped:
+     * the watermark is drawn for the download and for nothing else.
+     */
+    public VideoUrlModel getPlayAddr() {
+        throw new UnsupportedOperationException("stub");
+    }
 }
