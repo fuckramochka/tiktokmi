@@ -56,18 +56,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         if (decor.getTag(TAG) != null) return;
         decor.setTag(TAG, Boolean.TRUE);
 
-        final Activity host = activity;
-        decor.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        try {
-                            inject(host);
-                        } catch (Throwable error) {
-                            Diary.note("row failed: " + error);
-                        }
-                    }
-                });
+        decor.getViewTreeObserver().addOnGlobalLayoutListener(new Injector(activity));
     }
 
     @Override
@@ -88,9 +77,49 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     @Override
     public void onActivityDestroyed(Activity activity) {}
 
+    /**
+     * Puts the row in when the screen settles, and takes it off screen again
+     * while a page of that screen is open on top of it.
+     *
+     * The pages are more fragments in the same container, so a container with
+     * more than one child is a page rather than the settings list -- and the
+     * row belongs to the list.
+     */
+    private final class Injector implements ViewTreeObserver.OnGlobalLayoutListener {
+
+        private final Activity activity;
+        private View box;
+        private ViewGroup container;
+
+        Injector(Activity activity) {
+            this.activity = activity;
+        }
+
+        @Override
+        public void onGlobalLayout() {
+            try {
+                if (box == null) inject(this);
+                if (box == null || container == null) return;
+                int pages = 0;
+                for (int i = 0; i < container.getChildCount(); i++) {
+                    if (container.getChildAt(i).getVisibility() == View.VISIBLE) pages++;
+                }
+                int wanted = pages > 1 ? View.GONE : View.VISIBLE;
+                if (box.getVisibility() != wanted) {
+                    box.setVisibility(wanted);
+                    Diary.note(wanted == View.GONE
+                            ? "row stood aside for a page of the screen" : "row back");
+                }
+            } catch (Throwable error) {
+                Diary.note("row failed: " + error);
+            }
+        }
+    }
+
     // ------------------------------------------------------------ the work
 
-    private void inject(Activity activity) {
+    private void inject(Injector injector) {
+        Activity activity = injector.activity;
         ViewGroup container = fragmentContainer(activity);
         if (container == null) return;
         ViewGroup parent = container.getParent() instanceof ViewGroup
@@ -118,6 +147,8 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         parent.addView(column, index, params);
         keepClearOfTheStatusBar(column, box, container, skin);
+        injector.box = box;
+        injector.container = container;
         Diary.note("row added above " + container.getClass().getName());
     }
 
