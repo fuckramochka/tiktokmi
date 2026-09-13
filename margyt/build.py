@@ -92,7 +92,17 @@ class Build:
                 "on the apk's minSdk (%d) would refuse to load it"
                 % (dexpatch.dex_format(injected), dex_format, api)
             )
-        self.detail("%d bytes, dex %s" % (len(injected), dexpatch.dex_format(injected)))
+        missing = dexpatch.missing_targets(injected)
+        if missing:
+            raise RuntimeError(
+                "the rewrites would land on %d method(s) the mod does not define:\n    %s\n"
+                "smali assembles a call to a method that does not exist without "
+                "complaining -- it would be a NoSuchMethodError on whichever "
+                "screen reaches that call site first"
+                % (len(missing), "\n    ".join(missing))
+            )
+        self.detail("%d bytes, dex %s, every rewrite has somewhere to land"
+                    % (len(injected), dexpatch.dex_format(injected)))
 
         self.say("Name and icon")
         theme = self.tools.framework_constant(SETTINGS_THEME)

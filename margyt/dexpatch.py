@@ -313,6 +313,105 @@ def dex_format(dex: bytes) -> str:
     return dex[4:7].decode("ascii", "replace")
 
 
+# --------------------------------------------------------- the landing sites
+#
+# Every rewrite above turns a call into the app's own code into a call into
+# ours, and smali will assemble a call to a method that does not exist without
+# a word: a dex may reference anything, and the runtime only goes looking when
+# the instruction is reached. So a missing method is not a build failure, it is
+# a NoSuchMethodError on whichever screen first draws that colour -- which is
+# how `Accent.getColor(Context, int)`, rewritten at 33 dex files' worth of call
+# sites and never written in Java, shipped once.
+
+
+def rewrite_targets() -> List[str]:
+    """Every static the rewrites point at, as `Lowner;->name(descriptor)`."""
+    out = ["%s->colour()I" % ACCENT]
+    for name, _original, replacement in TARGETS:
+        out.append("%s->%s%s" % (REGION, name, replacement))
+    for _owner, name, _original, replacement in COLOUR_SOURCES:
+        out.append("%s->%s%s" % (ACCENT, name, replacement))
+    return out
+
+
+def _uleb(data: bytes, at: int) -> Tuple[int, int]:
+    value = shift = 0
+    while True:
+        byte = data[at]
+        at += 1
+        value |= (byte & 0x7F) << shift
+        shift += 7
+        if not byte & 0x80:
+            return value, at
+
+
+def defined_methods(dex: bytes) -> set:
+    """The methods a dex actually defines, as `Lowner;->name(descriptor)`.
+
+    Referenced methods are not enough: the whole point of the check is that a
+    reference to a method nobody wrote is exactly what the build has to catch.
+    So this walks the class definitions rather than the method table.
+    """
+    string_ids_off = struct.unpack_from("<I", dex, 60)[0]
+    type_ids_off = struct.unpack_from("<I", dex, 68)[0]
+    proto_ids_off = struct.unpack_from("<I", dex, 76)[0]
+    method_ids_off = struct.unpack_from("<I", dex, 92)[0]
+    class_defs_size, class_defs_off = struct.unpack_from("<2I", dex, 96)
+
+    def string(index: int) -> str:
+        at = struct.unpack_from("<I", dex, string_ids_off + 4 * index)[0]
+        length, at = _uleb(dex, at)
+        return dex[at:at + length].decode("utf-8", "replace")
+
+    def type_name(index: int) -> str:
+        return string(struct.unpack_from("<I", dex, type_ids_off + 4 * index)[0])
+
+    def descriptor(index: int) -> str:
+        _shorty, return_type, parameters = struct.unpack_from(
+            "<3I", dex, proto_ids_off + 12 * index)
+        arguments = ""
+        if parameters:
+            count = struct.unpack_from("<I", dex, parameters)[0]
+            arguments = "".join(
+                type_name(struct.unpack_from("<H", dex, parameters + 4 + 2 * i)[0])
+                for i in range(count)
+            )
+        return "(%s)%s" % (arguments, type_name(return_type))
+
+    def signature(index: int) -> str:
+        owner, proto, name = struct.unpack_from("<HHI", dex, method_ids_off + 8 * index)
+        return "%s->%s%s" % (type_name(owner), string(name), descriptor(proto))
+
+    out = set()
+    for i in range(class_defs_size):
+        data_off = struct.unpack_from("<I", dex, class_defs_off + 32 * i + 24)[0]
+        if not data_off:
+            continue
+        counts = []
+        at = data_off
+        for _ in range(4):  # static fields, instance fields, direct, virtual
+            value, at = _uleb(dex, at)
+            counts.append(value)
+        for _ in range(counts[0] + counts[1]):
+            _diff, at = _uleb(dex, at)
+            _flags, at = _uleb(dex, at)
+        for methods in (counts[2], counts[3]):
+            index = 0
+            for step in range(methods):
+                diff, at = _uleb(dex, at)
+                _flags, at = _uleb(dex, at)
+                _code, at = _uleb(dex, at)
+                index = diff if step == 0 else index + diff
+                out.add(signature(index))
+    return out
+
+
+def missing_targets(dex: bytes) -> List[str]:
+    """Which of the rewrites' landing sites the mod's own dex does not define."""
+    defined = defined_methods(dex)
+    return [target for target in rewrite_targets() if target not in defined]
+
+
 def patch(dex: bytes, name: str, smali: Smali, workspace: str,
           literals: Optional[Dict[str, str]] = None) -> Tuple[bytes, Dict[str, int]]:
     """Take one dex apart, rewrite what is in it, put it back together."""

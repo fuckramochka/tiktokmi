@@ -100,9 +100,20 @@ public final class Accent {
 
     // ------------------------------------------------- where colours arrive
 
-    /** Any colour that comes back pink comes back the chosen one instead. */
+    /**
+     * Any colour of TikTok's red family comes back on the chosen accent.
+     *
+     * Not the one value it used to be: the app draws its pink at a dozen
+     * opacities and next to a family of neighbours, and swapping only the exact
+     * brand colour left nine tenths of the red on screen. Palette says what
+     * belongs to the family and where it moves to.
+     */
     public static int swap(int colour) {
-        return colour == TIKTOK ? colour() : colour;
+        return Palette.map(colour, TIKTOK, colour());
+    }
+
+    public static int getColor(Context context, int id) {
+        return swap(context.getColor(id));
     }
 
     public static int getColor(Resources resources, int id) {

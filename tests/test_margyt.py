@@ -20,7 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from margyt import (accent as accent_module, artwork, dexpatch, icon as icon_module,
-                    manifest as manifest_module, png, vector)
+                    manifest as manifest_module, palette, png, vector)
 from margyt.apkzip import Apk, STORED
 from margyt.arsc import Arsc, ArscError
 from margyt.axml import Axml, TYPE_REFERENCE, TYPE_STRING
@@ -421,7 +421,11 @@ class AccentTest(unittest.TestCase):
         before = bytes(self.arsc.data)
         report = accent_module.bake(self.apk, self.arsc, self.PINK, self.PINK)
         self.assertEqual(bytes(self.arsc.data), before)
-        self.assertEqual(len(report), 1)
+        # nothing is written, but the build still has to say what it left alone:
+        # those places are exactly the ones the runtime palette cannot reach
+        self.assertIn("nothing to bake", report[0])
+        self.assertTrue(any("stay as they are" in line for line in report))
+        self.assertTrue(any("--accent" in line for line in report))
 
     def values_of_every_colour(self, arsc):
         for package in arsc.packages:
@@ -591,6 +595,58 @@ class DexPatchTest(unittest.TestCase):
         self.assertFalse(dexpatch.interesting(b"Landroid/telephony/TelephonyManager;getDataState"))
         self.assertTrue(
             dexpatch.interesting(b"Landroid/telephony/TelephonyManager;\x00getSimCountryIso"))
+
+
+class PaletteTest(unittest.TestCase):
+    """The zone the accent takes over, and the step it moves it by."""
+
+    PINK = 0xFFFE2C55
+    MINT = 0xFF8DD1B0
+    CYAN = 0xFF25F4EE  # TikTok's other brand colour, and it has to stay put
+
+    def test_the_reference_lands_exactly_on_the_accent(self):
+        self.assertEqual(palette.map_colour(self.PINK, self.PINK, self.MINT), self.MINT)
+
+    def test_alpha_is_kept_and_the_rest_follows(self):
+        """Half-transparent pink is the same pink: the first build missed all of it."""
+        for alpha in (0x00, 0x1A, 0x80, 0xD9):
+            faded = (alpha << 24) | (self.PINK & 0xFFFFFF)
+            moved = palette.map_colour(faded, self.PINK, self.MINT)
+            self.assertEqual(moved >> 24 & 0xFF, alpha)
+            self.assertEqual(moved & 0xFFFFFF, self.MINT & 0xFFFFFF)
+
+    def test_the_neighbours_of_the_family_come_along(self):
+        # the shades the apk actually holds, counted off 46.9.42
+        for neighbour in (0xFFFF1764, 0xFFED3495, 0xFFF43F5E, 0xFFFF3B5C, 0xFFFB1E70):
+            self.assertTrue(palette.captures(neighbour, self.PINK))
+            self.assertNotEqual(palette.map_colour(neighbour, self.PINK, self.MINT),
+                                neighbour)
+
+    def test_what_is_not_the_family_is_not_touched(self):
+        for other in (self.CYAN, 0xFF000000, 0xFFFFFFFF, 0xFF808080,
+                      0xFF4C8DFF, 0xFF35C759, 0xFF1C2C24):
+            self.assertFalse(palette.captures(other, self.PINK))
+            self.assertEqual(palette.map_colour(other, self.PINK, self.MINT), other)
+
+    def test_a_lighter_member_stays_lighter(self):
+        """Gradients have two ends, and they have to still have two."""
+        light = palette.map_colour(0xFFFF96B8, self.PINK, self.MINT)
+        dark = palette.map_colour(0xFF801D35, self.PINK, self.MINT)
+        self.assertGreater(palette._split(light)[3], palette._split(dark)[3])
+
+    def test_asking_for_the_colour_it_already_is_changes_nothing(self):
+        for colour in (self.PINK, 0xFFFF1764, self.CYAN):
+            self.assertEqual(palette.map_colour(colour, self.PINK, self.PINK), colour)
+
+    def test_the_java_side_was_given_the_same_numbers(self):
+        """Two implementations of one formula, and a seam if they disagree."""
+        source = os.path.join(ROOT, "inject", "java", "cat", "narezany", "margyt",
+                              "Palette.java")
+        with open(source, encoding="utf-8") as handle:
+            java = handle.read()
+        self.assertIn("HUE = %gf" % palette.HUE, java)
+        self.assertIn("MIN_SATURATION = %gf" % palette.MIN_SATURATION, java)
+        self.assertIn("MIN_VALUE = %gf" % palette.MIN_VALUE, java)
 
 
 if __name__ == "__main__":

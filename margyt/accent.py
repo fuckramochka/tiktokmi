@@ -19,55 +19,80 @@ from typing import Dict, List, Tuple
 from .apkzip import Apk
 from .arsc import Arsc
 from .axml import Axml
+from .palette import captures, map_colour
 
 # the colour types a Res_value can be: argb8, rgb8, argb4, rgb4
 COLOUR_TYPES = (0x1C, 0x1D, 0x1E, 0x1F)
 
 
 def bake(apk: Apk, arsc: Arsc, old: int, new: int) -> List[str]:
-    """Replace `old` with `new` in the resource table and in compiled XML."""
-    if old == new:
-        return ["the accent is TikTok's own, nothing to bake"]
+    """Move TikTok's red family onto the accent, in the table and in compiled XML.
 
+    Not one value: the family, at every opacity it is used at, mapped by the
+    step that takes the brand pink to the chosen colour. margyt/palette.py says
+    what is taken over and what is left alone.
+
+    Asked for the colour the apk already has, this counts instead of writing --
+    and says what it counted. Those places are the ones the bytecode patch can
+    never reach, because the framework parses them inside its own code, so a
+    build that leaves them alone should say so rather than report nothing to do.
+    """
+    writing = old != new
     report = []
-    report.append("resource entries: %d" % _bake_table(arsc, old, new))
+
+    entries, shades = _walk_table(arsc, old, new, writing)
 
     files = 0
     changes = 0
     for name in apk.names():
         if not (name.startswith("res/") and name.endswith(".xml")):
             continue
-        data = apk.read(name)
-        if _as_bytes(old) not in data:
-            continue
         try:
-            axml = Axml.parse(data)
+            axml = Axml.parse(apk.read(name))
         except Exception:
             continue
         here = 0
         for node in axml.nodes:
             for attribute in node.attributes:
-                if attribute.kind in COLOUR_TYPES and attribute.data == old:
-                    attribute.data = new
+                if attribute.kind in COLOUR_TYPES and captures(attribute.data, old):
+                    shades.add(attribute.data)
+                    if writing:
+                        attribute.data = map_colour(attribute.data, old, new)
                     here += 1
         if here:
-            apk.replace(name, axml.build())
+            if writing:
+                apk.replace(name, axml.build())
             files += 1
             changes += here
-    report.append("compiled xml: %d colours in %d files" % (changes, files))
+
+    if writing:
+        report.append("resource entries: %d" % entries)
+        report.append("compiled xml: %d colours in %d files" % (changes, files))
+        report.append("%d shades of the family in all, alpha kept, moved together"
+                      % len(shades))
+    else:
+        report.append("the accent is TikTok's own, nothing to bake")
+        report.append("%d in the table and %d in %d compiled xml files stay as they are"
+                      % (entries, changes, files))
+        report.append("those are pictures rather than code -- the palette in the "
+                      "settings cannot reach them; --accent is what moves them")
     return report
 
 
-def _bake_table(arsc: Arsc, old: int, new: int) -> int:
-    """Every typed value in the table that is exactly this colour."""
-    changed = 0
+def _walk_table(arsc: Arsc, old: int, new: int, writing: bool):
+    """Every typed value in the table that belongs to the family."""
+    found = 0
+    shades = set()
     for package in arsc.packages:
         for type_id in list(package.types):
             for entry in _entries(arsc, package, type_id):
-                if entry.kind in COLOUR_TYPES and entry.data == old:
-                    arsc.set_value(entry, entry.kind, new)
-                    changed += 1
-    return changed
+                if entry.kind in COLOUR_TYPES and captures(entry.data, old):
+                    shades.add(entry.data)
+                    if writing:
+                        arsc.set_value(entry, entry.kind,
+                                       map_colour(entry.data, old, new))
+                    found += 1
+    return found, shades
 
 
 def _entries(arsc: Arsc, package, type_id: int):
@@ -86,9 +111,3 @@ def _entry_count(arsc: Arsc, package, type_id: int) -> int:
         count = struct.unpack_from("<I", arsc.data, chunk + 12)[0]
         most = max(most, count)
     return most
-
-
-def _as_bytes(colour: int) -> bytes:
-    import struct
-
-    return struct.pack("<I", colour)
