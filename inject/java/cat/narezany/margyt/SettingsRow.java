@@ -203,7 +203,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         row.addView(glyph, new LinearLayout.LayoutParams(dp(activity, 24), dp(activity, 24)));
 
         TextView title = new TextView(activity);
-        title.setText(label());
+        title.setText(Text.ROW);
         title.setTextColor(skin.text);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -265,13 +265,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         } catch (Throwable error) {
             Diary.note("insets left alone: " + error);
         }
-    }
-
-    private static String label() {
-        String language = Locale.getDefault().getLanguage();
-        if ("ru".equals(language)) return "Настройки MargyT";
-        if ("uk".equals(language)) return "Налаштування MargyT";
-        return "MargyT settings";
     }
 
     private static int statusBar(Activity activity) {

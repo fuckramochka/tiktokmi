@@ -1,5 +1,7 @@
 package cat.narezany.margyt;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -38,14 +40,63 @@ final class Skin {
         this.measured = measured;
     }
 
+    /** The colour of a section label or a caption on this screen. */
     int muted() {
         return (text & 0x00FFFFFF) | 0x66000000;
+    }
+
+    boolean dark() {
+        return (0.299f * android.graphics.Color.red(page)
+                + 0.587f * android.graphics.Color.green(page)
+                + 0.114f * android.graphics.Color.blue(page)) / 255f < 0.5f;
+    }
+
+    /**
+     * The style measured last time, for MargyT's own screen to be drawn in.
+     *
+     * That screen can be opened from the launcher without TikTok's settings
+     * ever being on screen, so there is nothing to measure at the time -- what
+     * the row measured is kept instead, and used again here.
+     */
+    static Skin remembered(Context context) {
+        try {
+            SharedPreferences prefs =
+                    context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE);
+            if (prefs.contains("skin_card")) {
+                return new Skin(
+                        prefs.getInt("skin_page", 0xFF000000),
+                        prefs.getInt("skin_card", 0xFF1C1C1E),
+                        prefs.getInt("skin_text", 0xFFFFFFFF),
+                        prefs.getInt("skin_margin", Math.round(
+                                16 * context.getResources().getDisplayMetrics().density)),
+                        prefs.getInt("skin_radius", Math.round(
+                                12 * context.getResources().getDisplayMetrics().density)),
+                        true);
+            }
+        } catch (Throwable ignored) {
+        }
+        return fallback(context);
+    }
+
+    void remember(Context context) {
+        if (!measured) return;
+        try {
+            context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE).edit()
+                    .putInt("skin_page", page)
+                    .putInt("skin_card", card)
+                    .putInt("skin_text", text)
+                    .putInt("skin_margin", margin)
+                    .putInt("skin_radius", radius)
+                    .apply();
+        } catch (Throwable ignored) {
+        }
     }
 
     static Skin of(View screen) {
         try {
             Skin measured = measure(screen);
             if (measured != null) {
+                measured.remember(screen.getContext());
                 Diary.note(String.format(
                         "style read off the screen: card #%06X text #%06X margin %dpx radius %dpx",
                         measured.card & 0xFFFFFF, measured.text & 0xFFFFFF,
@@ -55,14 +106,13 @@ final class Skin {
         } catch (Throwable error) {
             Diary.note("could not read the style: " + error);
         }
-        return fallback(screen);
+        return fallback(screen.getContext());
     }
 
-    private static Skin fallback(View screen) {
-        boolean dark = (screen.getResources().getConfiguration().uiMode
+    private static Skin fallback(Context context) {
+        boolean dark = (context.getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-        float density = screen.getResources().getDisplayMetrics().density;
-        Diary.note("style guessed, the screen would not be read");
+        float density = context.getResources().getDisplayMetrics().density;
         return new Skin(
                 dark ? 0xFF000000 : 0xFFFFFFFF,
                 dark ? 0xFF1C1C1E : 0xFFF5F5F5,
