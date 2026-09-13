@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 from . import artwork, dexpatch, icon as icon_module, manifest as manifest_module
 from .apkzip import Apk, STORED
 from .arsc import Arsc
+from . import axml as axml_module
 from .axml import Axml
 from .dexpatch import Smali
 from .toolchain import Toolchain
@@ -93,8 +94,11 @@ class Build:
         theme = self.tools.framework_constant(SETTINGS_THEME)
         for where in manifest_module.set_label(manifest, LABEL):
             self.detail("label on %s" % where)
-        manifest_module.add_activity(manifest, SETTINGS_ACTIVITY, SETTINGS_LABEL, theme)
-        self.detail("%s declared, on the launcher" % SETTINGS_ACTIVITY)
+        self.tools.check_attribute_ids(axml_module.ATTR_IDS)
+        manifest_module.add_activity(
+            manifest, SETTINGS_ACTIVITY, SETTINGS_LABEL, theme, PACKAGE)
+        self.detail("%s declared, on the launcher, in a task of its own"
+                    % SETTINGS_ACTIVITY)
 
         if not manifest_module.has_activity(manifest, TIKTOK_SETTINGS):
             raise RuntimeError(

@@ -93,6 +93,32 @@ class Toolchain:
                 return int(line.rsplit("=", 1)[1].strip().rstrip(";"))
         raise RuntimeError("android.jar has no android.R.style.%s" % field)
 
+    def check_attribute_ids(self, ids: dict) -> None:
+        """Check the framework attribute ids against android.jar.
+
+        Every id the manifest is written with is a public one that has not
+        changed since the day it shipped -- but a table of bare numbers is a
+        table nobody can check, and one wrong digit writes an attribute that
+        means something else entirely.
+        """
+        result = subprocess.run(
+            ["javap", "-cp", self.android_jar, "-constants", "android.R$attr"],
+            capture_output=True,
+            text=True,
+        )
+        known = {}
+        for line in result.stdout.splitlines():
+            if " = " not in line or not line.strip().endswith(";"):
+                continue
+            name = line.split()[-3]
+            known[name] = int(line.rsplit("=", 1)[1].strip().rstrip(";"))
+        for name, value in ids.items():
+            if name in known and known[name] != value:
+                raise RuntimeError(
+                    "android:%s is 0x%08x in android.jar, not 0x%08x"
+                    % (name, known[name], value)
+                )
+
     def compile_dex(self, sources_dir: str, out_dir: str, min_api: int) -> str:
         """javac then d8: the mod's own classes, as one dex."""
         classes = os.path.join(out_dir, "classes")

@@ -179,9 +179,13 @@ public class SettingsActivity extends Activity {
         box.setPadding(dp(20), dp(8), dp(20), dp(28));
 
         TextView heading = new TextView(this);
-        heading.setText("What the mod saw");
+        heading.setText("What the mod saw  (tap to clear)");
         heading.setTextColor(MUTED);
         heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        heading.setOnClickListener(v -> {
+            Diary.clear();
+            recreate();
+        });
         box.addView(heading);
 
         for (String line : Diary.lines()) {

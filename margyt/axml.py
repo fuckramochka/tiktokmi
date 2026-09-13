@@ -33,7 +33,9 @@ TYPE_INT_BOOLEAN = 0x12
 
 ANDROID_NS = "http://schemas.android.com/apk/res/android"
 
-# the framework attributes we need to be able to write
+# The framework attributes we need to be able to write. These never change --
+# they are public ids, fixed the day each one shipped -- and the build checks
+# every one of them against android.jar rather than trusting this table.
 ATTR_IDS = {
     "theme": 0x01010000,
     "label": 0x01010001,
@@ -45,6 +47,7 @@ ATTR_IDS = {
     "launchMode": 0x0101001D,
     "roundIcon": 0x0101052C,
     "authorities": 0x01010018,
+    "taskAffinity": 0x01010012,
     "minSdkVersion": 0x0101020C,
 }
 
@@ -433,6 +436,10 @@ class Axml:
         node.attributes.insert(where, attr)
 
     def set_attr_string(self, node: Node, name: str, value: str) -> None:
+        # the attribute's own name goes in first: adding one renumbers the pool
+        # from the end of the resource map up, and a value index looked up
+        # before that would be pointing one string to the left afterwards
+        self.attribute_name_index(name)
         index = self.pool.index(value)
         self.set_attr(node, name, TYPE_STRING, index, raw=index)
 

@@ -72,7 +72,7 @@ class AxmlTest(unittest.TestCase):
         axml = Axml.parse(self.raw)
         manifest_module.set_label(axml, "MargyT")
         manifest_module.add_activity(axml, "cat.narezany.margyt.SettingsActivity",
-                                     "MargyT settings", 0x0103012C)
+                                     "MargyT settings", 0x0103012C, "cat.narezany.margyt")
         again = Axml.parse(axml.build())
 
         names = [again.attr_string(node, "name") for node in again.elements("activity")]
@@ -84,6 +84,11 @@ class AxmlTest(unittest.TestCase):
         self.assertEqual(again.attr_string(added, "label"), "MargyT settings")
         self.assertEqual(again.attr(added, "theme").data, 0x0103012C)
         self.assertEqual(again.attr(added, "exported").data, 0xFFFFFFFF)
+
+        # a task of its own, or the launcher entry just resumes TikTok
+        self.assertEqual(again.attr_string(added, "taskAffinity"), "cat.narezany.margyt")
+        self.assertEqual(again.attr(added, "launchMode").data,
+                         manifest_module.LAUNCH_SINGLE_TASK)
 
         # the new element brings an intent-filter, and it is the launcher's
         launchers = [again.attr_string(n, "name") for n in manifest_module.launcher_elements(again)]

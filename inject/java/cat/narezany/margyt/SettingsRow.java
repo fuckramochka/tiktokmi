@@ -52,8 +52,11 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
 
     @Override
     public void onActivityResumed(Activity activity) {
-        if (!SETTINGS_ACTIVITY.equals(activity.getClass().getName())) {
-            Diary.note("saw " + activity.getClass().getName());
+        String name = activity.getClass().getName();
+        if (!SETTINGS_ACTIVITY.equals(name)) {
+            // every screen would drown the diary; the ones worth knowing about
+            // are the ones that might be the settings screen under a new name
+            if (name.toLowerCase(Locale.US).contains("setting")) Diary.note("saw " + name);
             return;
         }
         Diary.note("settings screen is up");
