@@ -83,6 +83,15 @@ help -- it is in the apk with its method names shortened away, `getFragments()`
 included -- and the build checks the manifest still declares that screen,
 stopping rather than shipping a mod whose settings cannot be reached.
 
+The row is not styled by hand either. TikTok's rows are Compose, drawn from
+colours and dimensions that live in obfuscated Kotlin -- and the resource table
+is no help, since TikTok's own colours are called `ag` and `ah` in there. So
+the mod draws the screen it is about to sit on into a bitmap of its own and
+reads the style out of the pixels: the card colour, the text colour, the margin
+the cards keep from the edge, the radius of their corners. Whatever TikTok is
+drawing today, in whichever theme, is what the row is built from, and the diary
+records the numbers it found.
+
 The screen behind the row is built in code with no layout or style resources at
 all: adding a resource would mean rewriting a 25 MB resource table, which is
 the one thing this build refuses to do.

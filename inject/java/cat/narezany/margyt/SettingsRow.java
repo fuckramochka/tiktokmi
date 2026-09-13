@@ -3,7 +3,7 @@ package cat.narezany.margyt;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
-import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -39,9 +39,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     // setTag(int, ...) refuses a key that does not look like a resource id:
     // the top byte has to be 2 or more. This one spells "Marg".
     private static final int TAG = 0x4D617267;
-
-    private static final int MINT = 0xFF8DD1B0;
-    private static final int INK = 0xFF1C2C24;
 
     // ------------------------------------------------------- the lifecycle
 
@@ -101,6 +98,8 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         if (parent == null || parent.getTag(TAG) != null) return;
         if (container.getWidth() == 0) return;  // not laid out yet
 
+        Skin skin = Skin.of(container);
+
         int index = parent.indexOfChild(container);
         ViewGroup.LayoutParams params = container.getLayoutParams();
 
@@ -112,11 +111,13 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         // them out of, so it is left exactly where it is -- the row goes above
         // it, wrapped around the outside, and nothing the app does has to know.
         parent.removeViewAt(index);
-        column.addView(row(activity), new LinearLayout.LayoutParams(
+        final View box = row(activity, skin);
+        column.addView(box, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         column.addView(container, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         parent.addView(column, index, params);
+        keepClearOfTheStatusBar(column, box, container, skin);
         Diary.note("row added above " + container.getClass().getName());
     }
 
@@ -152,50 +153,38 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
 
     // ------------------------------------------------------------- the row
 
-    private View row(final Activity activity) {
-        // The screen is Compose and has no TextView to read a colour off, so
-        // the background it is drawn on decides: TikTok's settings are white on
-        // light and nearly black on dark.
-        boolean dark = isDark(activity);
-        int text = dark ? 0xFFFFFFFF : INK;
-        int card = dark ? 0xFF161823 : 0xFFFFFFFF;
-        int muted = dark ? 0x99FFFFFF : 0x99000000;
-
+    private View row(final Activity activity, Skin skin) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(activity, 16), dp(activity, 12), dp(activity, 16), dp(activity, 12));
+        row.setPadding(dp(activity, 16), 0, dp(activity, 16), 0);
 
         GradientDrawable background = new GradientDrawable();
-        background.setColor(card);
-        background.setCornerRadius(dp(activity, 12));
+        background.setColor(skin.card);
+        background.setCornerRadius(skin.radius);
         row.setBackground(background);
 
         TextView glyph = new TextView(activity);
-        glyph.setText("♪");  // a note, the same one as on the icon
-        glyph.setTextColor(0xFF16281F);
-        glyph.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        glyph.setText("\u266A");  // a note, the same one as on the icon
+        glyph.setTextColor(skin.text);
+        glyph.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         glyph.setGravity(Gravity.CENTER);
-        GradientDrawable badge = new GradientDrawable();
-        badge.setColor(MINT);
-        badge.setCornerRadius(dp(activity, 8));
-        glyph.setBackground(badge);
-        int size = dp(activity, 28);
-        row.addView(glyph, new LinearLayout.LayoutParams(size, size));
+        row.addView(glyph, new LinearLayout.LayoutParams(dp(activity, 24), dp(activity, 24)));
 
         TextView title = new TextView(activity);
         title.setText(label());
-        title.setTextColor(text);
+        title.setTextColor(skin.text);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        titleParams.leftMargin = dp(activity, 12);
+        titleParams.leftMargin = dp(activity, 16);
         row.addView(title, titleParams);
 
         TextView chevron = new TextView(activity);
-        chevron.setText("›");
-        chevron.setTextColor(muted);
-        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        chevron.setText("\u203A");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
         row.addView(chevron);
 
         row.setOnClickListener(new View.OnClickListener() {
@@ -210,13 +199,41 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
 
         LinearLayout box = new LinearLayout(activity);
         box.setOrientation(LinearLayout.VERTICAL);
-        // the row sits above whatever handles the window insets, so it has to
-        // keep clear of the status bar itself
-        box.setPadding(dp(activity, 16), statusBar(activity) + dp(activity, 8),
-                dp(activity, 16), dp(activity, 8));
+        box.setPadding(skin.margin, statusBar(activity) + dp(activity, 8),
+                skin.margin, dp(activity, 8));
         box.addView(row, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 56)));
         return box;
+    }
+
+    /**
+     * One status bar between the two of us.
+     *
+     * The screen below already keeps clear of the status bar itself, and with
+     * the row above it that gap ends up drawn twice -- so the row takes the
+     * inset and passes the screen a set without it.
+     */
+    private void keepClearOfTheStatusBar(final LinearLayout column, final View box,
+                                         final ViewGroup screen, final Skin skin) {
+        try {
+            column.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @Override
+                public android.view.WindowInsets onApplyWindowInsets(
+                        View view, android.view.WindowInsets insets) {
+                    int top = insets.getSystemWindowInsetTop();
+                    box.setPadding(skin.margin, top + dp(column.getContext(), 8),
+                            skin.margin, dp(column.getContext(), 8));
+                    screen.dispatchApplyWindowInsets(insets.replaceSystemWindowInsets(
+                            insets.getSystemWindowInsetLeft(), 0,
+                            insets.getSystemWindowInsetRight(),
+                            insets.getSystemWindowInsetBottom()));
+                    return insets.consumeSystemWindowInsets();
+                }
+            });
+            column.requestApplyInsets();
+        } catch (Throwable error) {
+            Diary.note("insets left alone: " + error);
+        }
     }
 
     private static String label() {
@@ -224,22 +241,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         if ("ru".equals(language)) return "Настройки MargyT";
         if ("uk".equals(language)) return "Налаштування MargyT";
         return "MargyT settings";
-    }
-
-    /** Whether the app is drawing itself dark, read off the window background. */
-    private static boolean isDark(Activity activity) {
-        try {
-            View decor = activity.getWindow().getDecorView();
-            if (decor.getBackground() instanceof android.graphics.drawable.ColorDrawable) {
-                int colour = ((android.graphics.drawable.ColorDrawable)
-                        decor.getBackground()).getColor();
-                if (Color.alpha(colour) > 0) return luminance(colour) < 0.5f;
-            }
-        } catch (Throwable ignored) {
-        }
-        return (activity.getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
     }
 
     private static int statusBar(Activity activity) {
@@ -260,12 +261,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         return 0;
     }
 
-    private static float luminance(int colour) {
-        return (0.299f * Color.red(colour) + 0.587f * Color.green(colour)
-                + 0.114f * Color.blue(colour)) / 255f;
-    }
-
-    private static int dp(Activity activity, int value) {
-        return Math.round(value * activity.getResources().getDisplayMetrics().density);
+    private static int dp(android.content.Context context, int value) {
+        return Math.round(value * context.getResources().getDisplayMetrics().density);
     }
 }
