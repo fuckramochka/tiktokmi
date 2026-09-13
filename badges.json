@@ -1,0 +1,27 @@
+{
+  "_comment": "Badges MargyT draws after a name. The app reads this file from the repository at startup and every five minutes, so a badge is added by editing it here -- no new build, no update.",
+  "_fields": {
+    "id": "anything, as long as it is unique",
+    "users": "TikTok account ids, the numeric ones that do not change with the username",
+    "image": "a path in this repository; leave it out for the mod's own note",
+    "colour": "RRGGBB to paint the image with; leave it out to keep its own colours",
+    "title": "the heading of the window the badge opens",
+    "text": "what the window says",
+    "button": "what the window's button says",
+    "*_ru, *_uk": "the same field in that language; the app picks by the phone's language"
+  },
+  "badges": [
+    {
+      "id": "owner",
+      "users": ["7551880794956989495"],
+      "colour": "8DD1B0",
+      "title": "MargyT",
+      "text": "The owner of Margy and MargyT",
+      "text_ru": "Владелец Margy и MargyT",
+      "text_uk": "Власник Margy і MargyT",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
+    }
+  ]
+}
