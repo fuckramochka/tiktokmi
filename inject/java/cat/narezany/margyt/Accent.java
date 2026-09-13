@@ -165,7 +165,11 @@ public final class Accent {
         if (moved != colour) return moved;
 
         int origin = originOf(colour);
-        return origin == 0 ? colour : Palette.map(origin, TIKTOK, chosen);
+        if (origin != 0) return Palette.map(origin, TIKTOK, chosen);
+
+        // last, and only for the colours TikTok repaints itself when its own
+        // theme changes: the accent has had its say and did not want this one
+        return Themes.recolour(colour);
     }
 
     /** The shade a baked colour was made from, or zero. Binary search. */
@@ -182,6 +186,11 @@ public final class Accent {
     }
 
     private static volatile long memo;
+
+    /** Forget the one remembered answer: something it depended on has changed. */
+    static void forget() {
+        memo = 0;
+    }
 
     // ---------------------------------------------- where a colour is used
 

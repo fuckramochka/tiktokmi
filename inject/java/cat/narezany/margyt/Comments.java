@@ -1,5 +1,7 @@
 package cat.narezany.margyt;
 
+import android.view.View;
+
 import com.ss.android.ugc.aweme.base.model.UrlModel;
 import com.ss.android.ugc.aweme.comment.model.CommentImageStruct;
 import com.ss.android.ugc.aweme.comment.model.CommentStickerStruct;
@@ -7,6 +9,7 @@ import com.ss.android.ugc.aweme.comment.model.CommentStickerStruct;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -46,34 +49,120 @@ public final class Comments {
     private static final Set<String> told = new HashSet<String>();
 
     /**
-     * Temporary, and here to answer one question.
+     * A sticker in a comment, tapped.
      *
-     * A sticker in a conversation is touched through an interface with a real
-     * name, and the mod hears it. A sticker in the comments is not: there is a
-     * model and no click anywhere that names it. So this writes down what
-     * screen appears when a comment's sticker is read, and one tap is enough to
-     * say what to anchor on. It goes away as soon as it has answered.
+     * In a conversation the tap goes through an interface with a real name and
+     * the mod simply hears it. In the comments it goes to a static on a class
+     * whose name changes every release -- so the build finds that class by
+     * what the method takes rather than by what it is called, and writes down
+     * where it landed. The call is handed straight back, so the panel TikTok
+     * opens on a tap still opens.
      */
+    public static void stickerTapped(View view, CommentStickerStruct sticker,
+                                     boolean flag, String from,
+                                     Map extras, String where) {
+        try {
+            if (sticker != null && Stickers.isEnabled()) Stickers.seen(sticker);
+        } catch (Throwable error) {
+            Diary.note("comment sticker: " + error);
+        }
+        onwards(view, sticker, flag, from, extras, where);
+    }
+
+    /** Back to TikTok's own, wherever this release keeps it. */
+    private static void onwards(Object... args) {
+        try {
+            Class<?> owner = Class.forName(Anchors.COMMENT_STICKER_TAPPED);
+            for (java.lang.reflect.Method method : owner.getDeclaredMethods()) {
+                if (!method.getName().equals(Anchors.COMMENT_STICKER_TAPPED_METHOD)) continue;
+                if (method.getParameterTypes().length != args.length) continue;
+                method.setAccessible(true);
+                method.invoke(null, args);
+                return;
+            }
+            Diary.note("comment sticker tap: nothing to hand it back to");
+        } catch (Throwable error) {
+            Diary.note("comment sticker tap: " + error);
+        }
+    }
+
+    /** The sticker a comment is carrying, remembered for the view that shows it. */
     public static CommentStickerStruct getStickerStruct(Object comment) {
-        CommentStickerStruct struct = null;
+        CommentStickerStruct sticker = null;
         try {
             java.lang.reflect.Method method =
                     comment.getClass().getMethod("getStickerStruct");
             method.setAccessible(true);
-            struct = (CommentStickerStruct) method.invoke(comment);
+            sticker = (CommentStickerStruct) method.invoke(comment);
         } catch (Throwable error) {
             Diary.note("comment sticker: " + error);
             return null;
         }
-        try {
-            if (struct != null && Download.isEnabled()) {
-                android.app.Activity now = Screen.now();
-                Diary.note("comment sticker read, screen is "
-                        + (now == null ? "none" : now.getClass().getName()));
-            }
-        } catch (Throwable ignored) {
+        if (sticker != null) lastBound = sticker;
+        return sticker;
+    }
+
+    /** The sticker most recently bound, for the view about to be wrapped. */
+    private static volatile CommentStickerStruct lastBound;
+
+    /**
+     * A long press on a sticker in a comment.
+     *
+     * TikTok sets its own listener on that view, so there is a gesture already
+     * and the mod does not need to invent one: this wraps what was about to be
+     * set. The press still does what TikTok made it do -- our listener says so
+     * by handing the event on and returning what TikTok's returns -- and the
+     * offer to save appears alongside.
+     *
+     * Which sticker it is comes from the listener itself where it can be found
+     * there, and from the last one bound where it cannot: the view is wrapped
+     * in the same breath as the comment is read, so the two go together.
+     */
+    public static void setOnLongClickListener(View view,
+                                              final View.OnLongClickListener theirs) {
+        if (view == null) return;
+        final CommentStickerStruct sticker = hunt(theirs, new HashSet<Object>(), 0);
+        final CommentStickerStruct fallback = lastBound;
+        if (sticker == null && fallback == null) {
+            view.setOnLongClickListener(theirs);
+            return;
         }
-        return struct;
+        view.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View pressed) {
+                try {
+                    if (Stickers.isEnabled()) {
+                        Stickers.seen(sticker != null ? sticker : fallback);
+                    }
+                } catch (Throwable error) {
+                    Diary.note("comment sticker: " + error);
+                }
+                return theirs != null && theirs.onLongClick(pressed);
+            }
+        });
+    }
+
+    /** A comment's sticker, anywhere inside the object holding the listener. */
+    private static CommentStickerStruct hunt(Object thing, Set<Object> seen, int depth) {
+        if (thing == null || depth > 3) return null;
+        if (thing instanceof CommentStickerStruct) return (CommentStickerStruct) thing;
+        Class<?> type = thing.getClass();
+        String name = type.getName();
+        if (name.startsWith("java.") || name.startsWith("android.")) return null;
+        if (!seen.add(thing)) return null;
+        while (type != null && type != Object.class) {
+            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+                try {
+                    if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+                    field.setAccessible(true);
+                    CommentStickerStruct found = hunt(field.get(thing), seen, depth + 1);
+                    if (found != null) return found;
+                } catch (Throwable ignored) {
+                }
+            }
+            type = type.getSuperclass();
+        }
+        return null;
     }
 
     public static UrlModel getCropUrl(CommentImageStruct image) {

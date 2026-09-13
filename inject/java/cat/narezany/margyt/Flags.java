@@ -12,9 +12,9 @@ import java.util.Map;
  *
  * Every feature in the app is behind a named flag, and the value of each is
  * decided per account on the server. Two people on the same version get
- * different apps: background playback, holding to speed a video up, the feed
- * scrolling itself -- all of them are already written, already shipped, and
- * simply not switched on for most accounts.
+ * different apps: background playback, voice comments, the feed scrolling
+ * itself -- all of them are already written, already shipped, and simply not
+ * switched on for most accounts.
  *
  * The flag is read through one class whose name is real,
  * `com.bytedance.ies.abmock.SettingsManager`, with one static per type -- no
@@ -36,20 +36,12 @@ public final class Flags {
     // the groups, each with a switch on the mod's screen
     public static final int ADS = 0;
     public static final int BACKGROUND = 1;
-    public static final int SPEED = 2;
-    public static final int AUTOSCROLL = 3;
-    public static final int VOICE = 4;
-    public static final int FAVOURITES = 5;
-    public static final int REPOST = 6;
-    public static final int CONTACTS = 7;
+    public static final int AUTOSCROLL = 2;
+    public static final int VOICE = 3;
 
     public static final String KEY_BACKGROUND = "flag_background";
-    public static final String KEY_SPEED = "flag_speed";
     public static final String KEY_AUTOSCROLL = "flag_autoscroll";
     public static final String KEY_VOICE = "flag_voice";
-    public static final String KEY_FAVOURITES = "flag_favourites";
-    public static final String KEY_REPOST = "flag_repost";
-    public static final String KEY_CONTACTS = "flag_contacts";
 
     private static final class Override {
         final int group;
@@ -77,16 +69,9 @@ public final class Flags {
 
         put(BACKGROUND, Integer.valueOf(1), "background_play_enable");
 
-        put(SPEED, Boolean.TRUE, "long_press_speed_up_enable");
-        put(SPEED, Integer.valueOf(120), "long_press_speed_up_lock");
-
         put(AUTOSCROLL, Integer.valueOf(1), "fyp_auto_scroll");
 
         put(VOICE, Integer.valueOf(1), "audio_comment_publish");
-        put(FAVOURITES, Integer.valueOf(1),
-                "enable_favorite_long_click", "add_comments_to_favorites");
-        put(REPOST, Integer.valueOf(99999), "repost_text_max_length");
-        put(CONTACTS, Integer.valueOf(999), "im_contacts_multi_select_limit");
     }
 
     // ------------------------------------------------------------ the switches
@@ -99,12 +84,8 @@ public final class Flags {
     private static String keyOf(int group) {
         switch (group) {
             case BACKGROUND: return KEY_BACKGROUND;
-            case SPEED: return KEY_SPEED;
             case AUTOSCROLL: return KEY_AUTOSCROLL;
-            case VOICE: return KEY_VOICE;
-            case FAVOURITES: return KEY_FAVOURITES;
-            case REPOST: return KEY_REPOST;
-            default: return KEY_CONTACTS;
+            default: return KEY_VOICE;
         }
     }
 

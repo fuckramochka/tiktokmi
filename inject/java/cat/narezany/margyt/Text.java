@@ -96,11 +96,28 @@ final class Text {
 
     static final String VIDEO = pick("Видео", "Відео", "Video");
 
+    static final String THEME = pick("Тема", "Тема", "Theme");
+
+    static final String THEME_ON = pick(
+            "Своя тема", "Своя тема", "A theme of your own");
+
+    static final String THEME_MATERIAL = pick(
+            "Цвета с обоев", "Кольори зі шпалер", "Colours from the wallpaper");
+
+    static final String THEME_TEXT = pick("Текст", "Текст", "Text");
+
+    static final String THEME_BACKGROUND = pick("Фон", "Тло", "Background");
+
+    static final String THEME_NOTE = pick(
+            "Перекрашивается только то, что тикток и сам перекрашивает при "
+                    + "смене светлой темы на тёмную. Акцент живёт отдельно.",
+            "Перефарбовується лише те, що тікток і сам перефарбовує при зміні "
+                    + "світлої теми на темну. Акцент живе окремо.",
+            "Only what TikTok itself repaints when you switch between light and "
+                    + "dark. The accent is its own thing.");
+
     static final String BACKGROUND = pick(
             "Играть в фоне", "Грати у фоні", "Play in the background");
-
-    static final String SPEED = pick(
-            "Ускорение удержанием", "Прискорення утриманням", "Hold to speed up");
 
     static final String AUTOSCROLL = pick(
             "Автопрокрутка ленты", "Автопрокрутка стрічки", "Scroll the feed by itself");
@@ -115,17 +132,6 @@ final class Text {
 
     static final String VOICE = pick(
             "Голосовые комментарии", "Голосові коментарі", "Voice comments");
-
-    static final String FAVOURITES = pick(
-            "Избранное по долгому нажатию", "Обране за довгим натисканням",
-            "Favourites on a long press");
-
-    static final String REPOST = pick(
-            "Длинные репосты", "Довгі репости", "Long reposts");
-
-    static final String CONTACTS = pick(
-            "Больше людей при отправке", "Більше людей при надсиланні",
-            "More people at once when sending");
 
     // -------------------------------------------------------- the downloads
 
@@ -190,6 +196,31 @@ final class Text {
     static final String CHANNEL = pick("Канал", "Канал", "Channel");
 
     static final String FORUM = pick("Форум", "Форум", "Forum");
+
+    // ----------------------------------------------------------- the streaks
+
+    static final String STREAKS = pick("Серии", "Серії", "Streaks");
+
+    static final String STREAK_AUTO = pick(
+            "Продлевать серии сами", "Продовжувати серії самі", "Keep streaks alive");
+
+    static final String BETA = pick("бета", "бета", "beta");
+
+    static final String STREAK_NOTE = pick(
+            "Отправляет выбранный стикер тем, с кем серия вот-вот погаснет. "
+                    + "Не чаще раза в сутки на человека.",
+            "Надсилає вибраний стікер тим, з ким серія ось-ось згасне. "
+                    + "Не частіше разу на добу на людину.",
+            "Sends the sticker you picked to whoever the streak is about to lapse "
+                    + "with, at most once a day each.");
+
+    static final String STREAK_STICKER = pick(
+            "Чем продлевать", "Чим продовжувати", "What to send");
+
+    static final String STREAK_NOTHING = pick(
+            "Откройте стикеры в переписке, и они появятся здесь",
+            "Відкрийте стікери в листуванні, і вони з'являться тут",
+            "Open the stickers in a chat and they will show up here");
 
     // ------------------------------------------------------- the updates
 

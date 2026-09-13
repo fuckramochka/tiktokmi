@@ -56,6 +56,12 @@ SOUND = "Lcat/narezany/margyt/Sound;"
 BADGE = "Lcat/narezany/margyt/Badge;"
 AVATARS = "Lcat/narezany/margyt/Avatars;"
 STICKERS = "Lcat/narezany/margyt/Stickers;"
+STREAKS = "Lcat/narezany/margyt/Streaks;"
+STREAK_DATA = "Lcom/ss/android/ugc/aweme/im/streak/api/StreakData;"
+STREAK_SERVICE = "Lcom/ss/android/ugc/aweme/im/streak/api/IStreakService;"
+STICKER_ITEM = "Lcom/ss/android/ugc/aweme/im/common/model/StickerItem;"
+STICKER_IMAGE = "Lcom/ss/android/ugc/aweme/im/common/model/StickerImage;"
+STICKER_BASE = "Lcom/ss/android/ugc/aweme/im/common/model/StickerBase;"
 STICKER_CLICK = "Lcom/ss/android/ugc/aweme/im/messagelist/api/ability/MessageListStickerClickAbility;"
 STICKER_TEMPLATE = "Lcom/ss/android/ugc/aweme/im/message/template/card/StickerTemplate;"
 TEXT_VIEW = "Landroid/widget/TextView;"
@@ -126,7 +132,44 @@ CANVAS = "Landroid/graphics/Canvas;"
 # in 46.10, but the marker in its template stays.
 #
 # anchor, owner, method, its descriptor, ours, the class ours lives in
+# A static TikTok's obfuscation renamed but could not disguise: what it takes
+# is the framework's own types and the app's own models, and no other method in
+# the apk takes that. The build finds the one class that declares it, writes
+# the name down for the mod to hand the call back through, and rewrites every
+# call to it. Nothing obfuscated is written here, and a release that shuffles
+# the names is simply found again on the next build.
+#
+# label, the descriptor to look for, what the mod calls it, where that lives
+COMMENT_TAP = ("(Landroid/view/View;%s ZLjava/lang/String;Ljava/util/Map;"
+               "Ljava/lang/String;)V" % COMMENT_STICKER).replace("; Z", ";Z")
+
+DISCOVERED_STATICS: List[Tuple[str, str, str, str]] = [
+    # a sticker in a comment, tapped. In a conversation the tap goes through an
+    # interface the mod can name; here it goes to a static on a class with no
+    # name worth writing down -- but it takes the view that was touched and the
+    # sticker that was in it, and nothing else in the apk takes that pair.
+    ("comment sticker tapped", COMMENT_TAP, "stickerTapped", COMMENTS),
+]
+
+# filled in by the build: label -> (owner, the name it carries this release)
+FOUND: Dict[str, Tuple[str, str]] = {}
+
+
+VIEW = "Landroid/view/View;"
+LONG_CLICK = "Landroid/view/View$OnLongClickListener;"
+
 ANCHORED_SOURCES: List[Tuple[str, str, str, str, str, str]] = [
+    # A sticker in a comment already answers a long press -- TikTok sets its
+    # own listener on it. So the mod does not add a gesture, it wraps the one
+    # that is there: the press still does what it did, and the offer to save
+    # appears beside it.
+    #
+    # The class is anchored by a line TikTok logs while binding a sticker,
+    # which no other class in the apk carries. Anchoring matters here more than
+    # anywhere: `setOnLongClickListener` is the framework's, and rewriting
+    # every call to it would mean wrapping several thousand unrelated views.
+    ("bindSticker: ", VIEW, "setOnLongClickListener",
+     "(%s)V" % LONG_CLICK, "(%s%s)V" % (VIEW, LONG_CLICK), COMMENTS),
     ("[tiktok_logo]", CANVAS, "drawBitmap",
      "(Landroid/graphics/Bitmap;FFLandroid/graphics/Paint;)V",
      "(%sLandroid/graphics/Bitmap;FFLandroid/graphics/Paint;)V" % CANVAS, WATERMARK),
@@ -157,12 +200,11 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
      "(%s)%s" % (ACCOUNT_SERVICE, STRING), ACCOUNT),
     (ACCOUNT_SERVICE, "getCurSecUserId", "()%s" % STRING,
      "(%s)%s" % (ACCOUNT_SERVICE, STRING), ACCOUNT),
-    # temporary: a comment image has no clean copy in its struct, so the two
-    # addresses it does have are written into the diary to be compared
-    # temporary: what screen is up when a comment's sticker is read
+    # which sticker a comment is carrying, read as the comment is bound: the
+    # view gets its long press wrapped a moment later, and this is what says
+    # what that view is showing
     (COMMENT, "getStickerStruct", "()%s" % COMMENT_STICKER,
      "(Ljava/lang/Object;)%s" % COMMENT_STICKER, COMMENTS),
-
     (COMMENT_IMAGE, "getCropUrl", "()%s" % URL_MODEL,
      "(%s)%s" % (COMMENT_IMAGE, URL_MODEL), COMMENTS),
     (COMMENT_IMAGE, "getOriginUrl", "()%s" % URL_MODEL,
@@ -181,6 +223,25 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
      "(%s%s)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
     (TEXT_VIEW, "setText", "(%sLandroid/widget/TextView$BufferType;)V" % CHAR_SEQUENCE,
      "(%s%sLandroid/widget/TextView$BufferType;)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
+
+
+    # Which conversations have a streak going. `StreakData` holds the answer
+    # and every one of its fields is named plainly, but nothing in the app ever
+    # reads those fields, so there is nothing to listen to there. What the app
+    # does do, constantly, is ask its own streak service about a conversation --
+    # and `IStreakService` is a real name with real signatures. So the mod
+    # listens to the questions instead of the answers: every conversation the
+    # app asks about is one the mod can then ask about itself.
+    #
+    # The three method names are this release's, not the app's forever. They
+    # are the one version-shaped thing in the streak feature, they live here
+    # rather than in the Java, and the build counts what each of them matched.
+    (STREAK_SERVICE, ("J", "streakOf"), "(%sZ)%s" % (STRING, STREAK_DATA),
+     "(%s%sZ)%s" % (STREAK_SERVICE, STRING, STREAK_DATA), STREAKS),
+    (STREAK_SERVICE, ("a0", "hasStreak"), "(%s)Z" % STRING,
+     "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
+    (STREAK_SERVICE, ("h0", "showsStreak"), "(%sZ)Z" % STRING,
+     "(%s%sZ)Z" % (STREAK_SERVICE, STRING), STREAKS),
 
     # a sound pulled for copyright: the video stays and these four mute it
     (MUSIC, "available", "()Z", "(%s)Z" % MUSIC, SOUND),
@@ -204,6 +265,12 @@ FIELD_SOURCES: List[Tuple[str, str, str, str, str]] = [
     (VIDEO_CONTROL, "allowDownload", BOXED_BOOLEAN, "allowDownload", DOWNLOAD),
     # a slideshow is not a video and never goes near getDownloadAddr: its
     # images carry the stamp themselves, with the clean one beside them
+    # every sticker the app touches, so the settings have something to offer as
+    # the one to send. `currentImage()` reads like the right place and is not:
+    # five call sites in the whole apk, none of them on the way to a screen.
+    # This field is read in a couple of hundred, which is what drawing one
+    # actually looks like.
+    (STICKER_ITEM, "stickerBase", STICKER_BASE, "stickerBase", STREAKS),
     (PHOTO_IMAGE, "ownerWatermarkImage", URL_MODEL, "ownerWatermarkImage", DOWNLOAD),
     (PHOTO_IMAGE, "userWatermarkImage", URL_MODEL, "userWatermarkImage", DOWNLOAD),
 ]
@@ -360,6 +427,17 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
                        % (re.escape(owner), theirs, re.escape(original))),
             r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
         ))
+    for label, descriptor, ours, target in DISCOVERED_STATICS:
+        found = FOUND.get(label)
+        if found is None:
+            continue
+        owner, theirs = found
+        out.append((
+            label,
+            re.compile(r"invoke-static(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), re.escape(theirs), re.escape(descriptor))),
+            r"invoke-static\1 \2, %s->%s%s" % (target, ours, descriptor),
+        ))
     for name, original, replacement, target in WILD_SOURCES:
         out.append((
             "%s (any owner)" % name,
@@ -370,13 +448,23 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     for owner, field, kind, name, target in FIELD_SOURCES:
         # iget-object vA, vB, Owner->field:Type
         #   -> invoke-static {vB}, Ours->name(Owner)Type ; move-result-object vA
+        #
+        # Which iget it is depends on what is being read: a long or a double is
+        # two registers wide and has instructions of its own, and reading one
+        # with the wrong instruction is not something the assembler forgives.
+        if kind in ("J", "D"):
+            read, took = "iget-wide", "move-result-wide"
+        elif kind in ("Z", "B", "S", "C", "I", "F"):
+            read, took = "iget", "move-result"
+        else:
+            read, took = "iget-object", "move-result-object"
         out.append((
             "%s.%s" % (owner.rsplit("/", 1)[-1][:-1], field),
-            re.compile(r"^(\s*)iget-object ([vp]\d+), ([vp]\d+), %s->%s:%s$"
-                       % (re.escape(owner), re.escape(field), re.escape(kind)),
+            re.compile(r"^(\s*)%s ([vp]\d+), ([vp]\d+), %s->%s:%s$"
+                       % (read, re.escape(owner), re.escape(field), re.escape(kind)),
                        re.MULTILINE),
-            r"\1invoke-static {\3}, %s->%s(%s)%s\n\n\1move-result-object \2"
-            % (target, name, owner, kind),
+            r"\1invoke-static {\3}, %s->%s(%s)%s\n\n\1%s \2"
+            % (target, name, owner, kind, took),
         ))
     return out
 
@@ -390,7 +478,11 @@ def rewrite_models(root: str) -> Dict[str, int]:
                        + [owner for owner, _f, _k, _n, _t in FIELD_SOURCES]
                        # a rule with no owner of its own is recognised by the
                        # method it is looking for, or its file is never opened
-                       + [name for name, _o, _r, _t in WILD_SOURCES]))
+                       + [name for name, _o, _r, _t in WILD_SOURCES]
+                       # and one whose owner was found rather than written down
+                       # is recognised by the owner that was found
+                       + [FOUND[label][0] for label, _d, _o, _t in DISCOVERED_STATICS
+                          if label in FOUND]))
     for dirpath, _dirs, files in os.walk(root):
         for name in files:
             if not name.endswith(".smali"):
@@ -464,6 +556,10 @@ def touches_a_model(dex: bytes) -> bool:
             return True
     for name, _original, _replacement, _target in WILD_SOURCES:
         if name.encode() in dex:
+            return True
+    for label, _descriptor, _ours, _target in DISCOVERED_STATICS:
+        found = FOUND.get(label)
+        if found and found[0].encode() in dex and found[1].encode() in dex:
             return True
     return False
 
@@ -692,6 +788,9 @@ def rewrite_targets() -> List[str]:
         out.append("%s->%s%s" % (target, name, replacement))
     for name, _original, replacement, target in WILD_SOURCES:
         out.append("%s->%s%s" % (target, name, replacement))
+    for label, descriptor, ours, target in DISCOVERED_STATICS:
+        if label in FOUND:
+            out.append("%s->%s%s" % (target, ours, descriptor))
     return out
 
 
@@ -765,6 +864,60 @@ def defined_methods(dex: bytes) -> set:
                 index = diff if step == 0 else index + diff
                 out.add(signature(index))
     return out
+
+
+def find_statics(dexes: Dict[str, bytes]) -> Dict[str, Tuple[str, str]]:
+    """Find each wanted static by its signature, across the whole apk.
+
+    A descriptor is matched, not a name, so what comes back is whatever the
+    obfuscator called it this release. Anything that matches in more than one
+    class is dropped rather than guessed at: a rule that lands in the wrong
+    place is worse than one that does not land at all.
+    """
+    wanted = {descriptor: label for label, descriptor, _ours, _target
+              in DISCOVERED_STATICS}
+    seen: Dict[str, set] = {label: set() for label in wanted.values()}
+
+    for dex in dexes.values():
+        for owner, name, descriptor in _static_methods(dex):
+            label = wanted.get(descriptor)
+            if label is not None:
+                seen[label].add((owner, name))
+
+    out: Dict[str, Tuple[str, str]] = {}
+    for label, found in seen.items():
+        if len(found) == 1:
+            out[label] = next(iter(found))
+    return out
+
+
+def _static_methods(dex: bytes):
+    """Every method the dex names, as (owner, name, descriptor)."""
+    strings = struct.unpack_from("<I", dex, 60)[0]
+    types = struct.unpack_from("<I", dex, 68)[0]
+    protos = struct.unpack_from("<I", dex, 76)[0]
+    count, methods = struct.unpack_from("<2I", dex, 88)
+
+    def text(index: int) -> str:
+        at = struct.unpack_from("<I", dex, strings + 4 * index)[0]
+        size, at = _uleb(dex, at)
+        return dex[at:at + size].decode("utf-8", "replace")
+
+    def kind(index: int) -> str:
+        return text(struct.unpack_from("<I", dex, types + 4 * index)[0])
+
+    def shape(index: int) -> str:
+        _shorty, ret, params = struct.unpack_from("<3I", dex, protos + 12 * index)
+        taken = ""
+        if params:
+            how_many = struct.unpack_from("<I", dex, params)[0]
+            taken = "".join(kind(struct.unpack_from("<H", dex, params + 4 + 2 * i)[0])
+                            for i in range(how_many))
+        return "(%s)%s" % (taken, kind(ret))
+
+    for i in range(count):
+        owner, proto, name = struct.unpack_from("<HHI", dex, methods + 8 * i)
+        yield kind(owner), text(name), shape(proto)
 
 
 def missing_targets(dex: bytes) -> List[str]:

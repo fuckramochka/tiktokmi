@@ -124,7 +124,7 @@ public static final String KEY = "save_stickers";
         }
     }
 
-    private static void seen(Object sticker) {
+    static void seen(Object sticker) {
         if (!isEnabled()) return;
         try {
             String url = find(sticker, new HashSet<Object>(), 0);

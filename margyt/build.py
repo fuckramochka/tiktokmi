@@ -14,7 +14,7 @@ import os
 import time
 from typing import Dict, List, Optional
 
-from . import accent as accent_module, artwork, dexpatch, icon as icon_module, manifest as manifest_module
+from . import accent as accent_module, artwork, dexpatch, icon as icon_module, manifest as manifest_module, nightly
 from .apkzip import Apk, STORED
 from .arsc import Arsc
 from . import axml as axml_module
@@ -46,6 +46,16 @@ AUTHORITY_MARKER = ".margyt"
 # Without this an apk cannot hand Android another apk to install, and TikTok
 # does not ask for it: its own updates come from a store. The mod's do not.
 INSTALL_PERMISSION = "android.permission.REQUEST_INSTALL_PACKAGES"
+
+
+def _constant(label: str) -> str:
+    """A label as a Java constant name: "comment sticker tapped" -> COMMENT_..."""
+    return "".join(c if c.isalnum() else "_" for c in label).upper()
+
+
+def _java_name(owner: str) -> str:
+    """A descriptor as a class name Class.forName understands."""
+    return owner[1:-1].replace("/", ".")
 
 
 class Build:
@@ -102,6 +112,8 @@ class Build:
         self.write_emblem()
         self.write_icons()
         self.write_version(manifest_module.version_name(manifest))
+        self.find_anchors(apk)
+        self.write_theme(arsc)
 
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
@@ -329,6 +341,89 @@ class Build:
                 "}\n" % (mod, tiktok)
             )
         self.detail("MargyT %s on TikTok %s" % (mod, tiktok))
+
+    def write_theme(self, arsc: Arsc) -> None:
+        """The colours TikTok repaints when its own theme changes."""
+        # sorted the way Java reads them, so the search in Nightly can use
+        # a plain comparison rather than one the apk's minSdk may not have
+        owned = sorted(nightly.theme_colours(arsc, dexpatch.TIKTOK_PINK), key=_signed)
+        self.detail("%d colours belong to the theme, and only those move" % len(owned))
+
+        out = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                           "Nightly.java")
+        with open(out, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "/**\n"
+                " * Written by the build. Do not edit.\n"
+                " *\n"
+                " * Every colour that is one side of a light/dark pair in TikTok's own\n"
+                " * style table -- the set the app itself repaints when the theme\n"
+                " * changes, and so the only set `Themes` is allowed to touch. Sorted,\n"
+                " * because it is searched on every colour the app draws.\n"
+                " */\n"
+                "final class Nightly {\n\n"
+                "    private Nightly() {}\n\n"
+                "    static boolean owns(int colour) {\n"
+                "        int low = 0;\n"
+                "        int high = OWNED.length - 1;\n"
+                "        while (low <= high) {\n"
+                "            int middle = (low + high) >>> 1;\n"
+                "            int here = OWNED[middle];\n"
+                "            if (here == colour) return true;\n"
+                "            if (here < colour) low = middle + 1;\n"
+                "            else high = middle - 1;\n"
+                "        }\n"
+                "        return false;\n"
+                "    }\n\n"
+                "    private static final int[] OWNED = {\n"
+            )
+            for i in range(0, len(owned), 6):
+                row = ", ".join("0x%08X" % value for value in owned[i:i + 6])
+                handle.write("        %s,\n" % row)
+            handle.write("    };\n}\n")
+
+    def find_anchors(self, apk: Apk) -> None:
+        """Find the methods whose signature is known and whose name is not."""
+        dexes = {name: apk.read(name) for name in apk.names()
+                 if name.endswith(".dex")}
+        dexpatch.FOUND = dexpatch.find_statics(dexes)
+
+        lines = []
+        for label, _descriptor, _ours, _target in dexpatch.DISCOVERED_STATICS:
+            found = dexpatch.FOUND.get(label)
+            if found is None:
+                self.detail("%s: not found in this release" % label)
+                continue
+            owner, name = found
+            self.detail("%s: %s->%s" % (label, owner, name))
+            lines.append((label, owner, name))
+
+        out = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                           "Anchors.java")
+        with open(out, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "/**\n"
+                " * Written by the build. Do not edit.\n"
+                " *\n"
+                " * Where the methods the mod hands calls back to actually live in the\n"
+                " * apk it was built from. Their signatures are in the patcher and are\n"
+                " * the same every release; these names are not, which is why they are\n"
+                " * found rather than written down.\n"
+                " */\n"
+                "final class Anchors {\n\n"
+                "    private Anchors() {}\n"
+            )
+            for label, owner, name in lines:
+                handle.write(
+                    "\n    /** %s */\n"
+                    "    static final String %s = \"%s\";\n"
+                    "    static final String %s_METHOD = \"%s\";\n"
+                    % (label, _constant(label), _java_name(owner),
+                       _constant(label), name)
+                )
+            handle.write("}\n")
 
     # ------------------------------------------------------------------ dex
 

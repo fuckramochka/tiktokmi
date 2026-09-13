@@ -71,7 +71,10 @@ public class SettingsActivity extends Activity {
 
     private boolean countriesOpen;
     private boolean accentOpen;
+    private boolean textOpen;
+    private boolean backgroundOpen;
     private boolean thanksOpen;
+    private boolean streakOpen;
     private boolean diaryOpen;
 
     @Override
@@ -149,6 +152,38 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(accent));
 
+        column.addView(section(Text.THEME));
+        LinearLayout theme = card();
+        theme.addView(toggleRow("contrast", Text.THEME_ON, Themes.isEnabled(), on -> {
+            Themes.setEnabled(on);
+            rebuild();
+        }));
+        if (Themes.isEnabled()) {
+            theme.addView(line());
+            theme.addView(toggleRow("wallpaper", Text.THEME_MATERIAL,
+                    Themes.isMaterial(), on -> {
+                        Themes.setMaterial(on);
+                        rebuild();
+                    }));
+            if (!Themes.isMaterial()) {
+                theme.addView(line());
+                theme.addView(shadeHead(true));
+                if (textOpen) {
+                    theme.addView(line());
+                    theme.addView(shades(true));
+                }
+                theme.addView(line());
+                theme.addView(shadeHead(false));
+                if (backgroundOpen) {
+                    theme.addView(line());
+                    theme.addView(shades(false));
+                }
+            }
+            theme.addView(line());
+            theme.addView(quiet(Text.THEME_NOTE));
+        }
+        column.addView(wrap(theme));
+
         column.addView(section(Text.FEED));
         LinearLayout feed = card();
         feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
@@ -165,12 +200,8 @@ public class SettingsActivity extends Activity {
         LinearLayout hidden = card();
         String[][] antiAb = {
                 {"play_circle", Text.BACKGROUND, Flags.KEY_BACKGROUND},
-                {"speed", Text.SPEED, Flags.KEY_SPEED},
                 {"swap_vert", Text.AUTOSCROLL, Flags.KEY_AUTOSCROLL},
                 {"mic", Text.VOICE, Flags.KEY_VOICE},
-                {"star", Text.FAVOURITES, Flags.KEY_FAVOURITES},
-                {"repeat", Text.REPOST, Flags.KEY_REPOST},
-                {"group", Text.CONTACTS, Flags.KEY_CONTACTS},
         };
         for (int i = 0; i < antiAb.length; i++) {
             if (i > 0) hidden.addView(line());
@@ -238,6 +269,19 @@ public class SettingsActivity extends Activity {
         account.addView(line());
         account.addView(idRow(Text.ACCOUNT_SEC_ID, Account.secId()));
         column.addView(wrap(account));
+
+        column.addView(section(Text.STREAKS));
+        LinearLayout streaks = card();
+        streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(),
+                Streaks::setEnabled));
+        streaks.addView(line());
+        streaks.addView(stickerHead());
+        if (streakOpen) {
+            streaks.addView(line());
+            streaks.addView(stickerChoices());
+        }
+        column.addView(wrap(streaks));
+        column.addView(caption(Text.STREAK_NOTE));
 
         column.addView(section(Text.UPDATE));
         LinearLayout updates = card();
@@ -390,6 +434,73 @@ public class SettingsActivity extends Activity {
         return sized(row, 56);
     }
 
+    /** The row that opens one of the theme's two colours. */
+    private View shadeHead(final boolean forText) {
+        LinearLayout row = row();
+        row.addView(icon(forText ? "text_fields" : "format_color_fill"));
+        row.addView(label(forText ? Text.THEME_TEXT : Text.THEME_BACKGROUND), grow());
+        row.addView(new Dot(this, forText ? Themes.text() : Themes.background(), false));
+
+        boolean open = forText ? textOpen : backgroundOpen;
+        TextView chevron = new TextView(this);
+        chevron.setText(open ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        chevron.setPadding(dp(12), 0, 0, 0);
+        row.addView(chevron);
+
+        row.setOnClickListener(v -> {
+            if (forText) textOpen = !textOpen;
+            else backgroundOpen = !backgroundOpen;
+            rebuild();
+        });
+        return sized(row, 56);
+    }
+
+    /**
+     * What a text colour and a background colour may be.
+     *
+     * Two ramps rather than one palette: what a background wants is a set of
+     * near-blacks and near-whites, and what text wants is the other end. The
+     * accent's own dots are bright colours and would be no use for either.
+     */
+    private static final int[] DARKS = {
+            0xFF000000, 0xFF0B0B0F, 0xFF121212, 0xFF161823, 0xFF1B1B1B,
+            0xFF0D1B2A, 0xFF12232E, 0xFF1A1423, 0xFF14261C, 0xFF241A1A,
+    };
+
+    private static final int[] LIGHTS = {
+            0xFFFFFFFF, 0xFFF6F6F6, 0xFFEDEDED, 0xFFE8E4DA, 0xFFDCDCDC,
+            0xFFCFD8DC, 0xFFB0B8C4, 0xFF8A8A8A, 0xFF5A5A5A, 0xFF2E2E2E,
+    };
+
+    private View shades(final boolean forText) {
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        rows.setPadding(dp(16), dp(12), dp(16), dp(16));
+
+        int[] choices = forText ? LIGHTS : DARKS;
+        int now = forText ? Themes.text() : Themes.background();
+        LinearLayout line = null;
+        for (int i = 0; i < choices.length; i++) {
+            if (i % 5 == 0) {
+                line = new LinearLayout(this);
+                line.setOrientation(LinearLayout.HORIZONTAL);
+                line.setPadding(0, dp(6), 0, dp(6));
+                rows.addView(line);
+            }
+            final int colour = choices[i];
+            Dot dot = new Dot(this, colour, colour == now);
+            dot.setOnClickListener(v -> {
+                if (forText) Themes.setText(colour);
+                else Themes.setBackground(colour);
+                markChanged();
+            });
+            line.addView(dot, new LinearLayout.LayoutParams(dp(36), dp(36), 1f));
+        }
+        return rows;
+    }
+
     private View palette() {
         LinearLayout rows = new LinearLayout(this);
         rows.setOrientation(LinearLayout.VERTICAL);
@@ -490,6 +601,120 @@ public class SettingsActivity extends Activity {
      * The long one does not fit on a phone, so what is shown is the ends of it
      * and what is copied is all of it.
      */
+    /**
+     * A switch with a word beside it saying not to trust it yet.
+     *
+     * The only thing in the mod that acts on its own and the only one that
+     * sends anything, so it says so on the row rather than in a note nobody
+     * reads.
+     */
+    private View betaRow(String picture, String title, boolean on, final Setting setting) {
+        LinearLayout row = row();
+        row.addView(icon(picture));
+        row.addView(label(title));
+
+        TextView beta = new TextView(this);
+        beta.setText(Text.BETA);
+        beta.setTextColor(onAccent());
+        beta.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        beta.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        beta.setPadding(dp(7), dp(2), dp(7), dp(3));
+        GradientDrawable chip = new GradientDrawable();
+        chip.setColor(Accent.colour());
+        chip.setCornerRadius(dp(9));
+        beta.setBackground(chip);
+        LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        place.leftMargin = dp(8);
+        row.addView(beta, place);
+
+        row.addView(new View(this), grow());
+
+        final M3Switch toggle = new M3Switch(this);
+        toggle.colours(Accent.colour(), skin.muted(), skin.card);
+        toggle.setChecked(on);
+        toggle.setOnChanged(checked -> {
+            setting.set(checked);
+            markChanged();
+        });
+        row.addView(toggle);
+        return sized(row, 56);
+    }
+
+    private View stickerHead() {
+        LinearLayout row = row();
+        row.addView(icon("star"));
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(Text.STREAK_STICKER));
+        int many = Streaks.offered().size();
+        text.addView(detail(many == 0 ? Text.STREAK_NOTHING : String.valueOf(many)));
+        row.addView(text, grow());
+
+        TextView chevron = new TextView(this);
+        chevron.setText(streakOpen ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        row.addView(chevron);
+
+        row.setOnClickListener(v -> {
+            streakOpen = !streakOpen;
+            rebuild();
+        });
+        return sized(row, 64);
+    }
+
+    /** The stickers the app has drawn so far, as something to point at. */
+    private View stickerChoices() {
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        rows.setPadding(dp(16), dp(10), dp(16), dp(14));
+
+        java.util.List<String> ids = Streaks.offered();
+        if (ids.isEmpty()) {
+            rows.addView(quiet(Text.STREAK_NOTHING));
+            return rows;
+        }
+
+        String chosen = Streaks.chosen();
+        LinearLayout line = null;
+        for (int i = 0; i < ids.size() && i < 24; i++) {
+            if (i % 5 == 0) {
+                line = new LinearLayout(this);
+                line.setOrientation(LinearLayout.HORIZONTAL);
+                line.setPadding(0, dp(5), 0, dp(5));
+                rows.addView(line);
+            }
+            final String id = ids.get(i);
+            View one = stickerTile(id, id.equals(chosen));
+            LinearLayout.LayoutParams size =
+                    new LinearLayout.LayoutParams(dp(52), dp(52), 1f);
+            line.addView(one, size);
+        }
+        return rows;
+    }
+
+    private View stickerTile(final String id, boolean chosen) {
+        ImageView view = new ImageView(this);
+        view.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        view.setPadding(dp(4), dp(4), dp(4), dp(4));
+        if (chosen) {
+            GradientDrawable ring = new GradientDrawable();
+            ring.setColor(0x00000000);
+            ring.setStroke(dp(2), Accent.colour());
+            ring.setCornerRadius(dp(10));
+            view.setBackground(ring);
+        }
+        Bitmap picture = Streaks.thumbnail(this, id);
+        if (picture != null) view.setImageBitmap(picture);
+        view.setOnClickListener(v -> {
+            Streaks.choose(id);
+            rebuild();
+        });
+        return view;
+    }
+
     /** A row that does something at once, rather than setting anything. */
     private View actionRow(String picture, String title, String detail, final Runnable action) {
         LinearLayout row = row();
