@@ -108,8 +108,8 @@ class Toolchain:
             raise RuntimeError("no java sources under %s" % sources_dir)
 
         _run(
-            ["javac", "-nowarn", "-Xlint:-options", "-cp", self.android_jar,
-             "--release", "17", "-d", classes] + sources
+            ["javac", "-nowarn", "-Xlint:-options", "-encoding", "UTF-8",
+             "-cp", self.android_jar, "--release", "17", "-d", classes] + sources
         )
         class_files = []
         for dirpath, _dirs, files in os.walk(classes):

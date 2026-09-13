@@ -138,6 +138,27 @@ def set_label(axml: Axml, label: str) -> List[str]:
     return touched
 
 
+def has_activity(axml: Axml, class_name: str) -> bool:
+    return any(
+        axml.attr_string(node, "name") == class_name
+        for node in axml.elements("activity") + axml.elements("activity-alias")
+    )
+
+
+def add_provider(axml: Axml, class_name: str, authority: str) -> None:
+    """Declare a provider, which is how the mod gets to run at start-up.
+
+    Android builds every declared provider before the application's own
+    onCreate, so one that answers nothing is still a hook -- and one that needs
+    no patch to TikTok's own Application class to exist.
+    """
+    provider = axml.make_element("provider")
+    axml.set_attr_string(provider, "name", class_name)
+    axml.set_attr_bool(provider, "exported", False)
+    axml.set_attr_string(provider, "authorities", authority)
+    axml.insert_into(application(axml), [provider, axml.close_element(provider)])
+
+
 def add_activity(axml: Axml, class_name: str, label: str, theme: int) -> None:
     """Declare an exported launcher activity, last child of <application>."""
     for existing in axml.elements("activity"):

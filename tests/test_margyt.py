@@ -90,6 +90,32 @@ class AxmlTest(unittest.TestCase):
         self.assertIn("cat.narezany.margyt.SettingsActivity", launchers)
         self.assertIn("cat.narezany.fixture.Splash", launchers)
 
+    def test_a_provider_can_be_declared(self):
+        axml = Axml.parse(self.raw)
+        manifest_module.add_provider(axml, "cat.narezany.margyt.MargyProvider",
+                                     "cat.narezany.fixture.margyt")
+        again = Axml.parse(axml.build())
+        providers = {again.attr_string(n, "name"): n for n in again.elements("provider")}
+        self.assertIn("cat.narezany.margyt.MargyProvider", providers)
+        added = providers["cat.narezany.margyt.MargyProvider"]
+        self.assertEqual(again.attr_string(added, "authorities"), "cat.narezany.fixture.margyt")
+        self.assertEqual(again.attr(added, "exported").data, 0)
+        self.assertIn("cat.narezany.fixture.P", providers)  # the ones already there stay
+
+    def test_the_screen_the_row_goes_on_is_the_one_the_mod_looks_for(self):
+        """The build refuses an apk whose settings screen has been renamed."""
+        from margyt.build import TIKTOK_SETTINGS
+        source = os.path.join(ROOT, "inject", "java", "cat", "narezany", "margyt",
+                              "SettingsRow.java")
+        with open(source, encoding="utf-8") as handle:
+            self.assertIn('"%s"' % TIKTOK_SETTINGS, handle.read())
+        self.assertFalse(manifest_module.has_activity(Axml.parse(self.raw), TIKTOK_SETTINGS))
+        self.assertTrue(manifest_module.has_activity(Axml.parse(self.raw),
+                                                     "cat.narezany.fixture.MainActivity"))
+        # an alias counts too: the launcher entry of the real apk is one
+        self.assertTrue(manifest_module.has_activity(Axml.parse(self.raw),
+                                                     "cat.narezany.fixture.Splash"))
+
     def test_only_the_authorities_the_package_does_not_cover_move(self):
         axml = Axml.parse(self.raw)
         package = manifest_module.package_name(axml)

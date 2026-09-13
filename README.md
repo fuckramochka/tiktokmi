@@ -18,8 +18,8 @@ Keeps TikTok's own package, `com.zhiliaoapp.musically`, so it goes in **instead
 of** the official app rather than beside it: uninstall TikTok first, then
 install this. arm64 only. No root.
 
-Everything the mod adds is on one screen — **MargyT settings**, its own entry on
-the launcher, next to the app itself.
+Everything the mod adds is on one screen: **Settings and privacy → MargyT**,
+the first row, and on the launcher as **MargyT settings** as well.
 
 ## What it adds
 
@@ -58,20 +58,34 @@ entry and the density each file was chosen for never move.
 </details>
 
 <details>
-<summary><b>A screen of its own</b></summary>
+<summary><b>A row in TikTok's own settings</b></summary>
 
-**MargyT settings**, on the launcher. Inside: a switch for the whole thing and
-the list of countries, each with the carrier and MCC/MNC it will report.
+**Settings and privacy → MargyT**, at the top of the list, drawn like the rows
+around it. Inside: a switch for the whole thing and the list of countries, each
+with the carrier and MCC/MNC it will report.
 
-The screen is built in code, with no layout or style resources at all. That is
-not tidiness — adding a resource means rewriting a 25 MB resource table, which
-is the one thing this build refuses to do. It also means the screen looks the
-same whatever theme the app is carrying that week.
+The row is not written into the bytecode that builds that list. The classes
+which assemble it are obfuscated and renamed with every release, and chasing
+them is what made the first version of this mod fragile. Instead the mod gets a
+start-up hook -- a `<provider>` of its own, which Android instantiates before
+the application's onCreate whether anything queries it or not -- and from there
+watches for the settings screen to appear. When it does, it finds the list in
+the view tree by what the class is called, and puts a row above it.
 
-It is a separate launcher entry rather than a row inside TikTok's own settings
-because a row inside TikTok's settings means recognising TikTok's settings list
-in obfuscated bytecode, and that recognition breaks on the next release. An
-activity in the manifest does not.
+What that leans on is only the name of the screen itself,
+`SettingContainerActivity`, which is not obfuscated, and plain Android views
+underneath. The build checks the manifest still declares that screen and stops
+if it does not, rather than shipping a mod whose settings cannot be reached.
+
+The row reads the text colour off a row already on screen, so it follows the
+app into dark mode instead of guessing. The screen behind it is built in code
+with no layout or style resources at all -- adding a resource would mean
+rewriting a 25 MB resource table, which is the one thing this build refuses to
+do.
+
+There is a launcher entry as well, **MargyT settings**, which opens the same
+screen. It is the way in when the row is not there.
+
 </details>
 
 <details>

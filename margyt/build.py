@@ -22,6 +22,13 @@ from .toolchain import Toolchain
 
 PACKAGE = "cat.narezany.margyt"
 SETTINGS_ACTIVITY = PACKAGE + ".SettingsActivity"
+STARTUP_PROVIDER = PACKAGE + ".MargyProvider"
+
+# The screen the MargyT row is put at the top of. The row itself is added to
+# the view tree while the screen is drawn -- nothing patches the code that
+# builds the list -- but the screen has to still be called this for the mod to
+# recognise it, so the build checks rather than hopes.
+TIKTOK_SETTINGS = "com.ss.android.ugc.aweme.setting.ui.SettingContainerActivity"
 LABEL = "MargyT"
 SETTINGS_LABEL = "MargyT settings"
 SETTINGS_THEME = "Theme_DeviceDefault_Light_NoActionBar"
@@ -88,6 +95,17 @@ class Build:
             self.detail("label on %s" % where)
         manifest_module.add_activity(manifest, SETTINGS_ACTIVITY, SETTINGS_LABEL, theme)
         self.detail("%s declared, on the launcher" % SETTINGS_ACTIVITY)
+
+        if not manifest_module.has_activity(manifest, TIKTOK_SETTINGS):
+            raise RuntimeError(
+                "%s is not in this apk -- TikTok's settings screen has been "
+                "renamed, and the MargyT row would never appear in it"
+                % TIKTOK_SETTINGS
+            )
+        manifest_module.add_provider(
+            manifest, STARTUP_PROVIDER, "%s.margyt" % package)
+        self.detail("%s declared: the mod starts with the app" % STARTUP_PROVIDER)
+        self.detail("the MargyT row goes on top of %s" % TIKTOK_SETTINGS.rsplit(".", 1)[-1])
 
         self.say("Provider authorities")
         shared = manifest_module.shared_authorities(manifest, package)
