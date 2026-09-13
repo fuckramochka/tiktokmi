@@ -26,13 +26,18 @@ public final class MargyProvider extends ContentProvider {
         Context context = getContext();
         if (context == null) return true;
         Margy.attach(context);
+        Diary.note("start-up hook ran");
         try {
             Context application = context.getApplicationContext();
             if (application instanceof Application) {
                 ((Application) application).registerActivityLifecycleCallbacks(new SettingsRow());
+                Diary.note("watching for the settings screen");
+            } else {
+                Diary.note("no application yet: " + application);
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable error) {
             // the mod failing to start is not a reason for the app not to
+            Diary.note("hook failed: " + error);
         }
         return true;
     }

@@ -58,6 +58,8 @@ public class SettingsActivity extends Activity {
                 + "country. It does not reach the store region, which the server fixes "
                 + "when the account is created."));
 
+        column.addView(diary());
+
         setContentView(scroll);
     }
 
@@ -162,6 +164,34 @@ public class SettingsActivity extends Activity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.addView(row);
         box.addView(divider());
+        return box;
+    }
+
+    /**
+     * What the mod saw on its way here.
+     *
+     * Nobody is going to run logcat against a modded TikTok, so the handful of
+     * things worth knowing when the row does not turn up are shown here.
+     */
+    private View diary() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), dp(28));
+
+        TextView heading = new TextView(this);
+        heading.setText("What the mod saw");
+        heading.setTextColor(MUTED);
+        heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        box.addView(heading);
+
+        for (String line : Diary.lines()) {
+            TextView view = new TextView(this);
+            view.setText("· " + line);
+            view.setTextColor(MUTED);
+            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            view.setPadding(0, dp(2), 0, 0);
+            box.addView(view);
+        }
         return box;
     }
 
