@@ -1,0 +1,99 @@
+package cat.narezany.margyt;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
+
+/**
+ * TikTok's accent colour, made changeable.
+ *
+ * The app is built around one pink, `#FE2C55`: the like, the follow button, the
+ * tab underline, the badges. Most of the places it is drawn hold it as a plain
+ * constant in the bytecode -- `const v1, -0x1d3ab` before a `Paint.setColor` --
+ * so the build rewrites each of those into a call here, and the colour becomes
+ * whatever this returns.
+ *
+ * This sits in the drawing path of half the app, so it answers from a cached
+ * int and never throws: the worst it can do when something is wrong is hand
+ * back the pink the app came with.
+ */
+public final class Accent {
+
+    private Accent() {}
+
+    /** What TikTok ships with, and what every rewritten constant used to be. */
+    public static final int TIKTOK = 0xFFFE2C55;
+
+    public static final String KEY = "accent";
+
+    /** iso-style names are not needed here; the label is the colour itself. */
+    public static final int[] PALETTE = {
+            TIKTOK,
+            0xFF8DD1B0,  // Margy mint
+            0xFF25F4EE,  // TikTok's own cyan
+            0xFF4C8DFF,
+            0xFF9B6BFF,
+            0xFFFF8A3D,
+            0xFF35C759,
+            0xFFFFD23F,
+            0xFFFF4D6D,
+            0xFFE8E8E8,
+    };
+
+    private static volatile int cached;
+
+    public static int colour() {
+        int known = cached;
+        if (known != 0) return known;
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return TIKTOK;  // too early to know; do not cache it
+        int chosen = TIKTOK;
+        try {
+            chosen = prefs.getInt(KEY, TIKTOK);
+        } catch (Throwable ignored) {
+        }
+        if (chosen == 0) chosen = TIKTOK;
+        cached = chosen;
+        return chosen;
+    }
+
+    public static void set(int colour) {
+        cached = colour == 0 ? TIKTOK : colour;
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putInt(KEY, cached).apply();
+    }
+
+    public static boolean isDefault() {
+        return colour() == TIKTOK;
+    }
+
+    private static SharedPreferences prefs() {
+        try {
+            Context context = Margy.context();
+            if (context == null) return null;
+            return context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    // ------------------------------------------------- where colours arrive
+
+    /** Any colour that comes back pink comes back the chosen one instead. */
+    public static int swap(int colour) {
+        return colour == TIKTOK ? colour() : colour;
+    }
+
+    public static int getColor(Resources resources, int id) {
+        return swap(resources.getColor(id));
+    }
+
+    public static int getColor(Resources resources, int id, Resources.Theme theme) {
+        return swap(resources.getColor(id, theme));
+    }
+
+    public static int getColor(TypedArray array, int index, int fallback) {
+        return swap(array.getColor(index, fallback));
+    }
+}

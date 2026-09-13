@@ -1,7 +1,11 @@
 package cat.narezany.margyt;
 
 import android.app.Activity;
-import android.content.res.ColorStateList;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -11,9 +15,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -30,11 +35,12 @@ import java.util.Locale;
  */
 public class SettingsActivity extends Activity {
 
-    private static final int MINT = 0xFF8DD1B0;
-
     private Skin skin;
-    private LinearLayout list;
-    private Switch toggle;
+    private LinearLayout column;
+
+    private boolean countriesOpen;
+    private boolean accentOpen;
+    private boolean diaryOpen;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -47,36 +53,20 @@ public class SettingsActivity extends Activity {
         scroll.setBackgroundColor(skin.page);
         scroll.setFillViewport(true);
 
-        LinearLayout column = new LinearLayout(this);
+        column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
         column.setPadding(0, statusBar(), 0, dp(32));
         scroll.addView(column, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        column.addView(backArrow());
-        column.addView(title("MargyT"));
-
-        column.addView(section(Text.REGION));
-        LinearLayout head = card();
-        head.addView(switchRow());
-        column.addView(wrap(head));
-
-        column.addView(section(Text.COUNTRY));
-        list = card();
-        column.addView(wrap(list));
-        fillCountries();
-
-        column.addView(caption(Text.ABOUT));
-        column.addView(diary());
-
         setContentView(scroll);
+        rebuild();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (toggle != null) toggle.setChecked(Margy.isEnabled());
-        fillCountries();
+        rebuild();
     }
 
     private void dressTheWindow() {
@@ -91,7 +81,240 @@ public class SettingsActivity extends Activity {
         }
     }
 
-    // ------------------------------------------------------------ the parts
+    // --------------------------------------------------------- the screen
+
+    private void rebuild() {
+        column.removeAllViews();
+        column.addView(backArrow());
+        column.addView(title("MargyT"));
+
+        column.addView(section(Text.REGION));
+        LinearLayout head = card();
+        head.addView(switchRow());
+        column.addView(wrap(head));
+
+        column.addView(section(Text.COUNTRY));
+        LinearLayout countries = card();
+        countries.addView(countryHead());
+        if (countriesOpen) {
+            countries.addView(line());
+            for (String[] country : Margy.COUNTRIES) {
+                countries.addView(countryRow(country));
+            }
+        }
+        column.addView(wrap(countries));
+
+        column.addView(section(Text.ACCENT));
+        LinearLayout accent = card();
+        accent.addView(accentHead());
+        if (accentOpen) {
+            accent.addView(line());
+            accent.addView(palette());
+        }
+        column.addView(wrap(accent));
+
+        column.addView(caption(Text.ABOUT));
+
+        column.addView(section(Text.DIARY));
+        LinearLayout diary = card();
+        diary.addView(diaryHead());
+        if (diaryOpen) {
+            diary.addView(line());
+            diary.addView(diaryLines());
+        }
+        column.addView(wrap(diary));
+    }
+
+    // ----------------------------------------------------------- the rows
+
+    private View switchRow() {
+        LinearLayout row = row();
+        row.addView(label(Text.CHANGE_REGION), grow());
+
+        final M3Switch toggle = new M3Switch(this);
+        toggle.colours(Accent.colour(), skin.muted(), skin.card);
+        toggle.setChecked(Margy.isEnabled());
+        toggle.setOnChanged(checked -> {
+            Margy.setEnabled(checked);
+            rebuild();
+        });
+        row.addView(toggle);
+
+        row.setOnClickListener(v -> {
+            toggle.setChecked(!toggle.isChecked(), true);
+            Margy.setEnabled(toggle.isChecked());
+            rebuild();
+        });
+        return sized(row, 56);
+    }
+
+    private View countryHead() {
+        String[] current = Margy.current();
+        LinearLayout row = row();
+        row.setAlpha(Margy.isEnabled() ? 1f : 0.4f);
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(current[Margy.LABEL]));
+        text.addView(detail(current[Margy.CARRIER] + "  ·  " + current[Margy.MCCMNC]
+                + "  ·  " + current[Margy.ISO].toUpperCase(Locale.US)));
+        row.addView(text, grow());
+
+        TextView chevron = new TextView(this);
+        chevron.setText(countriesOpen ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        row.addView(chevron);
+
+        if (Margy.isEnabled()) {
+            row.setOnClickListener(v -> {
+                countriesOpen = !countriesOpen;
+                rebuild();
+            });
+        }
+        return sized(row, 64);
+    }
+
+    private View countryRow(final String[] country) {
+        boolean selected = country[Margy.ISO].equals(Margy.iso());
+        LinearLayout row = row();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(country[Margy.LABEL]));
+        text.addView(detail(country[Margy.CARRIER] + "  ·  " + country[Margy.MCCMNC]
+                + "  ·  " + country[Margy.ISO].toUpperCase(Locale.US)));
+        row.addView(text, grow());
+
+        if (selected) row.addView(new Check(this, Accent.colour()));
+
+        row.setOnClickListener(v -> {
+            Margy.setIso(country[Margy.ISO]);
+            countriesOpen = false;
+            rebuild();
+        });
+        return sized(row, 60);
+    }
+
+    private View accentHead() {
+        LinearLayout row = row();
+        row.addView(label(Text.ACCENT_COLOUR), grow());
+        row.addView(new Dot(this, Accent.colour(), false));
+
+        TextView chevron = new TextView(this);
+        chevron.setText(accentOpen ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        chevron.setPadding(dp(12), 0, 0, 0);
+        row.addView(chevron);
+
+        row.setOnClickListener(v -> {
+            accentOpen = !accentOpen;
+            rebuild();
+        });
+        return sized(row, 56);
+    }
+
+    private View palette() {
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        rows.setPadding(dp(16), dp(12), dp(16), dp(16));
+
+        LinearLayout line = null;
+        for (int i = 0; i < Accent.PALETTE.length; i++) {
+            if (i % 5 == 0) {
+                line = new LinearLayout(this);
+                line.setOrientation(LinearLayout.HORIZONTAL);
+                line.setPadding(0, dp(6), 0, dp(6));
+                rows.addView(line);
+            }
+            final int colour = Accent.PALETTE[i];
+            Dot dot = new Dot(this, colour, colour == Accent.colour());
+            dot.setOnClickListener(v -> {
+                Accent.set(colour);
+                rebuild();
+            });
+            LinearLayout.LayoutParams params =
+                    new LinearLayout.LayoutParams(dp(36), dp(36), 1f);
+            line.addView(dot, params);
+        }
+
+        TextView note = new TextView(this);
+        note.setText(Text.ACCENT_NOTE);
+        note.setTextColor(skin.muted());
+        note.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        note.setPadding(0, dp(10), 0, 0);
+        rows.addView(note);
+        return rows;
+    }
+
+    private View diaryHead() {
+        LinearLayout row = row();
+        row.addView(label(Text.DIARY_TITLE), grow());
+
+        TextView copy = new TextView(this);
+        copy.setText(Text.COPY);
+        copy.setTextColor(Accent.colour());
+        copy.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        copy.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        copy.setPadding(dp(12), dp(8), dp(4), dp(8));
+        copy.setOnClickListener(v -> copyDiary());
+        row.addView(copy);
+
+        TextView chevron = new TextView(this);
+        chevron.setText(diaryOpen ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        chevron.setPadding(dp(12), 0, 0, 0);
+        row.addView(chevron);
+
+        row.setOnClickListener(v -> {
+            diaryOpen = !diaryOpen;
+            rebuild();
+        });
+        return sized(row, 56);
+    }
+
+    private View diaryLines() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(16), dp(8), dp(16), dp(12));
+        for (String entry : Diary.lines()) {
+            TextView view = new TextView(this);
+            view.setText(entry);
+            view.setTextColor(skin.muted());
+            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            view.setPadding(0, dp(2), 0, 0);
+            box.addView(view);
+        }
+        TextView clear = new TextView(this);
+        clear.setText(Text.CLEAR);
+        clear.setTextColor(skin.muted());
+        clear.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        clear.setPadding(0, dp(12), 0, 0);
+        clear.setOnClickListener(v -> {
+            Diary.clear();
+            rebuild();
+        });
+        box.addView(clear);
+        return box;
+    }
+
+    private void copyDiary() {
+        try {
+            StringBuilder out = new StringBuilder("MargyT\n");
+            List<String> lines = Diary.lines();
+            for (String line : lines) out.append(line).append('\n');
+            ClipboardManager clipboard =
+                    (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            clipboard.setPrimaryClip(ClipData.newPlainText("MargyT", out.toString()));
+            Toast.makeText(this, Text.COPIED, Toast.LENGTH_SHORT).show();
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // ---------------------------------------------------------- the parts
 
     private View backArrow() {
         TextView arrow = new TextView(this);
@@ -118,7 +341,16 @@ public class SettingsActivity extends Activity {
         view.setText(text);
         view.setTextColor(skin.muted());
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        view.setPadding(skin.margin + dp(4), dp(12), skin.margin, dp(8));
+        view.setPadding(skin.margin + dp(4), dp(16), skin.margin, dp(8));
+        return view;
+    }
+
+    private View caption(String message) {
+        TextView view = new TextView(this);
+        view.setText(message);
+        view.setTextColor(skin.muted());
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        view.setPadding(skin.margin + dp(4), dp(16), skin.margin + dp(4), dp(4));
         return view;
     }
 
@@ -133,7 +365,6 @@ public class SettingsActivity extends Activity {
         return card;
     }
 
-    /** A card, with the margin TikTok's own cards keep from the edge. */
     private View wrap(View card) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -141,6 +372,12 @@ public class SettingsActivity extends Activity {
         box.addView(card, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return box;
+    }
+
+    private View line() {
+        View line = new View(this);
+        line.setBackgroundColor((skin.text & 0x00FFFFFF) | 0x14000000);
+        return sized(line, 1);
     }
 
     private LinearLayout row() {
@@ -151,126 +388,31 @@ public class SettingsActivity extends Activity {
         return row;
     }
 
-    private View switchRow() {
-        LinearLayout row = row();
-
-        TextView label = new TextView(this);
-        label.setText(Text.CHANGE_REGION);
-        label.setTextColor(skin.text);
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        row.addView(label, new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-        toggle = new Switch(this);
-        toggle.setChecked(Margy.isEnabled());
-        try {
-            toggle.setThumbTintList(ColorStateList.valueOf(MINT));
-            toggle.setTrackTintList(ColorStateList.valueOf(skin.muted()));
-        } catch (Throwable ignored) {
-        }
-        toggle.setOnCheckedChangeListener((button, checked) -> {
-            Margy.setEnabled(checked);
-            fillCountries();
-        });
-        row.addView(toggle);
-
-        row.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
-        return row;
-    }
-
-    private void fillCountries() {
-        if (list == null) return;
-        list.removeAllViews();
-        boolean on = Margy.isEnabled();
-        String current = Margy.iso();
-        for (String[] country : Margy.COUNTRIES) {
-            list.addView(countryRow(country, country[Margy.ISO].equals(current), on));
-        }
-    }
-
-    private View countryRow(final String[] country, boolean selected, boolean enabled) {
-        LinearLayout row = row();
-        row.setAlpha(enabled ? 1f : 0.4f);
-
-        LinearLayout text = new LinearLayout(this);
-        text.setOrientation(LinearLayout.VERTICAL);
-
-        TextView name = new TextView(this);
-        name.setText(country[Margy.LABEL]);
-        name.setTextColor(skin.text);
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        text.addView(name);
-
-        TextView detail = new TextView(this);
-        detail.setText(country[Margy.CARRIER] + "  ·  " + country[Margy.MCCMNC]
-                + "  ·  " + country[Margy.ISO].toUpperCase(Locale.US));
-        detail.setTextColor(skin.muted());
-        detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        text.addView(detail);
-
-        row.addView(text, new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-        TextView tick = new TextView(this);
-        tick.setText(selected ? "✓" : "");
-        tick.setTextColor(MINT);
-        tick.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        row.addView(tick);
-
-        if (enabled) {
-            row.setOnClickListener(v -> {
-                Margy.setIso(country[Margy.ISO]);
-                fillCountries();
-            });
-        }
-        row.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(60)));
-        return row;
-    }
-
-    private View caption(String message) {
+    private TextView label(String text) {
         TextView view = new TextView(this);
-        view.setText(message);
-        view.setTextColor(skin.muted());
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        view.setPadding(skin.margin + dp(4), dp(16), skin.margin + dp(4), dp(8));
+        view.setText(text);
+        view.setTextColor(skin.text);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         return view;
     }
 
-    /**
-     * What the mod saw on its way here.
-     *
-     * Nobody is going to run logcat against a modded TikTok, so the handful of
-     * things worth knowing when something does not turn up are shown here.
-     */
-    private View diary() {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(skin.margin + dp(4), dp(8), skin.margin + dp(4), dp(8));
-
-        TextView heading = new TextView(this);
-        heading.setText(Text.DIARY);
-        heading.setTextColor(skin.muted());
-        heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        heading.setOnClickListener(v -> {
-            Diary.clear();
-            recreate();
-        });
-        box.addView(heading);
-
-        for (String line : Diary.lines()) {
-            TextView view = new TextView(this);
-            view.setText("· " + line);
-            view.setTextColor(skin.muted());
-            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-            view.setPadding(0, dp(2), 0, 0);
-            box.addView(view);
-        }
-        return box;
+    private TextView detail(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextColor(skin.muted());
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        return view;
     }
 
-    // ------------------------------------------------------------ the small
+    private LinearLayout.LayoutParams grow() {
+        return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    }
+
+    private View sized(View view, int height) {
+        view.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(height)));
+        return view;
+    }
 
     private int statusBar() {
         try {
@@ -286,5 +428,69 @@ public class SettingsActivity extends Activity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    // ----------------------------------------------------- the small shapes
+
+    /** A tick, drawn rather than typed: the glyph fonts have is never the one. */
+    private static final class Check extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        Check(Context context, int colour) {
+            super(context);
+            paint.setColor(colour);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStrokeJoin(Paint.Join.ROUND);
+        }
+
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            int size = Math.round(22 * getResources().getDisplayMetrics().density);
+            setMeasuredDimension(size, size);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float unit = getWidth() / 22f;
+            paint.setStrokeWidth(unit * 2.2f);
+            float y = getHeight() / 2f;
+            canvas.drawLine(unit * 4, y + unit, unit * 9, y + unit * 5.5f, paint);
+            canvas.drawLine(unit * 9, y + unit * 5.5f, unit * 18, y - unit * 5f, paint);
+        }
+    }
+
+    /** One colour of the palette, and a ring around the one in use. */
+    private static final class Dot extends View {
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final boolean chosen;
+
+        Dot(Context context, int colour, boolean chosen) {
+            super(context);
+            this.chosen = chosen;
+            fill.setColor(colour);
+            ring.setColor(colour);
+            ring.setStyle(Paint.Style.STROKE);
+            setClickable(chosen ? false : true);
+        }
+
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            int size = Math.round(26 * getResources().getDisplayMetrics().density);
+            setMeasuredDimension(resolveSize(size, widthSpec), resolveSize(size, heightSpec));
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float density = getResources().getDisplayMetrics().density;
+            float centreX = getWidth() / 2f, centreY = getHeight() / 2f;
+            float radius = Math.min(centreX, centreY) - (chosen ? 5 * density : 0);
+            canvas.drawCircle(centreX, centreY, radius, fill);
+            if (chosen) {
+                ring.setStrokeWidth(2 * density);
+                canvas.drawCircle(centreX, centreY, radius + 3.5f * density, ring);
+            }
+        }
     }
 }

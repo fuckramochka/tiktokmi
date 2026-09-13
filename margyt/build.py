@@ -164,6 +164,7 @@ class Build:
 
         telephony_labels = {label for label, _pattern, _target in dexpatch.rules()}
         calls = 0
+        pink = 0
         total = 0
         for name in candidates:
             patched, counts = dexpatch.patch(
@@ -176,12 +177,17 @@ class Build:
             hits = sum(counts.values())
             total += hits
             calls += sum(v for label, v in counts.items() if label in telephony_labels)
+            pink += counts.get("the pink itself", 0)
             self.detail(
                 "%s: %d (%s)"
                 % (name, hits, ", ".join("%s x%d" % (k.split("(")[0], v)
                                          for k, v in sorted(counts.items())))
             )
-        self.detail("%d telephony call sites rewritten, %d rewrites in all" % (calls, total))
+        self.detail("%d telephony call sites, %d places the accent colour was written "
+                    "down, %d rewrites in all" % (calls, pink, total))
+        if not pink:
+            self.detail("WARNING: the accent colour is not a constant in this apk any "
+                        "more, so the colour picker will have nothing to change")
         if not calls:
             raise RuntimeError(
                 "not one call site matched -- the method signatures have moved, "

@@ -23,11 +23,32 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import struct
 import subprocess
 from typing import Dict, List, Optional, Tuple
 
 TELEPHONY = "Landroid/telephony/TelephonyManager;"
 REGION = "Lcat/narezany/margyt/Region;"
+ACCENT = "Lcat/narezany/margyt/Accent;"
+
+# The pink TikTok is built around. Most of the places it is drawn hold it as a
+# plain constant in the bytecode, so each of those becomes a call into the mod
+# and the colour turns into something a person can change. The build counts
+# what it found and stops if the answer is none: a colour picker that changes
+# nothing is worse than no colour picker.
+TIKTOK_PINK = 0xFFFE2C55
+
+# Colours that arrive through the framework rather than as a constant. Same
+# rewrite as the telephony calls: the receiver becomes the first argument.
+COLOUR_SOURCES: List[Tuple[str, str, str]] = [
+    ("Landroid/content/res/Resources;", "getColor",
+     "(I)I", "(Landroid/content/res/Resources;I)I"),
+    ("Landroid/content/res/Resources;", "getColor",
+     "(ILandroid/content/res/Resources$Theme;)I",
+     "(Landroid/content/res/Resources;ILandroid/content/res/Resources$Theme;)I"),
+    ("Landroid/content/res/TypedArray;", "getColor",
+     "(II)I", "(Landroid/content/res/TypedArray;II)I"),
+]
 
 # method name -> (descriptor as TikTok calls it, descriptor of the static that
 # replaces it -- the same, with the receiver moved into the arguments)
@@ -78,6 +99,65 @@ def rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     return out
 
 
+def accent_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
+    """The pink, wherever the bytecode spells it out or asks for it."""
+    out = []
+    literal = "-0x%x" % ((1 << 32) - TIKTOK_PINK) if TIKTOK_PINK > 0x7FFFFFFF \
+        else "0x%x" % TIKTOK_PINK
+    # const vX, -0x1d3ab  ->  a call, and the answer in the same register
+    out.append((
+        "the pink itself",
+        re.compile(r"^(\s*)const ([vp]\d+), %s$" % re.escape(literal), re.MULTILINE),
+        r"\1invoke-static {}, %s->colour()I\n\n\1move-result \2" % ACCENT,
+    ))
+    for owner, name, original, replacement in COLOUR_SOURCES:
+        out.append((
+            "%s->%s%s" % (owner.split("/")[-1][:-1], name, original),
+            re.compile(r"invoke-virtual(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), name, re.escape(original))),
+            r"invoke-static\1 \2, %s->%s%s" % (ACCENT, name, replacement),
+        ))
+    return out
+
+
+def holds_the_pink(dex: bytes) -> bool:
+    """Whether a dex has the pink as a constant in an instruction.
+
+    The four bytes of the colour turn up in string data and in tables too, and
+    taking a dex apart costs half a minute -- so this looks for the instruction
+    itself: opcode 0x14, `const vAA, #+BBBBBBBB`, the register, then the value.
+    """
+    needle = struct.pack("<I", TIKTOK_PINK)
+    at = dex.find(needle)
+    while at != -1:
+        if at >= 2 and dex[at - 2] == 0x14:
+            return True
+        at = dex.find(needle, at + 1)
+    return False
+
+
+def rewrite_accent(root: str) -> Dict[str, int]:
+    """Rewrite everywhere the pink is written down, counting as it goes."""
+    counts: Dict[str, int] = {}
+    prepared = accent_rules()
+    for dirpath, _dirs, files in os.walk(root):
+        for name in files:
+            if not name.endswith(".smali"):
+                continue
+            path = os.path.join(dirpath, name)
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            before = text
+            for label, pattern, target in prepared:
+                text, hits = pattern.subn(target, text)
+                if hits:
+                    counts[label] = counts.get(label, 0) + hits
+            if text != before:
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+    return counts
+
+
 def force_false(root: str) -> Dict[str, int]:
     """Rewrite the methods in FORCED_FALSE to `return false`, body and all."""
     counts: Dict[str, int] = {}
@@ -118,6 +198,8 @@ def interesting(dex: bytes, literals: Optional[Dict[str, str]] = None) -> bool:
     for old in (literals or {}):
         if old.encode() in dex:
             return True
+    if holds_the_pink(dex):
+        return True
     for class_name, _signature in FORCED_FALSE:
         if ("L%s;" % class_name).encode() in dex:
             return True
@@ -231,6 +313,7 @@ def patch(dex: bytes, name: str, smali: Smali, workspace: str,
     counts = rewrite_smali(os.path.join(room, "smali"))
     counts.update(rewrite_literals(os.path.join(room, "smali"), literals or {}))
     counts.update(force_false(os.path.join(room, "smali")))
+    counts.update(rewrite_accent(os.path.join(room, "smali")))
     if not counts:
         shutil.rmtree(room, ignore_errors=True)
         return dex, counts

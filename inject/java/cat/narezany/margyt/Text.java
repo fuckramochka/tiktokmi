@@ -36,6 +36,29 @@ final class Text {
                     + "not reach the store region, which the server fixes when the "
                     + "account is created. Your IP is a separate matter and wants a VPN.");
 
+    static final String ACCENT = pick("Цвет TikTok", "Колір TikTok", "TikTok's colour");
+
+    static final String ACCENT_COLOUR = pick("Акцент", "Акцент", "Accent");
+
+    static final String ACCENT_NOTE = pick(
+            "Меняет розовый, которым TikTok рисует лайки, кнопки и вкладки. "
+                    + "Часть значков нарисована картинками — их цвет задаётся при сборке "
+                    + "и здесь не меняется.",
+            "Змінює рожевий, яким TikTok малює лайки, кнопки та вкладки. "
+                    + "Частина значків намальована картинками — їхній колір задається "
+                    + "під час збірки і тут не змінюється.",
+            "Changes the pink TikTok draws likes, buttons and tabs with. Some icons "
+                    + "are pictures rather than code; their colour is settled at build "
+                    + "time and does not follow.");
+
+    static final String DIARY_TITLE = pick("Журнал мода", "Журнал мода", "The mod's diary");
+
+    static final String COPY = pick("Скопировать", "Скопіювати", "Copy");
+
+    static final String COPIED = pick("Скопировано", "Скопійовано", "Copied");
+
+    static final String CLEAR = pick("Очистить журнал", "Очистити журнал", "Clear the diary");
+
     static final String DIARY = pick(
             "Что мод видел  (нажми, чтобы очистить)",
             "Що мод бачив  (натисни, щоб очистити)",
