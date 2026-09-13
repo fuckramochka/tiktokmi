@@ -59,6 +59,47 @@ final class Text {
 
     static final String RESTART = pick("Перезапустить", "Перезапустити", "Restart");
 
+    // --------------------------------------------------------- the plugins
+
+    static final String PLUGINS = pick("Плагины", "Плагіни", "Plugins");
+
+    static final String PLUGIN_INSTALL = pick(
+            "Установить плагин", "Встановити плагін", "Install a plugin");
+
+    static final String PLUGIN_INSTALL_NOTE = pick(
+            "Файл .mtp", "Файл .mtp", "An .mtp file");
+
+    static final String PLUGIN_NONE = pick(
+            "Пока ничего не установлено.",
+            "Поки нічого не встановлено.",
+            "Nothing installed yet.");
+
+    static final String PLUGIN_WARNING = pick(
+            "Плагин работает внутри TikTok и может всё то же, что и он: ваши файлы, "
+                    + "вашу сессию, вашу сеть. Песочницы нет. Ставьте только то, что "
+                    + "прочитали сами или чьему автору доверяете.",
+            "Плагін працює всередині TikTok і може все те саме, що й він: ваші файли, "
+                    + "вашу сесію, вашу мережу. Пісочниці немає. Встановлюйте лише те, "
+                    + "що прочитали самі або чиєму авторові довіряєте.",
+            "A plugin runs inside TikTok and can do everything it can: your files, "
+                    + "your session, your network. There is no sandbox. Install only "
+                    + "what you have read yourself or whose author you trust.");
+
+    static final String PLUGIN_INSTALLED = pick(
+            "Плагин установлен", "Плагін встановлено", "Plugin installed");
+
+    static final String PLUGIN_REMOVE = pick("Удалить", "Видалити", "Remove");
+
+    static final String PLUGIN_REMOVE_ASK = pick(
+            "Удалить плагин?", "Видалити плагін?", "Remove the plugin?");
+
+    static final String CANCEL = pick("Отмена", "Скасувати", "Cancel");
+
+    static final String PLUGIN_HOLD = pick(
+            "Долгое нажатие — удалить",
+            "Довге натискання — видалити",
+            "Hold to remove");
+
     // ----------------------------------------------------------- the links
 
     static final String LINKS = pick("Ссылки", "Посилання", "Links");

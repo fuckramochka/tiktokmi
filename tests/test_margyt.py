@@ -70,10 +70,16 @@ class AxmlTest(unittest.TestCase):
         self.assertEqual(again.pool.get(attr.data), "MargyT")
 
     def test_added_activity_survives_a_rebuild(self):
+        """The mod's screen: declared, exported, and off the home screen.
+
+        It is opened from the row in TikTok's own settings, so it has no
+        launcher entry -- and therefore no task of its own either, which is
+        what lets the back button return to the settings it was opened from.
+        """
         axml = Axml.parse(self.raw)
         manifest_module.set_label(axml, "MargyT")
         manifest_module.add_activity(axml, "cat.narezany.margyt.SettingsActivity",
-                                     "MargyT settings", 0x0103012C, "cat.narezany.margyt")
+                                     "MargyT settings", 0x0103012C)
         again = Axml.parse(axml.build())
 
         names = [again.attr_string(node, "name") for node in again.elements("activity")]
@@ -85,13 +91,27 @@ class AxmlTest(unittest.TestCase):
         self.assertEqual(again.attr_string(added, "label"), "MargyT settings")
         self.assertEqual(again.attr(added, "theme").data, 0x0103012C)
         self.assertEqual(again.attr(added, "exported").data, 0xFFFFFFFF)
+        self.assertIsNone(again.attr(added, "taskAffinity"))
+        self.assertIsNone(again.attr(added, "launchMode"))
 
-        # a task of its own, or the launcher entry just resumes TikTok
+        # the app's own launcher entry is untouched, and ours is not one
+        launchers = [again.attr_string(n, "name") for n in manifest_module.launcher_elements(again)]
+        self.assertNotIn("cat.narezany.margyt.SettingsActivity", launchers)
+        self.assertIn("cat.narezany.fixture.Splash", launchers)
+
+    def test_a_launcher_activity_gets_a_task_of_its_own(self):
+        """Asked for an entry on the home screen, it comes with what that needs."""
+        axml = Axml.parse(self.raw)
+        manifest_module.add_activity(axml, "cat.narezany.margyt.SettingsActivity",
+                                     "MargyT settings", 0x0103012C, "cat.narezany.margyt",
+                                     launcher=True)
+        again = Axml.parse(axml.build())
+
+        added = [n for n in again.elements("activity")
+                 if again.attr_string(n, "name") == "cat.narezany.margyt.SettingsActivity"][0]
         self.assertEqual(again.attr_string(added, "taskAffinity"), "cat.narezany.margyt")
         self.assertEqual(again.attr(added, "launchMode").data,
                          manifest_module.LAUNCH_SINGLE_TASK)
-
-        # the new element brings an intent-filter, and it is the launcher's
         launchers = [again.attr_string(n, "name") for n in manifest_module.launcher_elements(again)]
         self.assertIn("cat.narezany.margyt.SettingsActivity", launchers)
         self.assertIn("cat.narezany.fixture.Splash", launchers)
@@ -560,7 +580,9 @@ class DexPatchTest(unittest.TestCase):
                 "    const v4, -0x1d3ac\n")
         for _label, pattern, target in dexpatch.accent_rules():
             text = pattern.sub(target, text)
-        self.assertIn("invoke-static {}, Lcat/narezany/margyt/Accent;->colour()I", text)
+        # accent(), not colour(): the constants go through the plugins and the
+        # mod's own screen does not
+        self.assertIn("invoke-static {}, Lcat/narezany/margyt/Accent;->accent()I", text)
         self.assertIn("move-result v1", text)
         self.assertIn("const v4, -0x1d3ac", text)  # a colour that is not the accent
 

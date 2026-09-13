@@ -5,6 +5,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -16,6 +17,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -155,6 +157,22 @@ public class SettingsActivity extends Activity {
             links.addView(thanks());
         }
         column.addView(wrap(links));
+
+        column.addView(section(Text.PLUGINS));
+        LinearLayout plugins = card();
+        plugins.addView(installRow());
+        List<Plugins.Info> installed = Plugins.list();
+        if (installed.isEmpty()) {
+            plugins.addView(line());
+            plugins.addView(quiet(Text.PLUGIN_NONE));
+        } else {
+            for (Plugins.Info info : installed) {
+                plugins.addView(line());
+                plugins.addView(pluginRow(info));
+            }
+        }
+        column.addView(wrap(plugins));
+        column.addView(caption(Text.PLUGIN_WARNING));
 
         column.addView(section(Text.DIARY));
         LinearLayout diary = card();
@@ -319,6 +337,130 @@ public class SettingsActivity extends Activity {
         note.setPadding(0, dp(10), 0, 0);
         rows.addView(note);
         return rows;
+    }
+
+    // ----------------------------------------------------------- the plugins
+
+    private static final int PICK_PLUGIN = 0x4D50;  // "MP"
+
+    private View installRow() {
+        LinearLayout row = row();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(Text.PLUGIN_INSTALL));
+        text.addView(detail(Text.PLUGIN_INSTALL_NOTE));
+        row.addView(text, grow());
+
+        TextView plus = new TextView(this);
+        plus.setText("+");
+        plus.setTextColor(Accent.colour());
+        plus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        plus.setPadding(dp(12), 0, 0, 0);
+        row.addView(plus);
+
+        row.setOnClickListener(v -> pickPlugin());
+        return sized(row, 64);
+    }
+
+    /**
+     * One installed plugin: what it says about itself, and a switch.
+     *
+     * Not `sized()` like the other rows -- a description is as tall as it is,
+     * and a plugin whose author wrote two sentences should not have the second
+     * one clipped.
+     */
+    private View pluginRow(final Plugins.Info info) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16), dp(12), dp(16), dp(12));
+
+        Bitmap icon = info.icon();
+        if (icon != null) {
+            ImageView view = new ImageView(this);
+            view.setImageBitmap(icon);
+            view.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            LinearLayout.LayoutParams size =
+                    new LinearLayout.LayoutParams(dp(40), dp(40));
+            size.rightMargin = dp(14);
+            row.addView(view, size);
+        } else {
+            LinearLayout.LayoutParams size =
+                    new LinearLayout.LayoutParams(dp(40), dp(40));
+            size.rightMargin = dp(14);
+            row.addView(new Dot(this, Accent.colour(), false), size);
+        }
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(info.name + "  " + info.version));
+
+        String by = info.author;
+        if (!info.description.isEmpty()) by = by + "  ·  " + info.description;
+        text.addView(detail(by));
+        if (info.trouble != null) text.addView(detail(info.trouble));
+        row.addView(text, grow());
+
+        final M3Switch toggle = new M3Switch(this);
+        toggle.colours(Accent.colour(), skin.muted(), skin.card);
+        toggle.setChecked(Plugins.isEnabled(info.id));
+        toggle.setEnabled(info.trouble == null || Plugins.isEnabled(info.id));
+        toggle.setOnChanged(checked -> {
+            Plugins.setEnabled(info.id, checked);
+            markChanged();
+        });
+        row.addView(toggle);
+
+        row.setOnLongClickListener(v -> {
+            askToRemove(info);
+            return true;
+        });
+        return row;
+    }
+
+    private void pickPlugin() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            // .mtp is nobody's registered type, so the picker is shown everything
+            intent.setType("*/*");
+            startActivityForResult(intent, PICK_PLUGIN);
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request != PICK_PLUGIN || result != RESULT_OK || data == null) return;
+        Uri source = data.getData();
+        if (source == null) return;
+        try {
+            Plugins.install(this, source);
+            Toast.makeText(this, Text.PLUGIN_INSTALLED, Toast.LENGTH_SHORT).show();
+            markChanged();
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error.getMessage() == null
+                    ? error : error.getMessage()), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void askToRemove(final Plugins.Info info) {
+        try {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle(Text.PLUGIN_REMOVE_ASK)
+                    .setMessage(info.name + "  " + info.version)
+                    .setNegativeButton(Text.CANCEL, null)
+                    .setPositiveButton(Text.PLUGIN_REMOVE, (dialog, which) -> {
+                        Plugins.uninstall(this, info.id);
+                        markChanged();
+                    })
+                    .show();
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
     }
 
     // ------------------------------------------------------------- the links

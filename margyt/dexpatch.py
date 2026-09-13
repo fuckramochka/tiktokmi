@@ -110,7 +110,7 @@ def accent_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     out.append((
         "the pink itself",
         re.compile(r"^(\s*)const ([vp]\d+), %s$" % re.escape(literal), re.MULTILINE),
-        r"\1invoke-static {}, %s->colour()I\n\n\1move-result \2" % ACCENT,
+        r"\1invoke-static {}, %s->accent()I\n\n\1move-result \2" % ACCENT,
     ))
     for owner, name, original, replacement in COLOUR_SOURCES:
         out.append((
@@ -326,7 +326,7 @@ def dex_format(dex: bytes) -> str:
 
 def rewrite_targets() -> List[str]:
     """Every static the rewrites point at, as `Lowner;->name(descriptor)`."""
-    out = ["%s->colour()I" % ACCENT]
+    out = ["%s->accent()I" % ACCENT]
     for name, _original, replacement in TARGETS:
         out.append("%s->%s%s" % (REGION, name, replacement))
     for _owner, name, _original, replacement in COLOUR_SOURCES:

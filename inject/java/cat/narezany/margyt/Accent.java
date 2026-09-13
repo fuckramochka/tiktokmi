@@ -78,6 +78,19 @@ public final class Accent {
         return chosen;
     }
 
+    /**
+     * Where a rewritten constant lands.
+     *
+     * `const v1, -0x1d3ab` in TikTok's bytecode becomes a call to this, so it
+     * is the accent as chosen -- and then whatever the plugins make of it.
+     * `colour()` itself stays plain: it is what the mod paints its own screen
+     * with, and a plugin recolouring the settings it is being configured from
+     * would be a poor joke.
+     */
+    public static int accent() {
+        return Plugins.colour(colour());
+    }
+
     public static void set(int colour) {
         cached = colour == 0 ? TIKTOK : colour;
         SharedPreferences prefs = prefs();
@@ -109,7 +122,7 @@ public final class Accent {
      * belongs to the family and where it moves to.
      */
     public static int swap(int colour) {
-        return Palette.map(colour, TIKTOK, colour());
+        return Plugins.colour(Palette.map(colour, TIKTOK, colour()));
     }
 
     public static int getColor(Context context, int id) {

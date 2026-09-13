@@ -162,13 +162,19 @@ def add_provider(axml: Axml, class_name: str, authority: str) -> None:
 LAUNCH_SINGLE_TASK = 2
 
 
-def add_activity(axml: Axml, class_name: str, label: str, theme: int, affinity: str) -> None:
-    """Declare an exported launcher activity, last child of <application>.
+def add_activity(axml: Axml, class_name: str, label: str, theme: int,
+                 affinity: str = None, launcher: bool = False) -> None:
+    """Declare an exported activity, last child of <application>.
 
-    It gets a task affinity of its own. Without one it shares the app's, and
-    then tapping its launcher entry while the app is running does what tapping
-    a launcher entry does -- brings that task back to the front, TikTok and all
-    -- instead of opening this screen.
+    With `launcher` it also gets an entry on the home screen -- and then it
+    needs a task affinity of its own, because without one it shares the app's,
+    and tapping its icon while TikTok is running does what tapping a launcher
+    entry does: brings that task back to the front, TikTok and all, instead of
+    opening this screen.
+
+    Without one none of that applies and none of it is written. The screen is
+    opened from inside the app, in the app's own task, so the back button goes
+    back to where it was opened from.
     """
     for existing in axml.elements("activity"):
         if axml.attr_string(existing, "name") == class_name:
@@ -179,6 +185,11 @@ def add_activity(axml: Axml, class_name: str, label: str, theme: int, affinity: 
     axml.set_attr_string(activity, "label", label)
     axml.set_attr_string(activity, "name", class_name)
     axml.set_attr_bool(activity, "exported", True)
+
+    if not launcher:
+        axml.insert_into(application(axml), [activity, axml.close_element(activity)])
+        return
+
     axml.set_attr_string(activity, "taskAffinity", affinity)
     axml.set_attr(activity, "launchMode", 0x10, LAUNCH_SINGLE_TASK)
 

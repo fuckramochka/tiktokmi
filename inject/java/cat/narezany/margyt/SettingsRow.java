@@ -44,6 +44,8 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
 
     @Override
     public void onActivityResumed(Activity activity) {
+        Plugins.onActivityResumed(activity);
+
         String name = activity.getClass().getName();
         if (!SETTINGS_ACTIVITY.equals(name)) {
             // every screen would drown the diary; the ones worth knowing about
@@ -60,13 +62,17 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     }
 
     @Override
-    public void onActivityCreated(Activity activity, Bundle state) {}
+    public void onActivityCreated(Activity activity, Bundle state) {
+        Plugins.onActivityCreated(activity);
+    }
 
     @Override
     public void onActivityStarted(Activity activity) {}
 
     @Override
-    public void onActivityPaused(Activity activity) {}
+    public void onActivityPaused(Activity activity) {
+        Plugins.onActivityPaused(activity);
+    }
 
     @Override
     public void onActivityStopped(Activity activity) {}

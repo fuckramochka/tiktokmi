@@ -16,39 +16,54 @@ import android.telephony.TelephonyManager;
  * the real answer whenever the mod is off -- switching MargyT off has to leave
  * the app exactly as it was, down to the exception the real call would have
  * thrown.
+ *
+ * The answer passes through the plugins on its way out, so a plugin can say
+ * something else about where the phone is without touching the call sites.
  */
 public final class Region {
 
     private Region() {}
 
     public static String getSimCountryIso(TelephonyManager tm) {
-        if (!Margy.active()) return tm == null ? "" : tm.getSimCountryIso();
-        return Margy.current()[Margy.ISO];
+        String answer = !Margy.active()
+                ? (tm == null ? "" : tm.getSimCountryIso())
+                : Margy.current()[Margy.ISO];
+        return Plugins.region("sim_country", answer);
     }
 
     public static String getNetworkCountryIso(TelephonyManager tm) {
-        if (!Margy.active()) return tm == null ? "" : tm.getNetworkCountryIso();
-        return Margy.current()[Margy.ISO];
+        String answer = !Margy.active()
+                ? (tm == null ? "" : tm.getNetworkCountryIso())
+                : Margy.current()[Margy.ISO];
+        return Plugins.region("network_country", answer);
     }
 
     public static String getSimOperator(TelephonyManager tm) {
-        if (!Margy.active()) return tm == null ? "" : tm.getSimOperator();
-        return Margy.current()[Margy.MCCMNC];
+        String answer = !Margy.active()
+                ? (tm == null ? "" : tm.getSimOperator())
+                : Margy.current()[Margy.MCCMNC];
+        return Plugins.region("sim_operator", answer);
     }
 
     public static String getNetworkOperator(TelephonyManager tm) {
-        if (!Margy.active()) return tm == null ? "" : tm.getNetworkOperator();
-        return Margy.current()[Margy.MCCMNC];
+        String answer = !Margy.active()
+                ? (tm == null ? "" : tm.getNetworkOperator())
+                : Margy.current()[Margy.MCCMNC];
+        return Plugins.region("network_operator", answer);
     }
 
     public static String getSimOperatorName(TelephonyManager tm) {
-        if (!Margy.active()) return tm == null ? "" : tm.getSimOperatorName();
-        return Margy.current()[Margy.CARRIER];
+        String answer = !Margy.active()
+                ? (tm == null ? "" : tm.getSimOperatorName())
+                : Margy.current()[Margy.CARRIER];
+        return Plugins.region("sim_operator_name", answer);
     }
 
     public static String getNetworkOperatorName(TelephonyManager tm) {
-        if (!Margy.active()) return tm == null ? "" : tm.getNetworkOperatorName();
-        return Margy.current()[Margy.CARRIER];
+        String answer = !Margy.active()
+                ? (tm == null ? "" : tm.getNetworkOperatorName())
+                : Margy.current()[Margy.CARRIER];
+        return Plugins.region("network_operator_name", answer);
     }
 
     /**

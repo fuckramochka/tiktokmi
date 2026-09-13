@@ -39,6 +39,11 @@ public final class MargyProvider extends ContentProvider {
             // the mod failing to start is not a reason for the app not to
             Diary.note("hook failed: " + error);
         }
+        try {
+            Plugins.startAll(context);
+        } catch (Throwable error) {
+            Diary.note("plugins failed to start: " + error);
+        }
         return true;
     }
 

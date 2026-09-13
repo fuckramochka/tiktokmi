@@ -31,6 +31,10 @@ STARTUP_PROVIDER = PACKAGE + ".MargyProvider"
 # recognise it, so the build checks rather than hopes.
 TIKTOK_SETTINGS = "com.ss.android.ugc.aweme.setting.ui.SettingContainerActivity"
 LABEL = "MargyT"
+
+# The screen has no launcher entry of its own -- it is opened from the row in
+# TikTok's settings -- but an activity still wants a label: it is what the
+# recents card and any "open with" list show.
 SETTINGS_LABEL = "MargyT settings"
 SETTINGS_THEME = "Theme_DeviceDefault_Light_NoActionBar"
 
@@ -109,10 +113,8 @@ class Build:
         for where in manifest_module.set_label(manifest, LABEL):
             self.detail("label on %s" % where)
         self.tools.check_attribute_ids(axml_module.ATTR_IDS)
-        manifest_module.add_activity(
-            manifest, SETTINGS_ACTIVITY, SETTINGS_LABEL, theme, PACKAGE)
-        self.detail("%s declared, on the launcher, in a task of its own"
-                    % SETTINGS_ACTIVITY)
+        manifest_module.add_activity(manifest, SETTINGS_ACTIVITY, SETTINGS_LABEL, theme)
+        self.detail("%s declared, reached from TikTok's own settings" % SETTINGS_ACTIVITY)
 
         if not manifest_module.has_activity(manifest, TIKTOK_SETTINGS):
             raise RuntimeError(

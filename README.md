@@ -19,7 +19,8 @@ of** the official app rather than beside it: uninstall TikTok first, then
 install this. arm64 only. No root.
 
 Everything the mod adds is on one screen: **Settings and privacy → MargyT**,
-the first row, and on the launcher as **MargyT settings** as well.
+the first row. There is no second icon on the home screen — the mod goes in
+through TikTok's own settings and nowhere else.
 
 ## What it adds
 
@@ -87,6 +88,36 @@ palette starts on.
 </details>
 
 <details>
+<summary><b>Plugins</b></summary>
+
+Other people's code, running inside this one. A plugin is a zip -- `.mtp` --
+holding a manifest, a dex and an icon; installing one from
+**Settings and privacy -> MargyT -> Plugins** unpacks it into the app's own
+files, and the switch loads it with `DexClassLoader` and starts calling its
+hooks. There is no storage permission involved: the document picker is the only
+way in.
+
+Margy's plugins are Python, and these are not, for a reason that is about
+repacking rather than taste -- a Python runtime goes into a fork at build time,
+and this is somebody else's apk. The format is the same shape with a dex where
+the `main.py` would be.
+
+A plugin can hook the start of the process (before TikTok's own
+`Application.onCreate`), the activities as they come and go, every colour on
+its way to the screen, and every answer about where the phone is. One that
+throws is written to the diary and dropped for the rest of that process rather
+than asked again.
+
+There is no sandbox and there cannot be one: a plugin has everything TikTok
+has. The settings screen says so where the list is, and so does the
+documentation.
+
+`python3 -m margyt.plugin examples/hello` builds one, with the toolchain the
+apk build already downloads. **[docs/plugins.md](docs/plugins.md)** is the rest:
+the manifest, every hook, and what is deliberately not there.
+</details>
+
+<details>
 <summary><b>Where to find the mod, and who made it</b></summary>
 
 The last card on the mod's screen: the channel, the forum, and a **Thanks**
@@ -133,8 +164,13 @@ The screen behind the row is built in code with no layout or style resources at
 all: adding a resource would mean rewriting a 25 MB resource table, which is
 the one thing this build refuses to do.
 
-There is a launcher entry as well, **MargyT settings**, which opens the same
-screen. It is the way in when the row is not there.
+The screen has no launcher entry of its own. It had one once, as a way in if
+the row ever failed to appear, and it is gone because two icons for one app is
+a poor trade for a fallback that cannot happen quietly: the build refuses to
+write an apk whose `SettingContainerActivity` it cannot find, so an apk that
+exists is one whose row has somewhere to go. Without the launcher entry the
+screen wants no task of its own either, which is what lets the back button
+return to the settings it was opened from.
 
 </details>
 
@@ -304,6 +340,9 @@ only thing here that wants aapt2.
 | `margyt/apkzip.py` | the zip, rewritten entry by entry |
 | `margyt/dexpatch.py` | the call sites, found by signature |
 | `margyt/palette.py` | which colours the accent takes over, and what it turns them into |
+| `margyt/plugin.py` | packs a folder into an `.mtp`, with the same pinned toolchain |
+| `docs/plugins.md` | the plugin format, the hooks, and the honest part about safety |
+| `examples/hello/` | a plugin small enough to read in a minute |
 | `margyt/icon.py` | the icon, replaced file by file |
 | `margyt/png.py` | just enough PNG to resize an icon, so Pillow is not needed |
 | `margyt/vector.py` | vector drawables, compiled without aapt2 |
