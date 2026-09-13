@@ -60,6 +60,8 @@ public class SettingsActivity extends Activity {
     private static final String FORUM = "https://t.me/margeletforum";
     private static final String OWNER = "https://t.me/narezany";
     private static final String HELPER = "https://t.me/OPlusAce5";
+    private static final String DOCS =
+            "https://github.com/narezany/MargyT/blob/main/docs/plugins.md";
     private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
     private static final String CARD_NUMBER = "2204120143055305";
 
@@ -145,22 +147,16 @@ public class SettingsActivity extends Activity {
 
         column.addView(caption(Text.ABOUT));
 
-        column.addView(section(Text.LINKS));
-        LinearLayout links = card();
-        links.addView(linkRow(Text.CHANNEL, "@margytiktok", CHANNEL));
-        links.addView(line());
-        links.addView(linkRow(Text.FORUM, "@margeletforum", FORUM));
-        links.addView(line());
-        links.addView(thanksHead());
-        if (thanksOpen) {
-            links.addView(line());
-            links.addView(thanks());
-        }
-        column.addView(wrap(links));
+        column.addView(section(Text.DOWNLOADS));
+        LinearLayout downloads = card();
+        downloads.addView(watermarkRow());
+        column.addView(wrap(downloads));
 
         column.addView(section(Text.PLUGINS));
         LinearLayout plugins = card();
         plugins.addView(installRow());
+        plugins.addView(line());
+        plugins.addView(linkRow(Text.PLUGIN_DOCS, Text.PLUGIN_DOCS_NOTE, DOCS));
         List<Plugins.Info> installed = Plugins.list();
         if (installed.isEmpty()) {
             plugins.addView(line());
@@ -173,6 +169,19 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(plugins));
         column.addView(caption(Text.PLUGIN_WARNING));
+
+        column.addView(section(Text.LINKS));
+        LinearLayout links = card();
+        links.addView(linkRow(Text.CHANNEL, "@margytiktok", CHANNEL));
+        links.addView(line());
+        links.addView(linkRow(Text.FORUM, "@margeletforum", FORUM));
+        links.addView(line());
+        links.addView(thanksHead());
+        if (thanksOpen) {
+            links.addView(line());
+            links.addView(thanks());
+        }
+        column.addView(wrap(links));
 
         column.addView(section(Text.DIARY));
         LinearLayout diary = card();
@@ -337,6 +346,32 @@ public class SettingsActivity extends Activity {
         note.setPadding(0, dp(10), 0, 0);
         rows.addView(note);
         return rows;
+    }
+
+    private View watermarkRow() {
+        LinearLayout row = row();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(Text.NO_WATERMARK));
+        text.addView(detail(Text.NO_WATERMARK_NOTE));
+        row.addView(text, grow());
+
+        final M3Switch toggle = new M3Switch(this);
+        toggle.colours(Accent.colour(), skin.muted(), skin.card);
+        toggle.setChecked(Download.isEnabled());
+        toggle.setOnChanged(checked -> {
+            Download.setEnabled(checked);
+            markChanged();
+        });
+        row.addView(toggle);
+
+        row.setOnClickListener(v -> {
+            toggle.setChecked(!toggle.isChecked(), true);
+            Download.setEnabled(toggle.isChecked());
+            markChanged();
+        });
+        return sized(row, 64);
     }
 
     // ----------------------------------------------------------- the plugins

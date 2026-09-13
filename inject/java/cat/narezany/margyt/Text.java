@@ -26,15 +26,9 @@ final class Text {
     static final String COUNTRY = pick("Страна", "Країна", "Country");
 
     static final String ABOUT = pick(
-            "Регион меняет ленту и почти всё, что закрыто по стране. Он не меняет "
-                    + "регион аккаунта — тот сервер задаёт при регистрации. IP — "
-                    + "отдельная история, для него нужен VPN.",
-            "Регіон змінює стрічку і майже все, що закрите за країною. Він не змінює "
-                    + "регіон акаунта — той сервер задає під час реєстрації. IP — "
-                    + "окрема історія, для нього потрібен VPN.",
-            "Region reaches the feed and most of what is gated by country. It does "
-                    + "not reach the store region, which the server fixes when the "
-                    + "account is created. Your IP is a separate matter and wants a VPN.");
+            "Меняет ленту и то, что закрыто по стране.",
+            "Змінює стрічку і те, що закрите за країною.",
+            "Changes the feed and what is gated by country.");
 
     static final String ACCENT = pick("Цвет TikTok", "Колір TikTok", "TikTok's colour");
 
@@ -59,6 +53,18 @@ final class Text {
 
     static final String RESTART = pick("Перезапустить", "Перезапустити", "Restart");
 
+    // -------------------------------------------------------- the downloads
+
+    static final String DOWNLOADS = pick("Скачивание", "Завантаження", "Downloads");
+
+    static final String NO_WATERMARK = pick(
+            "Без водяного знака", "Без водяного знака", "Without the watermark");
+
+    static final String NO_WATERMARK_NOTE = pick(
+            "Только если TikTok прислал чистый адрес для этого видео.",
+            "Лише якщо TikTok надіслав чисту адресу для цього відео.",
+            "Only where TikTok sent a clean address for the video.");
+
     // --------------------------------------------------------- the plugins
 
     static final String PLUGINS = pick("Плагины", "Плагіни", "Plugins");
@@ -75,15 +81,15 @@ final class Text {
             "Nothing installed yet.");
 
     static final String PLUGIN_WARNING = pick(
-            "Плагин работает внутри TikTok и может всё то же, что и он: ваши файлы, "
-                    + "вашу сессию, вашу сеть. Песочницы нет. Ставьте только то, что "
-                    + "прочитали сами или чьему автору доверяете.",
-            "Плагін працює всередині TikTok і може все те саме, що й він: ваші файли, "
-                    + "вашу сесію, вашу мережу. Пісочниці немає. Встановлюйте лише те, "
-                    + "що прочитали самі або чиєму авторові довіряєте.",
-            "A plugin runs inside TikTok and can do everything it can: your files, "
-                    + "your session, your network. There is no sandbox. Install only "
-                    + "what you have read yourself or whose author you trust.");
+            "Песочницы нет. Ставьте только то, чему доверяете.",
+            "Пісочниці немає. Встановлюйте лише те, чому довіряєте.",
+            "No sandbox. Install only what you trust.");
+
+    static final String PLUGIN_DOCS = pick(
+            "Как писать плагины", "Як писати плагіни", "Writing plugins");
+
+    static final String PLUGIN_DOCS_NOTE = pick(
+            "Документация на GitHub", "Документація на GitHub", "The documentation on GitHub");
 
     static final String PLUGIN_INSTALLED = pick(
             "Плагин установлен", "Плагін встановлено", "Plugin installed");

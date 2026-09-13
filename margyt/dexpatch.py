@@ -30,6 +30,19 @@ from typing import Dict, List, Optional, Tuple
 TELEPHONY = "Landroid/telephony/TelephonyManager;"
 REGION = "Lcat/narezany/margyt/Region;"
 ACCENT = "Lcat/narezany/margyt/Accent;"
+DOWNLOAD = "Lcat/narezany/margyt/Download;"
+
+# TikTok's own model, and the two addresses it carries for the same video: the
+# one the save button uses, which is stamped, and the one beside it, which is
+# not. Both names are real rather than obfuscated, and both return the same
+# type -- which is what makes the swap a rewritten call site rather than
+# anything that has to understand the download.
+VIDEO = "Lcom/ss/android/ugc/aweme/feed/model/Video;"
+URL_MODEL = "Lcom/ss/android/ugc/aweme/base/model/UrlModel;"
+
+DOWNLOAD_SOURCES: List[Tuple[str, str, str, str]] = [
+    (VIDEO, "getDownloadAddr", "()%s" % URL_MODEL, "(%s)%s" % (VIDEO, URL_MODEL)),
+]
 
 # The pink TikTok is built around. Most of the places it is drawn hold it as a
 # plain constant in the bytecode, so each of those becomes a call into the mod
@@ -120,6 +133,50 @@ def accent_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
             r"invoke-static\1 \2, %s->%s%s" % (ACCENT, name, replacement),
         ))
     return out
+
+
+def download_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
+    """The save button's address, swapped for the one without the stamp."""
+    out = []
+    for owner, name, original, replacement in DOWNLOAD_SOURCES:
+        out.append((
+            "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], name),
+            re.compile(r"invoke-virtual(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), name, re.escape(original))),
+            r"invoke-static\1 \2, %s->%s%s" % (DOWNLOAD, name, replacement),
+        ))
+    return out
+
+
+def rewrite_download(root: str) -> Dict[str, int]:
+    """Rewrite the save button's call sites, counting them by signature."""
+    counts: Dict[str, int] = {}
+    prepared = download_rules()
+    for dirpath, _dirs, files in os.walk(root):
+        for name in files:
+            if not name.endswith(".smali"):
+                continue
+            path = os.path.join(dirpath, name)
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            if VIDEO not in text:
+                continue
+            before = text
+            for label, pattern, target in prepared:
+                text, hits = pattern.subn(target, text)
+                if hits:
+                    counts[label] = counts.get(label, 0) + hits
+            if text != before:
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+    return counts
+
+
+def wants_the_download(dex: bytes) -> bool:
+    """Whether a dex asks the model for the address the save button uses."""
+    if VIDEO.encode() not in dex:
+        return False
+    return any(name.encode() in dex for _o, name, _a, _b in DOWNLOAD_SOURCES)
 
 
 def reads_a_colour(dex: bytes) -> bool:
@@ -214,7 +271,7 @@ def interesting(dex: bytes, literals: Optional[Dict[str, str]] = None) -> bool:
     for old in (literals or {}):
         if old.encode() in dex:
             return True
-    if holds_the_pink(dex) or reads_a_colour(dex):
+    if holds_the_pink(dex) or reads_a_colour(dex) or wants_the_download(dex):
         return True
     for class_name, _signature in FORCED_FALSE:
         if ("L%s;" % class_name).encode() in dex:
@@ -331,6 +388,8 @@ def rewrite_targets() -> List[str]:
         out.append("%s->%s%s" % (REGION, name, replacement))
     for _owner, name, _original, replacement in COLOUR_SOURCES:
         out.append("%s->%s%s" % (ACCENT, name, replacement))
+    for _owner, name, _original, replacement in DOWNLOAD_SOURCES:
+        out.append("%s->%s%s" % (DOWNLOAD, name, replacement))
     return out
 
 
@@ -431,6 +490,7 @@ def patch(dex: bytes, name: str, smali: Smali, workspace: str,
     counts.update(rewrite_literals(os.path.join(room, "smali"), literals or {}))
     counts.update(force_false(os.path.join(room, "smali")))
     counts.update(rewrite_accent(os.path.join(room, "smali")))
+    counts.update(rewrite_download(os.path.join(room, "smali")))
     if not counts:
         shutil.rmtree(room, ignore_errors=True)
         return dex, counts

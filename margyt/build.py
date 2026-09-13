@@ -87,7 +87,8 @@ class Build:
 
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
-            os.path.join(self.root, "inject", "java"), self.workspace, api
+            os.path.join(self.root, "inject", "java"), self.workspace, api,
+            os.path.join(self.root, "inject", "stubs"),
         )
         injected = open(dex_path, "rb").read()
         if dexpatch.dex_format(injected) != dex_format:

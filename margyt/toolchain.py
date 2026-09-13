@@ -119,32 +119,46 @@ class Toolchain:
                     % (name, known[name], value)
                 )
 
-    def compile_dex(self, sources_dir: str, out_dir: str, min_api: int) -> str:
-        """javac then d8: the mod's own classes, as one dex."""
+    def compile_dex(self, sources_dir: str, out_dir: str, min_api: int,
+                    stubs_dir: Optional[str] = None) -> str:
+        """javac then d8: the mod's own classes, as one dex.
+
+        `stubs_dir` holds TikTok's own classes in outline, so the mod can be
+        written against the ones it is rewritten into. They are compiled to
+        build against and then handed to d8 as classpath rather than input:
+        the real ones are in the apk, and a second copy under the same name
+        would be a different class as far as the runtime is concerned.
+        """
         classes = os.path.join(out_dir, "classes")
+        stubs = os.path.join(out_dir, "stubs")
         dex = os.path.join(out_dir, "dex")
-        for path in (classes, dex):
+        for path in (classes, stubs, dex):
             shutil.rmtree(path, ignore_errors=True)
             os.makedirs(path)
 
-        sources = []
-        for dirpath, _dirs, files in os.walk(sources_dir):
-            sources += [os.path.join(dirpath, f) for f in files if f.endswith(".java")]
+        classpath = self.android_jar
+        if stubs_dir:
+            stub_sources = _java_under(stubs_dir)
+            if stub_sources:
+                _run(["javac", "-nowarn", "-Xlint:-options", "-encoding", "UTF-8",
+                      "-cp", self.android_jar, "--release", "17", "-d", stubs]
+                     + stub_sources)
+                classpath = self.android_jar + os.pathsep + stubs
+
+        sources = _java_under(sources_dir)
         if not sources:
             raise RuntimeError("no java sources under %s" % sources_dir)
 
         _run(
             ["javac", "-nowarn", "-Xlint:-options", "-encoding", "UTF-8",
-             "-cp", self.android_jar, "--release", "17", "-d", classes] + sources
+             "-cp", classpath, "--release", "17", "-d", classes] + sources
         )
-        class_files = []
-        for dirpath, _dirs, files in os.walk(classes):
-            class_files += [os.path.join(dirpath, f) for f in files if f.endswith(".class")]
-        _run(
-            ["java", "-cp", self.r8, "com.android.tools.r8.D8", "--release",
-             "--min-api", str(min_api), "--lib", self.android_jar, "--output", dex]
-            + class_files
-        )
+        class_files = _classes_under(classes)
+        command = ["java", "-cp", self.r8, "com.android.tools.r8.D8", "--release",
+                   "--min-api", str(min_api), "--lib", self.android_jar]
+        if stubs_dir and _classes_under(stubs):
+            command += ["--classpath", stubs]
+        _run(command + ["--output", dex] + class_files)
         return os.path.join(dex, "classes.dex")
 
     def sign(self, apk_path: str, key: Optional[str] = None) -> None:
@@ -155,6 +169,20 @@ class Toolchain:
         if key:
             command += ["--ks", key]
         _run(command)
+
+
+def _java_under(root: str) -> list:
+    out = []
+    for dirpath, _dirs, files in os.walk(root):
+        out += [os.path.join(dirpath, f) for f in files if f.endswith(".java")]
+    return sorted(out)
+
+
+def _classes_under(root: str) -> list:
+    out = []
+    for dirpath, _dirs, files in os.walk(root):
+        out += [os.path.join(dirpath, f) for f in files if f.endswith(".class")]
+    return sorted(out)
 
 
 def _run(command: list) -> None:

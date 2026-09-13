@@ -586,6 +586,27 @@ class DexPatchTest(unittest.TestCase):
         self.assertIn("move-result v1", text)
         self.assertIn("const v4, -0x1d3ac", text)  # a colour that is not the accent
 
+    def test_the_save_button_is_pointed_at_the_clean_address(self):
+        """Both names are TikTok's own, and both return the same type."""
+        text = ("    invoke-virtual {v3}, Lcom/ss/android/ugc/aweme/feed/model/Video;"
+                "->getDownloadAddr()Lcom/ss/android/ugc/aweme/base/model/UrlModel;\n"
+                "    invoke-virtual {v3}, Lcom/example/Other;"
+                "->getDownloadAddr()Lcom/ss/android/ugc/aweme/base/model/UrlModel;\n")
+        for _label, pattern, target in dexpatch.download_rules():
+            text = pattern.sub(target, text)
+        self.assertIn("invoke-static {v3}, Lcat/narezany/margyt/Download;->getDownloadAddr("
+                      "Lcom/ss/android/ugc/aweme/feed/model/Video;)"
+                      "Lcom/ss/android/ugc/aweme/base/model/UrlModel;", text)
+        # somebody else's method of the same name is not ours to move
+        self.assertIn("Lcom/example/Other;->getDownloadAddr()", text)
+
+    def test_a_dex_without_the_model_is_left_alone(self):
+        self.assertFalse(dexpatch.wants_the_download(b"nothing here"))
+        self.assertFalse(dexpatch.wants_the_download(
+            b"Lcom/ss/android/ugc/aweme/feed/model/Video;\x00getPlayAddr"))
+        self.assertTrue(dexpatch.wants_the_download(
+            b"Lcom/ss/android/ugc/aweme/feed/model/Video;\x00getDownloadAddr"))
+
     def test_a_colour_asked_of_the_framework_is_redirected(self):
         text = ("    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getColor(I)I\n"
                 "    invoke-virtual {v0, v1}, Lcom/example/Own;->getColor(I)I\n")
