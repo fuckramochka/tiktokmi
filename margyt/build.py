@@ -13,7 +13,7 @@ import os
 import time
 from typing import Dict, List, Optional
 
-from . import artwork, dexpatch, icon as icon_module, manifest as manifest_module
+from . import accent as accent_module, artwork, dexpatch, icon as icon_module, manifest as manifest_module
 from .apkzip import Apk, STORED
 from .arsc import Arsc
 from . import axml as axml_module
@@ -41,13 +41,15 @@ AUTHORITY_MARKER = ".margyt"
 
 class Build:
     def __init__(self, apk_path: str, out_path: str, root: str, tools: Toolchain,
-                 workspace: str, keystore: Optional[str] = None):
+                 workspace: str, keystore: Optional[str] = None,
+                 accent: Optional[int] = None):
         self.apk_path = apk_path
         self.out_path = out_path
         self.root = root
         self.tools = tools
         self.workspace = workspace
         self.keystore = keystore
+        self.accent = dexpatch.TIKTOK_PINK if accent is None else accent
         self.started = time.time()
 
     def say(self, message: str) -> None:
@@ -76,6 +78,8 @@ class Build:
         api = manifest_module.min_sdk(manifest)
         dex_format = dexpatch.dex_format(apk.read("classes.dex"))
         self.detail("minSdk %d, dex %s" % (api, dex_format))
+
+        self.write_baked_colour()
 
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
@@ -123,6 +127,12 @@ class Build:
             self.detail("every authority is spelled with the package name, nothing to do")
 
         arsc = Arsc(apk.read("resources.arsc"))
+
+        self.say("The accent colour")
+        self.detail("#%06X" % (self.accent & 0xFFFFFF))
+        for line in accent_module.bake(apk, arsc, dexpatch.TIKTOK_PINK, self.accent):
+            self.detail(line)
+
         master = open(os.path.join(self.root, artwork.MASTER_PNG), "rb").read()
         for line in icon_module.replace_everywhere(apk, arsc, manifest, master):
             self.detail(line.strip())
@@ -151,6 +161,31 @@ class Build:
         self.say("Done in %.0f s: %s" % (time.time() - self.started, self.out_path))
         return self.out_path
 
+    def write_baked_colour(self) -> None:
+        """Tell the mod which colour this apk was built with.
+
+        The dex patch swaps colours by value, so it has to know what value to
+        look for -- and after baking, the apk's own colour is no longer the
+        pink it shipped with.
+        """
+        path = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                            "Baked.java")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "/**\n"
+                " * Written by the build: the accent colour this apk was made with.\n"
+                " *\n"
+                " * Everything the mod swaps is swapped by value, and after the build has\n"
+                " * baked a colour into the resources and the vectors, that value is this\n"
+                " * one rather than the pink TikTok ships.\n"
+                " */\n"
+                "final class Baked {\n\n"
+                "    private Baked() {}\n\n"
+                "    static final int ACCENT = 0x%08X;\n"
+                "}\n" % self.accent
+            )
+
     # ------------------------------------------------------------------ dex
 
     def patch_dex_files(self, apk: Apk, api: int, literals: Dict[str, str]) -> None:
@@ -168,7 +203,7 @@ class Build:
         total = 0
         for name in candidates:
             patched, counts = dexpatch.patch(
-                apk.read(name), name, smali, os.path.join(self.workspace, "dex"), literals
+                apk.read(name), name, smali, os.path.join(self.workspace, "patch"), literals
             )
             if not counts:
                 self.detail("%s: nothing to rewrite after all" % name)

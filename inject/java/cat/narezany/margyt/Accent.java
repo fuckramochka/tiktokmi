@@ -22,14 +22,20 @@ public final class Accent {
 
     private Accent() {}
 
-    /** What TikTok ships with, and what every rewritten constant used to be. */
-    public static final int TIKTOK = 0xFFFE2C55;
+    /**
+     * The colour this apk was built with, and the one every swap looks for.
+     *
+     * TikTok ships #FE2C55. A build given --accent bakes another one into the
+     * vectors and the resources, and then that is the colour to look for.
+     */
+    public static final int TIKTOK = Baked.ACCENT;
 
     public static final String KEY = "accent";
 
     /** iso-style names are not needed here; the label is the colour itself. */
     public static final int[] PALETTE = {
             TIKTOK,
+            0xFFFE2C55,  // TikTok's own pink, in case the build baked another
             0xFF8DD1B0,  // Margy mint
             0xFF25F4EE,  // TikTok's own cyan
             0xFF4C8DFF,
@@ -40,6 +46,20 @@ public final class Accent {
             0xFFFF4D6D,
             0xFFE8E8E8,
     };
+
+    /** The palette without repeats: the built-in colour may be in it twice. */
+    public static int[] palette() {
+        int[] out = new int[PALETTE.length];
+        int count = 0;
+        for (int colour : PALETTE) {
+            boolean seen = false;
+            for (int i = 0; i < count; i++) seen |= out[i] == colour;
+            if (!seen) out[count++] = colour;
+        }
+        int[] trimmed = new int[count];
+        System.arraycopy(out, 0, trimmed, 0, count);
+        return trimmed;
+    }
 
     private static volatile int cached;
 

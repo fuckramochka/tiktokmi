@@ -51,6 +51,17 @@ final class Text {
                     + "are pictures rather than code; their colour is settled at build "
                     + "time and does not follow.");
 
+    static final String RESTART = pick(
+            "Перезапустить TikTok", "Перезапустити TikTok", "Restart TikTok");
+
+    static final String RESTART_NOTE = pick(
+            "Цвет меняется у того, что рисуется заново. Уже нарисованные экраны "
+                    + "останутся прежними до перезапуска.",
+            "Колір змінюється у того, що малюється наново. Уже намальовані екрани "
+                    + "лишаться колишніми до перезапуску.",
+            "The colour changes wherever something is drawn again. Screens already "
+                    + "drawn keep the old one until the app is restarted.");
+
     static final String DIARY_TITLE = pick("Журнал мода", "Журнал мода", "The mod's diary");
 
     static final String COPY = pick("Скопировать", "Скопіювати", "Copy");

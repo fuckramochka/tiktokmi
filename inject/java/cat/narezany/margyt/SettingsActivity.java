@@ -220,15 +220,16 @@ public class SettingsActivity extends Activity {
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(dp(16), dp(12), dp(16), dp(16));
 
+        int[] palette = Accent.palette();
         LinearLayout line = null;
-        for (int i = 0; i < Accent.PALETTE.length; i++) {
+        for (int i = 0; i < palette.length; i++) {
             if (i % 5 == 0) {
                 line = new LinearLayout(this);
                 line.setOrientation(LinearLayout.HORIZONTAL);
                 line.setPadding(0, dp(6), 0, dp(6));
                 rows.addView(line);
             }
-            final int colour = Accent.PALETTE[i];
+            final int colour = palette[i];
             Dot dot = new Dot(this, colour, colour == Accent.colour());
             dot.setOnClickListener(v -> {
                 Accent.set(colour);
@@ -238,6 +239,22 @@ public class SettingsActivity extends Activity {
                     new LinearLayout.LayoutParams(dp(36), dp(36), 1f);
             line.addView(dot, params);
         }
+
+        TextView restart = new TextView(this);
+        restart.setText(Text.RESTART);
+        restart.setTextColor(Accent.colour());
+        restart.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        restart.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        restart.setPadding(0, dp(16), 0, dp(4));
+        restart.setOnClickListener(v -> restartTikTok());
+        rows.addView(restart);
+
+        TextView restartNote = new TextView(this);
+        restartNote.setText(Text.RESTART_NOTE);
+        restartNote.setTextColor(skin.muted());
+        restartNote.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        restartNote.setPadding(0, dp(4), 0, dp(8));
+        rows.addView(restartNote);
 
         TextView note = new TextView(this);
         note.setText(Text.ACCENT_NOTE);
@@ -298,6 +315,27 @@ public class SettingsActivity extends Activity {
         });
         box.addView(clear);
         return box;
+    }
+
+    /**
+     * Start TikTok over, so everything is drawn again in the new colour.
+     *
+     * The launcher's own intent, then out: what comes back is a fresh process
+     * with nothing of the old one's colours cached in it.
+     */
+    private void restartTikTok() {
+        try {
+            android.content.Intent intent = getPackageManager()
+                    .getLaunchIntentForPackage(getPackageName());
+            if (intent == null) return;
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+            Runtime.getRuntime().exit(0);
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void copyDiary() {

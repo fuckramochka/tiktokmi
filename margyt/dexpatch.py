@@ -48,6 +48,8 @@ COLOUR_SOURCES: List[Tuple[str, str, str]] = [
      "(Landroid/content/res/Resources;ILandroid/content/res/Resources$Theme;)I"),
     ("Landroid/content/res/TypedArray;", "getColor",
      "(II)I", "(Landroid/content/res/TypedArray;II)I"),
+    ("Landroid/content/Context;", "getColor",
+     "(I)I", "(Landroid/content/Context;I)I"),
 ]
 
 # method name -> (descriptor as TikTok calls it, descriptor of the static that
@@ -118,6 +120,20 @@ def accent_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
             r"invoke-static\1 \2, %s->%s%s" % (ACCENT, name, replacement),
         ))
     return out
+
+
+def reads_a_colour(dex: bytes) -> bool:
+    """Whether a dex asks the framework for a colour.
+
+    Most of TikTok's pink is not a constant at all: it is a colour resource,
+    fetched by id, from code spread across most of the apk. Reaching it means
+    opening every dex that asks -- which is most of them, and the reason a
+    build takes a quarter of an hour rather than two minutes.
+    """
+    for owner, name, _original, _replacement in COLOUR_SOURCES:
+        if owner.encode() in dex and name.encode() in dex:
+            return True
+    return False
 
 
 def holds_the_pink(dex: bytes) -> bool:
@@ -198,7 +214,7 @@ def interesting(dex: bytes, literals: Optional[Dict[str, str]] = None) -> bool:
     for old in (literals or {}):
         if old.encode() in dex:
             return True
-    if holds_the_pink(dex):
+    if holds_the_pink(dex) or reads_a_colour(dex):
         return True
     for class_name, _signature in FORCED_FALSE:
         if ("L%s;" % class_name).encode() in dex:
@@ -300,7 +316,9 @@ def dex_format(dex: bytes) -> str:
 def patch(dex: bytes, name: str, smali: Smali, workspace: str,
           literals: Optional[Dict[str, str]] = None) -> Tuple[bytes, Dict[str, int]]:
     """Take one dex apart, rewrite what is in it, put it back together."""
-    room = os.path.join(workspace, name)
+    # a room of its own per dex, and never under a name something else uses:
+    # the mod's own dex is called classes.dex too
+    room = os.path.join(workspace, name.replace(".dex", ""))
     shutil.rmtree(room, ignore_errors=True)
     os.makedirs(room, exist_ok=True)
 

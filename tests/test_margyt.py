@@ -19,7 +19,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from margyt import artwork, dexpatch, icon as icon_module, manifest as manifest_module, png, vector
+from margyt import (accent as accent_module, artwork, dexpatch, icon as icon_module,
+                    manifest as manifest_module, png, vector)
 from margyt.apkzip import Apk, STORED
 from margyt.arsc import Arsc, ArscError
 from margyt.axml import Axml, TYPE_REFERENCE, TYPE_STRING
@@ -381,6 +382,58 @@ class IconTest(unittest.TestCase):
         self.assertFalse(self.arsc.dirty)
 
 
+class AccentTest(unittest.TestCase):
+    """The fixture's colour is #FF0050, and its vector is filled with #161823."""
+
+    PINK = 0xFFFF0050
+    INK = 0xFF161823
+    MINT = 0xFF8DD1B0
+
+    def setUp(self):
+        self.room = tempfile.mkdtemp()
+        self.copy = os.path.join(self.room, "fixture.apk")
+        shutil.copy(FIXTURE, self.copy)
+        self.apk = Apk(self.copy)
+        self.arsc = Arsc(self.apk.read("resources.arsc"))
+
+    def tearDown(self):
+        self.apk.close()
+        shutil.rmtree(self.room, ignore_errors=True)
+
+    def test_a_colour_resource_is_repainted_where_it_lies(self):
+        size = len(self.arsc.data)
+        report = accent_module.bake(self.apk, self.arsc, self.PINK, self.MINT)
+        self.assertEqual(len(self.arsc.data), size)
+        self.assertIn("resource entries: 1", report)
+
+        again = Arsc(self.arsc.build())
+        values = [v for v in self.values_of_every_colour(again)]
+        self.assertIn(self.MINT, values)
+        self.assertNotIn(self.PINK, values)
+
+    def test_a_vector_fill_is_repainted_too(self):
+        accent_module.bake(self.apk, self.arsc, self.INK, self.MINT)
+        vector_xml = Axml.parse(self.apk.read("res/drawable/ic_back.xml"))
+        fills = [vector_xml.attr(p, "fillColor").data for p in vector_xml.elements("path")]
+        self.assertEqual(fills, [self.MINT])
+
+    def test_nothing_happens_when_the_colour_is_already_the_one(self):
+        before = bytes(self.arsc.data)
+        report = accent_module.bake(self.apk, self.arsc, self.PINK, self.PINK)
+        self.assertEqual(bytes(self.arsc.data), before)
+        self.assertEqual(len(report), 1)
+
+    def values_of_every_colour(self, arsc):
+        for package in arsc.packages:
+            for type_id in package.types:
+                if package.type_names.get(type_id - 1) != "color":
+                    continue
+                for entry in range(8):
+                    res_id = (package.id << 24) | (type_id << 16) | entry
+                    for value in arsc.values(res_id):
+                        yield value.data
+
+
 class DexPatchTest(unittest.TestCase):
     SAMPLE = """\
 .method public static a(Landroid/content/Context;)Ljava/lang/String;
@@ -496,6 +549,31 @@ class DexPatchTest(unittest.TestCase):
         class_name = dexpatch.FORCED_FALSE[0][0]
         self.assertTrue(dexpatch.interesting(("L%s;" % class_name).encode()))
         self.assertFalse(dexpatch.interesting(b"some other app entirely"))
+
+    def test_the_accent_constant_becomes_a_call(self):
+        text = ("    const v1, -0x1d3ab\n\n"
+                "    invoke-virtual {v2, v1}, Landroid/graphics/Paint;->setColor(I)V\n\n"
+                "    const v4, -0x1d3ac\n")
+        for _label, pattern, target in dexpatch.accent_rules():
+            text = pattern.sub(target, text)
+        self.assertIn("invoke-static {}, Lcat/narezany/margyt/Accent;->colour()I", text)
+        self.assertIn("move-result v1", text)
+        self.assertIn("const v4, -0x1d3ac", text)  # a colour that is not the accent
+
+    def test_a_colour_asked_of_the_framework_is_redirected(self):
+        text = ("    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getColor(I)I\n"
+                "    invoke-virtual {v0, v1}, Lcom/example/Own;->getColor(I)I\n")
+        for _label, pattern, target in dexpatch.accent_rules():
+            text = pattern.sub(target, text)
+        self.assertIn("invoke-static {v0, v1}, Lcat/narezany/margyt/Accent;->"
+                      "getColor(Landroid/content/res/Resources;I)I", text)
+        self.assertIn("Lcom/example/Own;->getColor(I)I", text)  # someone else's method
+
+    def test_the_pink_is_looked_for_as_an_instruction(self):
+        import struct
+        colour = struct.pack("<I", dexpatch.TIKTOK_PINK)
+        self.assertTrue(dexpatch.holds_the_pink(b"\x14\x02" + colour))   # const v2, pink
+        self.assertFalse(dexpatch.holds_the_pink(b"some string " + colour))
 
     def test_the_dex_format_is_read_off_the_header(self):
         self.assertEqual(dexpatch.dex_format(b"dex\n035\x00rest"), "035")

@@ -28,13 +28,23 @@ def main(argv=None) -> int:
     parser.add_argument("--tools", default=os.path.join(ROOT, "tools"),
                         help="where the downloaded tools are kept")
     parser.add_argument("--keystore", help="sign with this keystore instead of a debug key")
+    parser.add_argument("--accent", metavar="RRGGBB",
+                        help="bake this colour in where TikTok's pink is a picture rather "
+                             "than code: vector icons, colour resources, selectors")
     args = parser.parse_args(argv)
 
     if not os.path.exists(args.apk):
         parser.error("no apk at %s" % args.apk)
 
+    accent = None
+    if args.accent:
+        try:
+            accent = 0xFF000000 | int(args.accent.lstrip("#"), 16)
+        except ValueError:
+            parser.error("--accent wants six hex digits, like 8DD1B0")
+
     tools = Toolchain(args.tools)
-    build = Build(args.apk, args.out, ROOT, tools, args.work, args.keystore)
+    build = Build(args.apk, args.out, ROOT, tools, args.work, args.keystore, accent)
     try:
         build.run()
     except Exception as error:  # a build failure is a message, not a traceback
