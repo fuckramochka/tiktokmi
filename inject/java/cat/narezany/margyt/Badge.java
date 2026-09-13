@@ -6,7 +6,6 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.Layout;
-import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ClickableSpan;
@@ -69,11 +68,20 @@ public final class Badge {
      * scan of a short string, and nothing else.
      */
     public static void setText(TextView view, CharSequence text) {
-        view.setText(marked(view, text));
+        CharSequence out = marked(view, text);
+        // asking for it to be kept spannable, because a TextView told to store
+        // plain text copies the spans into an immutable SpannedString and the
+        // tap has nothing left to find
+        if (out != text) {
+            view.setText(out, TextView.BufferType.SPANNABLE);
+        } else {
+            view.setText(out);
+        }
     }
 
     public static void setText(TextView view, CharSequence text, TextView.BufferType type) {
-        view.setText(marked(view, text), type);
+        CharSequence out = marked(view, text);
+        view.setText(out, out != text ? TextView.BufferType.SPANNABLE : type);
     }
 
     private static CharSequence marked(TextView view, CharSequence text) {
@@ -225,7 +233,10 @@ public final class Badge {
             try {
                 TextView view = (TextView) v;
                 CharSequence text = view.getText();
-                if (!(text instanceof Spannable)) return null;
+                // Spanned, not Spannable: what comes back out of a TextView is
+                // read-only, and asking for the writable interface was why this
+                // answered "not mine" to every tap it should have taken
+                if (!(text instanceof Spanned)) return null;
                 Layout layout = view.getLayout();
                 if (layout == null) return null;
 
@@ -237,7 +248,7 @@ public final class Badge {
                 if (x < layout.getLineLeft(line) || x > layout.getLineRight(line)) return null;
 
                 int at = layout.getOffsetForHorizontal(line, x);
-                ClickableSpan[] found = ((Spannable) text).getSpans(at, at, ClickableSpan.class);
+                ClickableSpan[] found = ((Spanned) text).getSpans(at, at, ClickableSpan.class);
                 return found.length == 0 ? null : found[0];
             } catch (Throwable ignored) {
                 return null;

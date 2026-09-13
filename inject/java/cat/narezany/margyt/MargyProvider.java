@@ -6,6 +6,9 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
+
+import java.io.File;
 
 /**
  * The mod's way into a running TikTok, and it is not a patch at all.
@@ -45,11 +48,55 @@ public final class MargyProvider extends ContentProvider {
             Diary.note("badges failed to start: " + error);
         }
         try {
+            Updater.start(context);
+        } catch (Throwable error) {
+            Diary.note("updates failed to start: " + error);
+        }
+        try {
             Plugins.startAll(context);
         } catch (Throwable error) {
             Diary.note("plugins failed to start: " + error);
         }
         return true;
+    }
+
+    // ------------------------------------------------- handing over a file
+
+    /**
+     * A content uri for a file of the mod's own.
+     *
+     * Android will not install an apk from a path any more; it wants a uri it
+     * can be granted read on. A FileProvider is the usual answer and it needs
+     * an xml resource, which this build cannot add -- but a provider is a
+     * provider, and this one is already declared, so it serves the file
+     * itself.
+     */
+    public static Uri share(Context context, File file) {
+        try {
+            if (!file.isFile()) return null;
+            return Uri.parse("content://" + context.getPackageName() + ".margyt/"
+                    + file.getName());
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Override
+    public ParcelFileDescriptor openFile(Uri uri, String mode) {
+        try {
+            Context context = getContext();
+            if (context == null) return null;
+            String name = uri.getLastPathSegment();
+            // one directory, no traversal, read only: the installer needs the
+            // update and has no business anywhere else
+            if (name == null || name.contains("/") || name.contains("..")) return null;
+            File file = new File(new File(context.getFilesDir(), "margyt"), name);
+            if (!file.isFile()) return null;
+            return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+        } catch (Throwable error) {
+            Diary.note("share: " + error);
+            return null;
+        }
     }
 
     @Override

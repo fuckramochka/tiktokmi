@@ -63,6 +63,7 @@ public class SettingsActivity extends Activity {
             "https://tiktok.com/@narezany?_r=1&_t=ZT-99hPDJ26hji_";
     private static final String HELPER = "https://www.tiktok.com/@MS4wLjABAAAApBE7v5"
             + "y_tClqKlwqBpZNwzIBn1K7aRJLDxegPPnx8joas1EmS8NZpVFdWATb4zGf";
+    private static final String GITHUB = "https://github.com/narezany/MargyT";
     private static final String DOCS =
             "https://github.com/narezany/MargyT/blob/main/docs/plugins.md";
     private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
@@ -150,31 +151,31 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.FEED));
         LinearLayout feed = card();
-        feed.addView(toggleRow(Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
+        feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
         column.addView(wrap(feed));
 
         column.addView(section(Text.VIDEO));
         LinearLayout video = card();
-        video.addView(toggleRow(Text.SOUND, Sound.isEnabled(), Sound::setEnabled));
+        video.addView(toggleRow("volume_up", Text.SOUND, Sound.isEnabled(), Sound::setEnabled));
         video.addView(line());
-        video.addView(toggleRow(Text.SEEKBAR, Seekbar.isEnabled(), Seekbar::setEnabled));
+        video.addView(toggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(), Seekbar::setEnabled));
         column.addView(wrap(video));
 
         column.addView(section(Text.HIDDEN));
         LinearLayout hidden = card();
         String[][] antiAb = {
-                {Text.BACKGROUND, Flags.KEY_BACKGROUND},
-                {Text.SPEED, Flags.KEY_SPEED},
-                {Text.AUTOSCROLL, Flags.KEY_AUTOSCROLL},
-                {Text.VOICE, Flags.KEY_VOICE},
-                {Text.FAVOURITES, Flags.KEY_FAVOURITES},
-                {Text.REPOST, Flags.KEY_REPOST},
-                {Text.CONTACTS, Flags.KEY_CONTACTS},
+                {"play_circle", Text.BACKGROUND, Flags.KEY_BACKGROUND},
+                {"speed", Text.SPEED, Flags.KEY_SPEED},
+                {"swap_vert", Text.AUTOSCROLL, Flags.KEY_AUTOSCROLL},
+                {"mic", Text.VOICE, Flags.KEY_VOICE},
+                {"star", Text.FAVOURITES, Flags.KEY_FAVOURITES},
+                {"repeat", Text.REPOST, Flags.KEY_REPOST},
+                {"group", Text.CONTACTS, Flags.KEY_CONTACTS},
         };
         for (int i = 0; i < antiAb.length; i++) {
             if (i > 0) hidden.addView(line());
-            final String key = antiAb[i][1];
-            hidden.addView(toggleRow(antiAb[i][0], Flags.isOn(key),
+            final String key = antiAb[i][2];
+            hidden.addView(toggleRow(antiAb[i][0], antiAb[i][1], Flags.isOn(key),
                     on -> Flags.set(key, on)));
         }
         column.addView(wrap(hidden));
@@ -182,18 +183,24 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.DOWNLOADS));
         LinearLayout downloads = card();
-        downloads.addView(toggleRow(Text.NO_WATERMARK, Download.isEnabled(),
+        downloads.addView(toggleRow("image", Text.NO_WATERMARK, Download.isEnabled(),
                 Download::setEnabled));
         downloads.addView(line());
-        downloads.addView(toggleRow(Text.DOWNLOAD_ALWAYS, Download.isAlways(),
+        downloads.addView(toggleRow("download", Text.DOWNLOAD_ALWAYS, Download.isAlways(),
                 Download::setAlways));
+        downloads.addView(line());
+        downloads.addView(toggleRow("place", Text.SAVE_AVATARS_ON, Avatars.isEnabled(),
+                Avatars::setEnabled));
+        downloads.addView(line());
+        downloads.addView(toggleRow("star", Text.SAVE_STICKERS_ON, Stickers.isEnabled(),
+                Stickers::setEnabled));
         column.addView(wrap(downloads));
 
         column.addView(section(Text.PLUGINS));
         LinearLayout plugins = card();
         plugins.addView(installRow());
         plugins.addView(line());
-        plugins.addView(linkRow(Text.PLUGIN_DOCS, Text.PLUGIN_DOCS_NOTE, DOCS));
+        plugins.addView(linkRow("article", Text.PLUGIN_DOCS, Text.PLUGIN_DOCS_NOTE, DOCS));
         List<Plugins.Info> installed = Plugins.list();
         if (installed.isEmpty()) {
             plugins.addView(line());
@@ -209,9 +216,14 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.LINKS));
         LinearLayout links = card();
-        links.addView(linkRow(Text.CHANNEL, "@margytiktok", CHANNEL));
+        links.addView(linkRow("link", Text.CHANNEL, "@margytiktok", CHANNEL));
         links.addView(line());
-        links.addView(linkRow(Text.FORUM, "@margeletforum", FORUM));
+        links.addView(linkRow("group", Text.FORUM, "@margeletforum", FORUM));
+        links.addView(line());
+        links.addView(linkRow("extension", Text.SOURCE, "narezany/MargyT", GITHUB));
+        links.addView(line());
+        links.addView(toggleRow("favorite_border", Text.BADGES_ON, Badges.isEnabled(),
+                Badges::setEnabled));
         links.addView(line());
         links.addView(thanksHead());
         if (thanksOpen) {
@@ -227,6 +239,21 @@ public class SettingsActivity extends Activity {
         account.addView(idRow(Text.ACCOUNT_SEC_ID, Account.secId()));
         column.addView(wrap(account));
 
+        column.addView(section(Text.UPDATE));
+        LinearLayout updates = card();
+        updates.addView(actionRow("download", Text.UPDATE_CHECK,
+                Updater.newer() ? Text.UPDATE_THERE_IS + " " + Updater.latest() : null,
+                () -> Updater.check(this, true)));
+        updates.addView(line());
+        updates.addView(toggleRow("info", Text.UPDATE_REMIND, Updater.remind(this),
+                on -> Updater.setRemind(this, on)));
+        if (Updater.waiting(this)) {
+            updates.addView(line());
+            updates.addView(actionRow("extension", Text.UPDATE_INSTALL, null,
+                    () -> Updater.install(this)));
+        }
+        column.addView(wrap(updates));
+
         column.addView(section(Text.DIARY));
         LinearLayout diary = card();
         diary.addView(diaryHead());
@@ -235,6 +262,8 @@ public class SettingsActivity extends Activity {
             diary.addView(diaryLines());
         }
         column.addView(wrap(diary));
+
+        column.addView(versions());
 
         showRestartBar();
     }
@@ -272,6 +301,7 @@ public class SettingsActivity extends Activity {
 
     private View switchRow() {
         LinearLayout row = row();
+        row.addView(icon("language"));
         row.addView(label(Text.CHANGE_REGION), grow());
 
         final M3Switch toggle = new M3Switch(this);
@@ -294,6 +324,7 @@ public class SettingsActivity extends Activity {
     private View countryHead() {
         String[] current = Margy.current();
         LinearLayout row = row();
+        row.addView(icon("place"));
         row.setAlpha(Margy.isEnabled() ? 1f : 0.4f);
 
         LinearLayout text = new LinearLayout(this);
@@ -341,6 +372,7 @@ public class SettingsActivity extends Activity {
 
     private View accentHead() {
         LinearLayout row = row();
+        row.addView(icon("palette"));
         row.addView(label(Text.ACCENT_COLOUR), grow());
         row.addView(new Dot(this, Accent.colour(), false));
 
@@ -392,13 +424,47 @@ public class SettingsActivity extends Activity {
         return rows;
     }
 
+    /**
+     * A Material icon, tinted to whatever this screen turned out to be.
+     *
+     * Decoded once per name and kept: the settings screen is rebuilt on every
+     * tap, and decoding a dozen pngs each time would be felt.
+     */
+    private View icon(String name) {
+        ImageView view = new ImageView(this);
+        Bitmap bitmap = ICONS.get(name);
+        if (bitmap == null) {
+            try {
+                String data = Icons.PNG.get(name);
+                if (data != null) {
+                    byte[] png = android.util.Base64.decode(data, android.util.Base64.DEFAULT);
+                    bitmap = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.length);
+                    if (bitmap != null) ICONS.put(name, bitmap);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        if (bitmap != null) {
+            view.setImageBitmap(bitmap);
+            view.setColorFilter(skin.muted(), android.graphics.PorterDuff.Mode.SRC_IN);
+        }
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(22), dp(22));
+        params.rightMargin = dp(14);
+        view.setLayoutParams(params);
+        return view;
+    }
+
+    private static final java.util.Map<String, Bitmap> ICONS =
+            new java.util.HashMap<String, Bitmap>();
+
     /** What is set by a setting: one line and a switch, wherever it lives. */
     private interface Setting {
         void set(boolean on);
     }
 
-    private View toggleRow(String title, boolean on, final Setting setting) {
+    private View toggleRow(String picture, String title, boolean on, final Setting setting) {
         LinearLayout row = row();
+        row.addView(icon(picture));
         row.addView(label(title), grow());
 
         final M3Switch toggle = new M3Switch(this);
@@ -424,8 +490,40 @@ public class SettingsActivity extends Activity {
      * The long one does not fit on a phone, so what is shown is the ends of it
      * and what is copied is all of it.
      */
+    /** A row that does something at once, rather than setting anything. */
+    private View actionRow(String picture, String title, String detail, final Runnable action) {
+        LinearLayout row = row();
+        row.addView(icon(picture));
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.addView(label(title));
+        if (detail != null) text.addView(detail(detail));
+        row.addView(text, grow());
+
+        row.setOnClickListener(v -> action.run());
+        return sized(row, detail == null ? 56 : 64);
+    }
+
+    /**
+     * What this is and what it was built from, at the very bottom.
+     *
+     * Small and grey on purpose: nobody needs it until something has gone
+     * wrong, and then it is the first thing anybody will ask for.
+     */
+    private View versions() {
+        TextView view = new TextView(this);
+        view.setText("MargyT " + Version.MOD + "  ·  TikTok " + Version.TIKTOK);
+        view.setTextColor(skin.muted());
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        view.setGravity(Gravity.CENTER);
+        view.setPadding(skin.margin, dp(24), skin.margin, dp(8));
+        return view;
+    }
+
     private View idRow(String title, final String value) {
         LinearLayout row = row();
+        row.addView(icon("fingerprint"));
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
@@ -454,6 +552,7 @@ public class SettingsActivity extends Activity {
 
     private View installRow() {
         LinearLayout row = row();
+        row.addView(icon("extension"));
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
@@ -574,8 +673,9 @@ public class SettingsActivity extends Activity {
 
     // ------------------------------------------------------------- the links
 
-    private View linkRow(String title, String handle, final String url) {
+    private View linkRow(String picture, String title, String handle, final String url) {
         LinearLayout row = row();
+        row.addView(icon(picture));
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
@@ -590,6 +690,7 @@ public class SettingsActivity extends Activity {
 
     private View thanksHead() {
         LinearLayout row = row();
+        row.addView(icon("favorite_border"));
         row.addView(label(Text.THANKS), grow());
 
         TextView chevron = new TextView(this);
@@ -637,7 +738,7 @@ public class SettingsActivity extends Activity {
         card.setOnClickListener(v -> copy(Text.CARD, CARD_NUMBER));
         rows.addView(sized(card, 64));
 
-        rows.addView(linkRow(Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
+        rows.addView(linkRow("star", Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
         return rows;
     }
 
@@ -763,6 +864,7 @@ public class SettingsActivity extends Activity {
 
     private View diaryHead() {
         LinearLayout row = row();
+        row.addView(icon("article"));
         row.addView(label(Text.DIARY_TITLE), grow());
 
         TextView copy = new TextView(this);

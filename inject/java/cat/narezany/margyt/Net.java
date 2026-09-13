@@ -82,6 +82,59 @@ public final class Net {
         }
     }
 
+    /** Told how far along a download is, in whole percent. */
+    public interface Along {
+        void at(int percent, long got, long total);
+    }
+
+    /**
+     * Fetch straight to a file, saying how it is going.
+     *
+     * An apk is tens of megabytes, which is the one thing here worth watching
+     * and the one thing not to hold in memory.
+     */
+    public static boolean download(String url, File into, Along along) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(TIMEOUT);
+            connection.setReadTimeout(TIMEOUT);
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("User-Agent", "MargyT");
+            if (connection.getResponseCode() / 100 != 2) return false;
+
+            long total = connection.getContentLength();
+            File parent = into.getParentFile();
+            if (parent != null && !parent.isDirectory()) parent.mkdirs();
+
+            InputStream in = connection.getInputStream();
+            OutputStream out = new FileOutputStream(into);
+            try {
+                byte[] buffer = new byte[65536];
+                long got = 0;
+                int read, told = -1;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                    got += read;
+                    int percent = total > 0 ? (int) (got * 100 / total) : -1;
+                    if (along != null && percent != told) {
+                        told = percent;
+                        along.at(percent, got, total);
+                    }
+                }
+            } finally {
+                in.close();
+                out.close();
+            }
+            return true;
+        } catch (Throwable error) {
+            Diary.note("download: " + error);
+            return false;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
     /** Write bytes where they will still be after a restart. */
     public static boolean save(File file, byte[] data) {
         if (data == null) return false;

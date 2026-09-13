@@ -145,6 +145,34 @@ def has_activity(axml: Axml, class_name: str) -> bool:
     )
 
 
+def has_permission(axml: Axml, name: str) -> bool:
+    return any(axml.attr_string(node, "name") == name
+               for node in axml.elements("uses-permission"))
+
+
+def add_permission(axml: Axml, name: str) -> bool:
+    """Ask for one more permission, as a child of <manifest>.
+
+    Returns whether anything was added: an apk that already asks for it is
+    left exactly as it was.
+    """
+    if has_permission(axml, name):
+        return False
+    node = axml.make_element("uses-permission")
+    axml.set_attr_string(node, "name", name)
+    axml.insert_into(axml.elements("manifest")[0], [node, axml.close_element(node)])
+    return True
+
+
+def version_name(axml: Axml) -> str:
+    """What the apk calls its own version, for the mod to write down."""
+    for node in axml.elements("manifest"):
+        found = axml.attr_string(node, "versionName")
+        if found:
+            return found
+    return "?"
+
+
 def add_provider(axml: Axml, class_name: str, authority: str) -> None:
     """Declare a provider, which is how the mod gets to run at start-up.
 
@@ -156,6 +184,10 @@ def add_provider(axml: Axml, class_name: str, authority: str) -> None:
     axml.set_attr_string(provider, "name", class_name)
     axml.set_attr_bool(provider, "exported", False)
     axml.set_attr_string(provider, "authorities", authority)
+    # the same provider hands the installer the apk of an update: a content uri
+    # the mod grants read on for that one intent, which is what a FileProvider
+    # would have done had adding its xml been possible here
+    axml.set_attr_bool(provider, "grantUriPermissions", True)
     axml.insert_into(application(axml), [provider, axml.close_element(provider)])
 
 

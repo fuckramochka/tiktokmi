@@ -2,6 +2,7 @@ package cat.narezany.margyt;
 
 import com.ss.android.ugc.aweme.base.model.UrlModel;
 import com.ss.android.ugc.aweme.comment.model.CommentImageStruct;
+import com.ss.android.ugc.aweme.comment.model.CommentStickerStruct;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,6 +44,37 @@ public final class Comments {
     private static final String PLAIN = "-image-medium.";
 
     private static final Set<String> told = new HashSet<String>();
+
+    /**
+     * Temporary, and here to answer one question.
+     *
+     * A sticker in a conversation is touched through an interface with a real
+     * name, and the mod hears it. A sticker in the comments is not: there is a
+     * model and no click anywhere that names it. So this writes down what
+     * screen appears when a comment's sticker is read, and one tap is enough to
+     * say what to anchor on. It goes away as soon as it has answered.
+     */
+    public static CommentStickerStruct getStickerStruct(Object comment) {
+        CommentStickerStruct struct = null;
+        try {
+            java.lang.reflect.Method method =
+                    comment.getClass().getMethod("getStickerStruct");
+            method.setAccessible(true);
+            struct = (CommentStickerStruct) method.invoke(comment);
+        } catch (Throwable error) {
+            Diary.note("comment sticker: " + error);
+            return null;
+        }
+        try {
+            if (struct != null && Download.isEnabled()) {
+                android.app.Activity now = Screen.now();
+                Diary.note("comment sticker read, screen is "
+                        + (now == null ? "none" : now.getClass().getName()));
+            }
+        } catch (Throwable ignored) {
+        }
+        return struct;
+    }
 
     public static UrlModel getCropUrl(CommentImageStruct image) {
         return image == null ? null : image.getCropUrl();

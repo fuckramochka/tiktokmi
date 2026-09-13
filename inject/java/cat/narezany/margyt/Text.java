@@ -69,6 +69,14 @@ final class Text {
             "Не получилось сохранить стикер", "Не вдалося зберегти стікер",
             "Could not save the sticker");
 
+    static final String SAVE_AVATARS_ON = pick(
+            "Кнопка на аватарках", "Кнопка на аватарках", "The button on avatars");
+
+    static final String SAVE_STICKERS_ON = pick(
+            "Кнопка на стикерах", "Кнопка на стікерах", "The button on stickers");
+
+    static final String BADGES_ON = pick("Значки", "Значки", "Badges");
+
     static final String SAVE_AVATAR = pick(
             "Сохранить аватарку", "Зберегти аватарку", "Save the avatar");
 
@@ -182,6 +190,50 @@ final class Text {
     static final String CHANNEL = pick("Канал", "Канал", "Channel");
 
     static final String FORUM = pick("Форум", "Форум", "Forum");
+
+    // ------------------------------------------------------- the updates
+
+    static final String UPDATE = pick("Обновление", "Оновлення", "An update");
+
+    static final String UPDATE_THERE_IS = pick(
+            "Вышла версия", "Вийшла версія", "There is a version");
+
+    static final String UPDATE_GET = pick("Скачать", "Завантажити", "Get it");
+
+    static final String UPDATE_LATER = pick("Не сейчас", "Не зараз", "Not now");
+
+    static final String UPDATE_NEVER = pick(
+            "Больше не напоминать", "Більше не нагадувати", "Stop reminding me");
+
+    static final String UPDATE_GETTING = pick("Скачиваю", "Завантажую", "Getting it");
+
+    static final String UPDATE_FAILED = pick(
+            "Не получилось скачать", "Не вдалося завантажити", "Could not get it");
+
+    static final String UPDATE_NONE = pick(
+            "Уже последняя версия", "Вже остання версія", "This is the latest");
+
+    static final String UPDATE_NO_ANSWER = pick(
+            "GitHub не ответил", "GitHub не відповів", "GitHub did not answer");
+
+    static final String UPDATE_ALLOW = pick(
+            "Разрешите установку из этого источника, и я поставлю",
+            "Дозвольте встановлення з цього джерела, і я поставлю",
+            "Allow installing from this source and it will go on");
+
+    static final String UPDATE_CHECK = pick(
+            "Проверить обновления", "Перевірити оновлення", "Check for updates");
+
+    static final String UPDATE_REMIND = pick(
+            "Напоминать об обновлениях", "Нагадувати про оновлення",
+            "Remind me about updates");
+
+    static final String UPDATE_INSTALL = pick(
+            "Установить скачанное", "Встановити завантажене", "Install what was downloaded");
+
+    static final String VERSIONS = pick("Версии", "Версії", "Versions");
+
+    static final String SOURCE = pick("Исходники", "Вихідники", "The source");
 
     static final String THANKS = pick("Благодарности", "Подяки", "Thanks");
 

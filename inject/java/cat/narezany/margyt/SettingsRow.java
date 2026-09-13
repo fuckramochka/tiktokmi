@@ -86,6 +86,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         try {
             ViewGroup content = (ViewGroup) activity.getWindow()
                     .getDecorView().findViewById(android.R.id.content);
+            if (!Avatars.isEnabled()) return;
             if (content == null || content.getTag(SAVE_TAG) != null) return;
             content.setTag(SAVE_TAG, Boolean.TRUE);
 
@@ -112,8 +113,11 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
                     new android.widget.FrameLayout.LayoutParams(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT);
-            params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-            params.bottomMargin = dp(activity, 48) + statusBar(activity);
+            // a little below the middle: at the foot of the screen it sat
+            // under the picture's own controls and read as part of them
+            params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+            params.topMargin = (int) (activity.getResources()
+                    .getDisplayMetrics().heightPixels * 0.74f);
             content.addView(save, params);
             Diary.note("save-avatar button added");
         } catch (Throwable error) {

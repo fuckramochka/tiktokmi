@@ -25,6 +25,36 @@ public final class Avatars {
 
     private Avatars() {}
 
+public static final String KEY = "save_avatars";
+
+    private static volatile Boolean cached;
+
+    public static boolean isEnabled() {
+        Boolean known = cached;
+        if (known != null) return known;
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return true;  // on until there is somewhere to read from
+            boolean on = context.getSharedPreferences(Margy.PREFS,
+                    android.content.Context.MODE_PRIVATE).getBoolean(KEY, true);
+            cached = on;
+            return on;
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    public static void setEnabled(boolean enabled) {
+        cached = enabled;
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return;
+            context.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                    .edit().putBoolean(KEY, enabled).apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
     private static volatile UrlModel latest;
     private static volatile String latestUid;
 

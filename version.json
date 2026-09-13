@@ -1,0 +1,8 @@
+{
+  "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
+  "version": "0.15",
+  "url": "https://github.com/narezany/MargyT/releases/download/v0.15/margyt.apk",
+  "notes": "Badges from the repository, saving avatars and stickers, the accent everywhere, and the features TikTok ships off.",
+  "notes_ru": "Значки из репозитория, сохранение аватарок и стикеров, акцент везде и функции, которые TikTok выдаёт не всем.",
+  "notes_uk": "Значки з репозиторію, збереження аватарок і стікерів, акцент усюди та функції, які TikTok видає не всім."
+}

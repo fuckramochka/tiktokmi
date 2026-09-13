@@ -43,6 +43,10 @@ SETTINGS_THEME = "Theme_DeviceDefault_Light_NoActionBar"
 # sit on one phone without the installer refusing the second
 AUTHORITY_MARKER = ".margyt"
 
+# Without this an apk cannot hand Android another apk to install, and TikTok
+# does not ask for it: its own updates come from a store. The mod's do not.
+INSTALL_PERMISSION = "android.permission.REQUEST_INSTALL_PACKAGES"
+
 
 class Build:
     def __init__(self, apk_path: str, out_path: str, root: str, tools: Toolchain,
@@ -96,6 +100,8 @@ class Build:
         # shades on to whatever colour is chosen while the app runs
         self.write_baked_colour(moved)
         self.write_emblem()
+        self.write_icons()
+        self.write_version(manifest_module.version_name(manifest))
 
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
@@ -135,6 +141,10 @@ class Build:
                 "renamed, and the MargyT row would never appear in it"
                 % TIKTOK_SETTINGS
             )
+        if manifest_module.add_permission(manifest, INSTALL_PERMISSION):
+            self.detail("asking for %s: the mod installs its own updates"
+                        % INSTALL_PERMISSION.rsplit(".", 1)[-1])
+
         manifest_module.add_provider(
             manifest, STARTUP_PROVIDER, "%s.margyt" % package)
         self.detail("%s declared: the mod starts with the app" % STARTUP_PROVIDER)
@@ -252,6 +262,73 @@ class Build:
                 "}\n" % body
             )
         self.detail("emblem: %d bytes of png in the code" % os.path.getsize(source))
+
+    def write_icons(self) -> None:
+        """Put the settings screen's icons into the code.
+
+        The same reason as the emblem: no resources are added to the apk, so a
+        picture travels as bytes. They are Google's Material icons, Apache 2.0,
+        black on transparent -- the mod tints them to whatever the screen it is
+        drawing on turned out to be.
+        """
+        folder = os.path.join(self.root, "icons")
+        names = sorted(f[:-4] for f in os.listdir(folder) if f.endswith(".png"))
+        entries = []
+        for name in names:
+            with open(os.path.join(folder, name + ".png"), "rb") as handle:
+                data = base64.b64encode(handle.read()).decode("ascii")
+            chunks = [data[at:at + 72] for at in range(0, len(data), 72)]
+            body = "\n                + ".join('"%s"' % chunk for chunk in chunks)
+            entries.append('        PNG.put("%s",\n                %s);' % (name, body))
+
+        path = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                            "Icons.java")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "import java.util.HashMap;\n"
+                "import java.util.Map;\n\n"
+                "/**\n"
+                " * Written by the build from icons/. Do not edit.\n"
+                " *\n"
+                " * Google's Material icons, Apache 2.0, as base64 png. They are here\n"
+                " * rather than in res/ because this build adds no resources to somebody\n"
+                " * else's apk.\n"
+                " */\n"
+                "final class Icons {\n\n"
+                "    private Icons() {}\n\n"
+                "    static final Map<String, String> PNG = new HashMap<String, String>();\n\n"
+                "    static {\n%s\n    }\n"
+                "}\n" % "\n".join(entries)
+            )
+        self.detail("%d icons in the code" % len(names))
+
+    def write_version(self, tiktok: str) -> None:
+        """Both versions, so the app can say what it is and what it patched."""
+        path = os.path.join(self.root, "VERSION")
+        with open(path, encoding="utf-8") as handle:
+            mod = handle.read().strip()
+
+        out = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                           "Version.java")
+        with open(out, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "/**\n"
+                " * Written by the build. Do not edit.\n"
+                " *\n"
+                " * MOD is this repository's VERSION file; TIKTOK is what the apk this\n"
+                " * was built from calls itself. The first is compared against the\n"
+                " * repository to know whether there is an update; the second is there\n"
+                " * so a person reporting something can say which TikTok it happened on.\n"
+                " */\n"
+                "final class Version {\n\n"
+                "    private Version() {}\n\n"
+                "    static final String MOD = \"%s\";\n"
+                "    static final String TIKTOK = \"%s\";\n"
+                "}\n" % (mod, tiktok)
+            )
+        self.detail("MargyT %s on TikTok %s" % (mod, tiktok))
 
     # ------------------------------------------------------------------ dex
 

@@ -63,6 +63,36 @@ public final class Badges {
         }
     }
 
+public static final String KEY = "badges_on";
+
+    private static volatile Boolean cached;
+
+    public static boolean isEnabled() {
+        Boolean known = cached;
+        if (known != null) return known;
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return true;  // on until there is somewhere to read from
+            boolean on = context.getSharedPreferences(Margy.PREFS,
+                    android.content.Context.MODE_PRIVATE).getBoolean(KEY, true);
+            cached = on;
+            return on;
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    public static void setEnabled(boolean enabled) {
+        cached = enabled;
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return;
+            context.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                    .edit().putBoolean(KEY, enabled).apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
     /** uid -> badge. Replaced wholesale on a refresh, never edited in place. */
     private static volatile Map<String, Badge> known = new HashMap<String, Badge>();
 
@@ -90,6 +120,7 @@ public final class Badges {
 
     /** The character that stands for this account's badge, or zero. */
     public static char markFor(String uid) {
+        if (!isEnabled()) return 0;
         Badge badge = of(uid);
         if (badge == null) return 0;
         Badge[] list = numbered;

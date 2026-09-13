@@ -37,6 +37,36 @@ public final class Stickers {
 
     private Stickers() {}
 
+public static final String KEY = "save_stickers";
+
+    private static volatile Boolean cached;
+
+    public static boolean isEnabled() {
+        Boolean known = cached;
+        if (known != null) return known;
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return true;  // on until there is somewhere to read from
+            boolean on = context.getSharedPreferences(Margy.PREFS,
+                    android.content.Context.MODE_PRIVATE).getBoolean(KEY, true);
+            cached = on;
+            return on;
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    public static void setEnabled(boolean enabled) {
+        cached = enabled;
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return;
+            context.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                    .edit().putBoolean(KEY, enabled).apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
     private static volatile String latest;
 
     // ------------------------------------------------ where the taps land
@@ -95,11 +125,12 @@ public final class Stickers {
     }
 
     private static void seen(Object sticker) {
+        if (!isEnabled()) return;
         try {
             String url = find(sticker, new HashSet<Object>(), 0);
             if (url == null) return;
             latest = url;
-            Screen.offer(Text.SAVE_STICKER, new Runnable() {
+            Screen.offer(Text.SAVE_STICKER, 0.46f, new Runnable() {
                 @Override
                 public void run() {
                     save();

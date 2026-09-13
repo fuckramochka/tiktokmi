@@ -47,6 +47,9 @@ ATTR_IDS = {
     "launchMode": 0x0101001D,
     "roundIcon": 0x0101052C,
     "authorities": 0x01010018,
+    # 16842779, read out of android.jar rather than written down: the build
+    # checks every one of these against it and stops on a disagreement
+    "grantUriPermissions": 0x0101001B,
     "taskAffinity": 0x01010012,
     "minSdkVersion": 0x0101020C,
 }

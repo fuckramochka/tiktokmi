@@ -48,6 +48,8 @@ ACCOUNT_SERVICE = "Lcom/ss/android/ugc/aweme/IAccountUserService;"
 ACCOUNT = "Lcat/narezany/margyt/Account;"
 COMMENTS = "Lcat/narezany/margyt/Comments;"
 COMMENT_IMAGE = "Lcom/ss/android/ugc/aweme/comment/model/CommentImageStruct;"
+COMMENT = "Lcom/ss/android/ugc/aweme/comment/model/Comment;"
+COMMENT_STICKER = "Lcom/ss/android/ugc/aweme/comment/model/CommentStickerStruct;"
 WATERMARK = "Lcat/narezany/margyt/Watermark;"
 FLAGS = "Lcat/narezany/margyt/Flags;"
 SOUND = "Lcat/narezany/margyt/Sound;"
@@ -157,6 +159,10 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
      "(%s)%s" % (ACCOUNT_SERVICE, STRING), ACCOUNT),
     # temporary: a comment image has no clean copy in its struct, so the two
     # addresses it does have are written into the diary to be compared
+    # temporary: what screen is up when a comment's sticker is read
+    (COMMENT, "getStickerStruct", "()%s" % COMMENT_STICKER,
+     "(Ljava/lang/Object;)%s" % COMMENT_STICKER, COMMENTS),
+
     (COMMENT_IMAGE, "getCropUrl", "()%s" % URL_MODEL,
      "(%s)%s" % (COMMENT_IMAGE, URL_MODEL), COMMENTS),
     (COMMENT_IMAGE, "getOriginUrl", "()%s" % URL_MODEL,
