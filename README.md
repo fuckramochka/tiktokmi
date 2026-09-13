@@ -6,7 +6,7 @@
 The second in the line after [Margy](https://github.com/narezany/Margelet).
 Built from the official apk with the patches in this repository.
 
-[![channel](https://img.shields.io/badge/channel-margeletter-8DD1B0?style=flat-square)](https://t.me/margeletter)
+[![channel](https://img.shields.io/badge/channel-margytiktok-8DD1B0?style=flat-square)](https://t.me/margytiktok)
 [![forum](https://img.shields.io/badge/forum-margeletforum-8DD1B0?style=flat-square)](https://t.me/margeletforum)
 [![licence](https://img.shields.io/badge/licence-MIT-8DD1B0?style=flat-square)](#licence)
 
@@ -55,6 +55,43 @@ rewritten where they lie. The adaptive icon's two layers become vector
 drawables compiled by this repository, and each legacy density gets a bitmap
 scaled to exactly the size the one it replaces was. The resource id, the table
 entry and the density each file was chosen for never move.
+</details>
+
+<details>
+<summary><b>The colour it is all drawn in</b></summary>
+
+TikTok is built around one pink, `#FE2C55` -- and around a family of shades
+next to it: the same pink at a dozen opacities, the magentas its gradients run
+through, the reds of Shop and LIVE. `--accent RRGGBB` moves the whole family
+onto a colour of your choosing.
+
+Not by flattening it. Every shade is moved by the same step that takes the
+brand pink to the chosen colour, in hue, saturation and value at once, so the
+pink itself lands exactly on the accent, a light pink comes out a light accent,
+and the two ends of a gradient stay two ends of a gradient. Alpha is never
+touched. `margyt/palette.py` decides what belongs to the family; the hue window
+is deliberately narrow enough to leave TikTok's other brand colour, the cyan
+`#25F4EE`, exactly where it is.
+
+In 46.9.42 that is 76 values in the resource table and 315 in 217 compiled xml
+files -- 104 distinct shades -- plus the 72 places the bytecode spells a colour
+out as a constant.
+
+Those last 72 are the only ones that can still change afterwards: the mod sends
+them through itself, so the palette in **Settings and privacy -> MargyT** moves
+them while the app runs. The rest are read by the framework out of the resource
+table, inside its own code, and no client without root rewrites a 25 MB table
+it has already mapped. So the palette reaches the code and `--accent` reaches
+the pictures, and a build makes the two agree by baking the same colour the
+palette starts on.
+</details>
+
+<details>
+<summary><b>Where to find the mod, and who made it</b></summary>
+
+The last card on the mod's screen: the channel, the forum, and a **Thanks**
+that opens the names -- and, for anyone who wants to, a card number and a
+YooMoney link.
 </details>
 
 <details>
@@ -185,6 +222,7 @@ it, which is why it takes about two minutes rather than an afternoon.
 | the icon | the files behind the existing resource are replaced, so no new id is ever needed |
 | the dex | only the three or four files that mention telephony go through baksmali and smali; the other forty-eight are copied |
 | the mod | javac and d8, in as the next `classesN.dex` — the run has to be unbroken or the runtime stops reading |
+| the landing sites | every static a rewrite points at is checked against the mod's own dex before the apk is written: smali assembles a call to a method nobody wrote without a word, and the runtime only finds out on the screen that reaches it |
 
 The package name stays TikTok's. Renaming it is what made the earlier version of
 this repository hard to trust: provider authorities collide with the official
@@ -265,6 +303,7 @@ only thing here that wants aapt2.
 | `margyt/arsc.py` | the resource table, read and patched in place |
 | `margyt/apkzip.py` | the zip, rewritten entry by entry |
 | `margyt/dexpatch.py` | the call sites, found by signature |
+| `margyt/palette.py` | which colours the accent takes over, and what it turns them into |
 | `margyt/icon.py` | the icon, replaced file by file |
 | `margyt/png.py` | just enough PNG to resize an icon, so Pillow is not needed |
 | `margyt/vector.py` | vector drawables, compiled without aapt2 |
