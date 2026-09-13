@@ -14,8 +14,6 @@ import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Locale;
 
 /**
@@ -45,9 +43,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     private static final int MINT = 0xFF8DD1B0;
     private static final int INK = 0xFF1C2C24;
 
-    /** The fragment the row belongs to, so its sub-pages do not get one. */
-    private String rootFragment;
-
     // ------------------------------------------------------- the lifecycle
 
     @Override
@@ -63,7 +58,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         final View decor = activity.getWindow().getDecorView();
         if (decor.getTag(TAG) != null) return;
         decor.setTag(TAG, Boolean.TRUE);
-        rootFragment = null;
 
         final Activity host = activity;
         decor.getViewTreeObserver().addOnGlobalLayoutListener(
@@ -95,86 +89,70 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     public void onActivitySaveInstanceState(Activity activity, Bundle state) {}
 
     @Override
-    public void onActivityDestroyed(Activity activity) {
-        if (SETTINGS_ACTIVITY.equals(activity.getClass().getName())) rootFragment = null;
-    }
+    public void onActivityDestroyed(Activity activity) {}
 
     // ------------------------------------------------------------ the work
 
     private void inject(Activity activity) {
-        Object fragment = visibleFragment(activity);
-        if (fragment == null) return;
-        View content = viewOf(fragment);
-        if (content == null || !content.isShown()) return;
-
-        ViewGroup parent = content.getParent() instanceof ViewGroup
-                ? (ViewGroup) content.getParent() : null;
+        ViewGroup container = fragmentContainer(activity);
+        if (container == null) return;
+        ViewGroup parent = container.getParent() instanceof ViewGroup
+                ? (ViewGroup) container.getParent() : null;
         if (parent == null || parent.getTag(TAG) != null) return;
+        if (container.getWidth() == 0) return;  // not laid out yet
 
-        // Sub-pages of this screen are more fragments in the same activity. The
-        // first one to appear is the settings screen itself; the rest are pages
-        // inside it, and the row does not belong there.
-        String owner = fragment.getClass().getName();
-        if (rootFragment == null) {
-            rootFragment = owner;
-            Diary.note("settings fragment: " + owner);
-            Diary.note("its view is a " + content.getClass().getName());
-        } else if (!rootFragment.equals(owner)) {
-            return;
-        }
-
-        int index = parent.indexOfChild(content);
-        ViewGroup.LayoutParams params = content.getLayoutParams();
+        int index = parent.indexOfChild(container);
+        ViewGroup.LayoutParams params = container.getLayoutParams();
 
         LinearLayout column = new LinearLayout(activity);
         column.setOrientation(LinearLayout.VERTICAL);
         column.setTag(TAG, Boolean.TRUE);
 
+        // The container is what the fragment manager adds pages to and takes
+        // them out of, so it is left exactly where it is -- the row goes above
+        // it, wrapped around the outside, and nothing the app does has to know.
         parent.removeViewAt(index);
-        column.addView(row(activity, content), new LinearLayout.LayoutParams(
+        column.addView(row(activity), new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        column.addView(content, new LinearLayout.LayoutParams(
+        column.addView(container, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         parent.addView(column, index, params);
-        Diary.note("row added");
+        Diary.note("row added above " + container.getClass().getName());
     }
 
     /**
-     * The fragment on screen, through the manager.
+     * The view TikTok puts the settings pages into.
      *
-     * Reflection rather than a compile-time dependency: androidx is inside the
-     * apk already, and the mod's own dex has no business carrying a second copy.
+     * Through its own method rather than the fragment manager: androidx is in
+     * this apk with its method names obfuscated -- getFragments() and the rest
+     * are gone -- while TikTok's own getFragmentContainer() keeps its name,
+     * because TikTok's own code calls it.
      */
-    private Object visibleFragment(Activity activity) {
+    private ViewGroup fragmentContainer(Activity activity) {
         try {
-            Object manager = activity.getClass()
-                    .getMethod("getSupportFragmentManager").invoke(activity);
-            Object fragments = manager.getClass().getMethod("getFragments").invoke(manager);
-            Object first = null;
-            for (Object fragment : (List<?>) fragments) {
-                View view = viewOf(fragment);
-                if (view != null && view.isShown() && first == null) first = fragment;
-            }
-            if (first == null) Diary.note("no fragment on screen yet");
-            return first;
+            Object id = activity.getClass().getMethod("getFragmentContainer").invoke(activity);
+            View view = activity.findViewById(((Integer) id).intValue());
+            if (view instanceof ViewGroup) return (ViewGroup) view;
+            Diary.note("container 0x" + Integer.toHexString(((Integer) id).intValue())
+                    + " is " + view);
         } catch (Throwable error) {
-            Diary.note("no fragment manager: " + error);
-            return null;
+            Diary.note("no container: " + error);
         }
-    }
-
-    private static View viewOf(Object fragment) {
-        try {
-            Object view = fragment.getClass().getMethod("getView").invoke(fragment);
-            return view instanceof View ? (View) view : null;
-        } catch (Throwable ignored) {
-            return null;
+        // whatever the activity put on screen, then
+        View content = activity.findViewById(android.R.id.content);
+        if (content instanceof ViewGroup && ((ViewGroup) content).getChildCount() > 0) {
+            View first = ((ViewGroup) content).getChildAt(0);
+            if (first instanceof ViewGroup) {
+                Diary.note("falling back to " + first.getClass().getName());
+                return (ViewGroup) first;
+            }
         }
+        return null;
     }
 
     // ------------------------------------------------------------- the row
 
-    private View row(final Activity activity, View screen) {
+    private View row(final Activity activity) {
         // The screen is Compose and has no TextView to read a colour off, so
         // the background it is drawn on decides: TikTok's settings are white on
         // light and nearly black on dark.
@@ -232,7 +210,10 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
 
         LinearLayout box = new LinearLayout(activity);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(activity, 16), dp(activity, 8), dp(activity, 16), dp(activity, 8));
+        // the row sits above whatever handles the window insets, so it has to
+        // keep clear of the status bar itself
+        box.setPadding(dp(activity, 16), statusBar(activity) + dp(activity, 8),
+                dp(activity, 16), dp(activity, 8));
         box.addView(row, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return box;
@@ -259,6 +240,24 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         return (activity.getResources().getConfiguration().uiMode
                 & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
                 == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    private static int statusBar(Activity activity) {
+        try {
+            android.view.WindowInsets insets =
+                    activity.getWindow().getDecorView().getRootWindowInsets();
+            if (insets != null && insets.getSystemWindowInsetTop() > 0) {
+                return insets.getSystemWindowInsetTop();
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            int id = activity.getResources()
+                    .getIdentifier("status_bar_height", "dimen", "android");
+            if (id > 0) return activity.getResources().getDimensionPixelSize(id);
+        } catch (Throwable ignored) {
+        }
+        return 0;
     }
 
     private static float luminance(int colour) {

@@ -64,24 +64,28 @@ entry and the density each file was chosen for never move.
 around it. Inside: a switch for the whole thing and the list of countries, each
 with the carrier and MCC/MNC it will report.
 
-The row is not written into the bytecode that builds that list. The classes
-which assemble it are obfuscated and renamed with every release, and chasing
-them is what made the first version of this mod fragile. Instead the mod gets a
-start-up hook -- a `<provider>` of its own, which Android instantiates before
-the application's onCreate whether anything queries it or not -- and from there
-watches for the settings screen to appear. When it does, it finds the list in
-the view tree by what the class is called, and puts a row above it.
+The row is not written into the bytecode that builds that list, and it could
+not be: the screen is Jetpack Compose. One `ComposeView` draws the title, the
+back arrow and every row, and from outside it there is nothing to get between
+them. So the row goes above the screen instead of inside the list.
 
-What that leans on is only the name of the screen itself,
-`SettingContainerActivity`, which is not obfuscated, and plain Android views
-underneath. The build checks the manifest still declares that screen and stops
-if it does not, rather than shipping a mod whose settings cannot be reached.
+The mod gets there through a start-up hook of its own -- a `<provider>`, which
+Android instantiates before the application's onCreate whether anything queries
+it or not -- and from there watches for the settings screen. When it appears,
+the mod asks the screen where it keeps its pages, wraps that container from the
+outside, and puts the row above it. The container itself is left exactly where
+it was, because that is what the fragment manager adds pages to and takes them
+out of.
 
-The row reads the text colour off a row already on screen, so it follows the
-app into dark mode instead of guessing. The screen behind it is built in code
-with no layout or style resources at all -- adding a resource would mean
-rewriting a 25 MB resource table, which is the one thing this build refuses to
-do.
+Two names hold this up, and both are real rather than obfuscated:
+`SettingContainerActivity` and its own `getFragmentContainer()`. Androidx is no
+help -- it is in the apk with its method names shortened away, `getFragments()`
+included -- and the build checks the manifest still declares that screen,
+stopping rather than shipping a mod whose settings cannot be reached.
+
+The screen behind the row is built in code with no layout or style resources at
+all: adding a resource would mean rewriting a 25 MB resource table, which is
+the one thing this build refuses to do.
 
 There is a launcher entry as well, **MargyT settings**, which opens the same
 screen. It is the way in when the row is not there.
