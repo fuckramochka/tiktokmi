@@ -7,6 +7,8 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 import android.widget.ImageView;
@@ -77,6 +79,25 @@ public final class Accent {
         int[] trimmed = new int[count];
         System.arraycopy(out, 0, trimmed, 0, count);
         return trimmed;
+    }
+
+    /**
+     * The accent the phone took from the wallpaper, or zero.
+     *
+     * Android 12 puts that palette into the framework's own resources, so this
+     * is a read rather than a guess. Read straight from the resources and not
+     * through the mod's own interception, which would hand back whatever the
+     * accent already is.
+     */
+    public static int fromWallpaper() {
+        Context context = Margy.context();
+        if (context == null || android.os.Build.VERSION.SDK_INT < 31) return 0;
+        try {
+            return context.getResources().getColor(
+                    android.R.color.system_accent1_400, context.getTheme());
+        } catch (Throwable ignored) {
+            return 0;
+        }
     }
 
     private static volatile int cached;
@@ -169,7 +190,7 @@ public final class Accent {
 
         // last, and only for the colours TikTok repaints itself when its own
         // theme changes: the accent has had its say and did not want this one
-        return Themes.recolour(colour);
+        return Themes.recolour(colour, true);
     }
 
     /** The shade a baked colour was made from, or zero. Binary search. */
@@ -204,6 +225,121 @@ public final class Accent {
      * rewritten to come through here, which is how the accent reaches what the
      * resource table and the constants never could.
      */
+    /**
+     * A background written in a layout, which arrives already wrapped.
+     *
+     * `android:background="?attr/..."` is resolved by the framework before any
+     * of the app's code sees it, and what comes back is a ColorDrawable rather
+     * than a number -- so every rule that watches for colours looks straight
+     * past the thing most screens are painted with. Unwrapped here, moved, and
+     * handed back as a new drawable: the one that came out of the resources is
+     * shared with everything else that asked for it.
+     */
+    public static Drawable getDrawable(TypedArray array, int index) {
+        return moved(array.getDrawable(index));
+    }
+
+    public static void setBackgroundResource(View view, int id) {
+        try {
+            Drawable drawable = view.getContext().getDrawable(id);
+            Drawable out = moved(drawable);
+            if (out != drawable) {
+                view.setBackground(out);
+                return;
+            }
+        } catch (Throwable ignored) {
+        }
+        view.setBackgroundResource(id);
+    }
+
+    /** The same drawable in the chosen colours, or the one that came in. */
+    private static Drawable moved(Drawable drawable) {
+        if (!(drawable instanceof ColorDrawable)) return drawable;
+        int was = ((ColorDrawable) drawable).getColor();
+        int now = sourced(was);
+        return now == was ? drawable : new ColorDrawable(now);
+    }
+
+    public static ColorStateList getColorStateList(Resources resources, int id) {
+        return moved(resources.getColorStateList(id));
+    }
+
+    public static ColorStateList getColorStateList(TypedArray array, int index) {
+        return moved(array.getColorStateList(index));
+    }
+
+    /**
+     * A colour per state, moved state by state.
+     *
+     * There is no way to read the states back before Android 10, and below
+     * that the list is left exactly as it was -- one colour on an older phone
+     * is a small thing next to a list rebuilt out of guesses.
+     */
+    private static ColorStateList moved(ColorStateList list) {
+        if (list == null) return null;
+        try {
+            // getColors and getStates exist from Android 10 but are not in the
+            // jar this is compiled against, so they are asked for by name; a
+            // phone that does not have them keeps its one colour
+            int[] colours = (int[]) call(list, "getColors");
+            int[][] states = (int[][]) call(list, "getStates");
+            if (colours == null || states == null || colours.length == 0
+                    || states.length < colours.length) {
+                int was = list.getDefaultColor();
+                int now = sourced(was);
+                return now == was ? list : ColorStateList.valueOf(now);
+            }
+
+            int[] out = new int[colours.length];
+            int[][] kept = new int[colours.length][];
+            boolean any = false;
+            for (int i = 0; i < colours.length; i++) {
+                kept[i] = states[i];
+                out[i] = sourced(colours[i]);
+                any |= out[i] != colours[i];
+            }
+            return any ? new ColorStateList(kept, out) : list;
+        } catch (Throwable ignored) {
+            return list;
+        }
+    }
+
+    private static Object call(Object on, String name) {
+        try {
+            java.lang.reflect.Method method = on.getClass().getMethod(name);
+            method.setAccessible(true);
+            return method.invoke(on);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    public static void setStatusBarColor(android.view.Window window, int colour) {
+        window.setStatusBarColor(sourced(colour));
+    }
+
+    public static void setNavigationBarColor(android.view.Window window, int colour) {
+        window.setNavigationBarColor(sourced(colour));
+    }
+
+    public static void setHintTextColor(TextView view, int colour) {
+        view.setHintTextColor(swap(colour));
+    }
+
+    public static void setTint(Drawable drawable, int colour) {
+        drawable.setTint(swap(colour));
+    }
+
+    public static void setColors(GradientDrawable shape, int[] colours) {
+        if (colours == null) {
+            shape.setColors(null);
+            return;
+        }
+        int[] out = new int[colours.length];
+        for (int i = 0; i < colours.length; i++) out[i] = swap(colours[i]);
+        shape.setColors(out);
+    }
+
     public static void setColor(Paint paint, int colour) {
         paint.setColor(swap(colour));
     }
@@ -237,18 +373,33 @@ public final class Accent {
     }
 
     public static int getColor(Context context, int id) {
-        return swap(context.getColor(id));
+        return sourced(context.getColor(id));
     }
 
     public static int getColor(Resources resources, int id) {
-        return swap(resources.getColor(id));
+        return sourced(resources.getColor(id));
     }
 
     public static int getColor(Resources resources, int id, Resources.Theme theme) {
-        return swap(resources.getColor(id, theme));
+        return sourced(resources.getColor(id, theme));
     }
 
     public static int getColor(TypedArray array, int index, int fallback) {
-        return swap(array.getColor(index, fallback));
+        return sourced(array.getColor(index, fallback));
+    }
+
+    /**
+     * A colour that came out of the resources rather than out of arithmetic.
+     *
+     * This is where TikTok's theme colours actually enter the app -- a theme
+     * attribute or a colour resource -- so a colour arriving here is known to
+     * be the theme's and the whole list applies to it. The accent goes first;
+     * it only ever claims its own family, and what it leaves is offered to the
+     * theme.
+     */
+    private static int sourced(int colour) {
+        int moved = swap(colour);
+        if (moved != colour) return moved;
+        return Themes.recolour(colour, true);
     }
 }

@@ -22,4 +22,16 @@ public interface IStreakService {
 
     /** Whether the streak should be shown on it. */
     boolean h0(String conversation, boolean flag);
+
+    /** The rest are other questions about one conversation, listened to only
+     *  so that the conversation is known about at all. */
+    int w(String conversation);
+
+    boolean X(String conversation);
+
+    boolean Y(String conversation);
+
+    Integer l0(String conversation);
+
+    String O(String conversation);
 }

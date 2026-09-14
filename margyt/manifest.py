@@ -194,6 +194,79 @@ def add_provider(axml: Axml, class_name: str, authority: str) -> None:
 LAUNCH_SINGLE_TASK = 2
 
 
+def launcher_entry(axml: Axml):
+    """What the home screen opens, as (the component, the activity behind it).
+
+    TikTok's own entry is not an activity at all -- it is an `activity-alias`
+    called SplashActivity standing in front of MainActivity. Which is the same
+    trick the icon switcher uses, so the two halves of the answer are both
+    wanted: the component to turn off when another icon is chosen, and the
+    activity every new alias should point at.
+
+    Read by walking the node stream rather than by asking for children: the
+    parsed manifest is a flat run of opens and closes.
+    """
+    from .axml import RES_XML_START_ELEMENT, RES_XML_END_ELEMENT
+
+    name = target = None
+    inside = None
+    saw_main = saw_launcher = False
+    for node in axml.nodes:
+        if node.kind == RES_XML_START_ELEMENT:
+            tag = axml.pool.get(node.name)
+            if tag in ("activity", "activity-alias"):
+                inside = tag
+                name = axml.attr_string(node, "name")
+                target = axml.attr_string(node, "targetActivity") or name
+                saw_main = saw_launcher = False
+            elif inside and tag in ("action", "category"):
+                value = axml.attr_string(node, "name")
+                saw_main |= value == MAIN_ACTION
+                saw_launcher |= value == LAUNCHER_CATEGORY
+        elif node.kind == RES_XML_END_ELEMENT:
+            if axml.pool.get(node.name) == inside:
+                if saw_main and saw_launcher and name and target:
+                    return name, target
+                inside = None
+    raise ManifestError("this apk has no launcher entry to stand in for")
+
+
+def add_icon_alias(axml: Axml, name: str, target: str, icon: int,
+                   label: str, enabled: bool) -> None:
+    """An `activity-alias` that is the same app under a different icon.
+
+    Which icon an app wears is a property of the component the home screen
+    opens, and there is no way to change one at runtime -- so an app that
+    offers a choice ships one component per icon and turns on the one that was
+    chosen. They all point at the same activity, so whichever is on, tapping it
+    opens the app exactly as before.
+    """
+    alias = axml.make_element("activity-alias")
+    axml.set_attr(alias, "icon", TYPE_REFERENCE, icon)
+    axml.set_attr_string(alias, "label", label)
+    axml.set_attr_string(alias, "name", name)
+    axml.set_attr_bool(alias, "enabled", enabled)
+    axml.set_attr_bool(alias, "exported", True)
+    axml.set_attr_string(alias, "targetActivity", target)
+
+    intent_filter = axml.make_element("intent-filter")
+    action = axml.make_element("action")
+    axml.set_attr_string(action, "name", MAIN_ACTION)
+    category = axml.make_element("category")
+    axml.set_attr_string(category, "name", LAUNCHER_CATEGORY)
+
+    axml.insert_into(application(axml), [
+        alias,
+        intent_filter,
+        action,
+        axml.close_element(action),
+        category,
+        axml.close_element(category),
+        axml.close_element(intent_filter),
+        axml.close_element(alias),
+    ])
+
+
 def add_activity(axml: Axml, class_name: str, label: str, theme: int,
                  affinity: str = None, launcher: bool = False) -> None:
     """Declare an exported activity, last child of <application>.

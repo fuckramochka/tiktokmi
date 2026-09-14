@@ -14,7 +14,7 @@ import os
 import time
 from typing import Dict, List, Optional
 
-from . import accent as accent_module, artwork, dexpatch, icon as icon_module, manifest as manifest_module, nightly
+from . import accent as accent_module, artwork, dexpatch, icon as icon_module, manifest as manifest_module, nightly, resadd
 from .apkzip import Apk, STORED
 from .arsc import Arsc
 from . import axml as axml_module
@@ -114,6 +114,8 @@ class Build:
         self.write_version(manifest_module.version_name(manifest))
         self.find_anchors(apk)
         self.write_theme(arsc)
+        self.write_shots(manifest)
+        self.write_pictures()
 
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
@@ -177,8 +179,13 @@ class Build:
         for line in icon_module.replace_everywhere(apk, arsc, manifest, master):
             self.detail(line.strip())
 
+        self.say("Icons to choose from")
+        extended = self.add_icon_choices(apk, arsc, manifest)
+
         apk.replace("AndroidManifest.xml", manifest.build())
-        if arsc.dirty:
+        if extended is not None:
+            apk.replace("resources.arsc", extended, STORED)
+        elif arsc.dirty:
             apk.replace("resources.arsc", arsc.build(), STORED)
 
         self.say("Rewriting the bytecode")
@@ -344,10 +351,14 @@ class Build:
 
     def write_theme(self, arsc: Arsc) -> None:
         """The colours TikTok repaints when its own theme changes."""
-        # sorted the way Java reads them, so the search in Nightly can use
-        # a plain comparison rather than one the apk's minSdk may not have
-        owned = sorted(nightly.theme_colours(arsc, dexpatch.TIKTOK_PINK), key=_signed)
-        self.detail("%d colours belong to the theme, and only those move" % len(owned))
+        owned, safe = nightly.theme_colours(arsc, dexpatch.TIKTOK_PINK)
+        self.detail("%d colours belong to the theme; %d of them mean nothing "
+                    "else anywhere" % (len(owned), len(safe)))
+
+        # sorted the way Java reads them, so the search in Nightly can use a
+        # plain comparison rather than one the apk's minSdk may not have
+        owned = sorted(owned, key=_signed)
+        safe = sorted(safe, key=_signed)
 
         out = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
                            "Nightly.java")
@@ -357,31 +368,172 @@ class Build:
                 "/**\n"
                 " * Written by the build. Do not edit.\n"
                 " *\n"
-                " * Every colour that is one side of a light/dark pair in TikTok's own\n"
-                " * style table -- the set the app itself repaints when the theme\n"
-                " * changes, and so the only set `Themes` is allowed to touch. Sorted,\n"
-                " * because it is searched on every colour the app draws.\n"
+                " * The colours in TikTok's own style table that the app repaints when\n"
+                " * its theme changes -- the only ones `Themes` may touch.\n"
+                " *\n"
+                " * Two lists. OWNED is all of them, and is used where a colour arrives\n"
+                " * as a theme colour: read from a theme attribute, or from a colour\n"
+                " * resource. UNMISTAKABLE is the ones that appear nowhere else in the\n"
+                " * apk, and those are repainted wherever they turn up -- including in\n"
+                " * code that simply hands a number to a Paint. White is in the first\n"
+                " * list and not the second, which is the whole reason there are two.\n"
                 " */\n"
                 "final class Nightly {\n\n"
                 "    private Nightly() {}\n\n"
                 "    static boolean owns(int colour) {\n"
+                "        return has(OWNED, colour);\n"
+                "    }\n\n"
+                "    static boolean unmistakable(int colour) {\n"
+                "        return has(UNMISTAKABLE, colour);\n"
+                "    }\n\n"
+                "    private static boolean has(int[] list, int colour) {\n"
                 "        int low = 0;\n"
-                "        int high = OWNED.length - 1;\n"
+                "        int high = list.length - 1;\n"
                 "        while (low <= high) {\n"
                 "            int middle = (low + high) >>> 1;\n"
-                "            int here = OWNED[middle];\n"
+                "            int here = list[middle];\n"
                 "            if (here == colour) return true;\n"
                 "            if (here < colour) low = middle + 1;\n"
                 "            else high = middle - 1;\n"
                 "        }\n"
                 "        return false;\n"
                 "    }\n\n"
-                "    private static final int[] OWNED = {\n"
             )
-            for i in range(0, len(owned), 6):
-                row = ", ".join("0x%08X" % value for value in owned[i:i + 6])
-                handle.write("        %s,\n" % row)
+            for name, values in (("OWNED", owned), ("UNMISTAKABLE", safe)):
+                handle.write("    private static final int[] %s = {\n" % name)
+                for i in range(0, len(values), 6):
+                    row = ", ".join("0x%08X" % value for value in values[i:i + 6])
+                    handle.write("        %s,\n" % row)
+                handle.write("    };\n\n")
+            handle.write("}\n")
+
+    def write_pictures(self) -> None:
+        """Pictures the mod shows in its own windows, as base64 in the code.
+
+        In pieces, because a Java string literal cannot be longer than 64k of
+        utf-8 and a photograph is bigger than that. They are joined back
+        together the first time one is needed and then kept.
+        """
+        wanted = [("AGAINST_%d" % i,
+                   os.path.join(self.root, "assets", "against-%d.jpg" % i))
+                  for i in (1, 2, 3, 4)]
+
+        out = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                           "Pictures.java")
+        with open(out, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "/** Written by the build. Do not edit. */\n"
+                "final class Pictures {\n\n"
+                "    private Pictures() {}\n"
+            )
+            for name, path in wanted:
+                with open(path, "rb") as picture:
+                    encoded = base64.b64encode(picture.read()).decode("ascii")
+                handle.write("\n    static final String[] %s = {\n" % name)
+                for i in range(0, len(encoded), 20000):
+                    handle.write("        \"%s\",\n" % encoded[i:i + 20000])
+                handle.write("    };\n")
+                self.detail("%s: %d bytes of picture in the code" % (name, len(encoded)))
+            handle.write("\n    static final String[][] AGAINST = {\n")
+            for name, _path in wanted:
+                handle.write("        %s,\n" % name)
             handle.write("    };\n}\n")
+
+    # --------------------------------------------------------- the icons
+
+    #: what ships, in the order the settings show them
+    ICONS = [
+        ("hru", "TikTok хрю"),
+        ("grafiti", "Графити"),
+        ("shine", "Блестящий"),
+        ("tiktok", "Косплей на ТикТок"),
+        ("materialyou", "Margyrial You"),
+        ("material3", "Margyrial 3"),
+        ("doodle", "Doodle"),
+        ("glitch", "Глитч"),
+        ("google", "Google"),
+        ("dotted", "Точечная"),
+    ]
+
+    ICON_PACKAGE = 0x30
+    ICON_ALIAS = "cat.narezany.margyt.Icon"
+
+    def _icon_files(self) -> List[str]:
+        return [os.path.join(self.root, "icons", "launcher", key + ".png")
+                for key, _label in self.ICONS]
+
+    def write_shots(self, manifest: Axml) -> None:
+        """The icon list, as the mod sees it: names, components, thumbnails."""
+        entry, _target = manifest_module.launcher_entry(manifest)
+
+        rows = []
+        for index, (key, label) in enumerate(self.ICONS):
+            path = os.path.join(self.root, "icons", "launcher", key + ".png")
+            with open(path, "rb") as handle:
+                raw = handle.read()
+            rows.append((key, label, "%s%d" % (self.ICON_ALIAS, index),
+                         base64.b64encode(raw).decode("ascii")))
+
+        out = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
+                           "Shots.java")
+        with open(out, "w", encoding="utf-8") as handle:
+            handle.write(
+                "package cat.narezany.margyt;\n\n"
+                "/**\n"
+                " * Written by the build. Do not edit.\n"
+                " *\n"
+                " * The icons this build ships with: what each is called, which\n"
+                " * component wears it, and a picture of it for the settings to show.\n"
+                " * DEFAULT is TikTok's own launcher entry, which is the one that is on\n"
+                " * until another is chosen.\n"
+                " */\n"
+                "final class Shots {\n\n"
+                "    private Shots() {}\n\n"
+                "    static final String DEFAULT = \"%s\";\n\n"
+                "    static final String DEFAULT_PNG = \"%s\";\n\n"
+                "    static final String[] KEYS = {\n"
+                % (entry, _thumbnail(os.path.join(self.root, artwork.MASTER_PNG)))
+            )
+            for key, _label, _component, _png in rows:
+                handle.write("        \"%s\",\n" % key)
+            handle.write("    };\n\n    static final String[] LABELS = {\n")
+            for _key, label, _component, _png in rows:
+                handle.write("        \"%s\",\n" % label)
+            handle.write("    };\n\n    static final String[] COMPONENTS = {\n")
+            for _key, _label, component, _png in rows:
+                handle.write("        \"%s\",\n" % component)
+            handle.write("    };\n\n    static final String[] PNG = {\n")
+            for _key, _label, _component, png in rows:
+                handle.write("        \"%s\",\n" % png)
+            handle.write("    };\n}\n")
+        self.detail("%d icons to choose from" % len(rows))
+
+    def add_icon_choices(self, apk: Apk, arsc: Arsc, manifest: Axml):
+        """Put the icons in the apk, in the table, and in the manifest."""
+        entry, target = manifest_module.launcher_entry(manifest)
+        # the aliases take the app's own name; only the picture differs
+        label = "TikTok"
+
+        names = []
+        for index, (key, _label) in enumerate(self.ICONS):
+            path = "res/margyt/%s.png" % key
+            with open(self._icon_files()[index], "rb") as handle:
+                apk.add(path, handle.read())
+            names.append((key, path))
+
+        extended = resadd.add_files(arsc.build(), self.ICON_PACKAGE, "mipmap", names)
+        self.detail("%d icons added to the resource table as package 0x%02X"
+                    % (len(names), self.ICON_PACKAGE))
+
+        for index, (key, name) in enumerate(self.ICONS):
+            res_id = (self.ICON_PACKAGE << 24) | (1 << 16) | index
+            manifest_module.add_icon_alias(
+                manifest, "%s%d" % (self.ICON_ALIAS, index), target, res_id,
+                label, enabled=False)
+        self.detail("%d launcher entries declared, all off but %s"
+                    % (len(self.ICONS), entry.rsplit(".", 1)[-1]))
+        return extended
 
     def find_anchors(self, apk: Apk) -> None:
         """Find the methods whose signature is known and whose name is not."""
@@ -390,7 +542,8 @@ class Build:
         dexpatch.FOUND = dexpatch.find_statics(dexes)
 
         lines = []
-        for label, _descriptor, _ours, _target in dexpatch.DISCOVERED_STATICS:
+        for label, _descriptor, _ours, _target in (
+                dexpatch.DISCOVERED_STATICS + dexpatch.DISCOVERED_VIRTUALS):
             found = dexpatch.FOUND.get(label)
             if found is None:
                 self.detail("%s: not found in this release" % label)
@@ -480,6 +633,18 @@ def _tables(keys: List[int], moved: Dict[int, int]) -> str:
             lines.append("        " + ", ".join("0x%08X" % v for v in values[at:at + 6]))
         out.append("    static final int[] %s = {\n%s,\n    };\n" % (name, ",\n".join(lines)))
     return "\n".join(out)
+
+
+def _thumbnail(path: str) -> str:
+    """A small png of a big one, as base64, for the settings to show."""
+    from PIL import Image
+
+    image = Image.open(path).convert("RGBA")
+    image.thumbnail((192, 192), Image.LANCZOS)
+    from io import BytesIO
+    out = BytesIO()
+    image.save(out, "PNG", optimize=True)
+    return base64.b64encode(out.getvalue()).decode("ascii")
 
 
 def _signed(value: int) -> int:

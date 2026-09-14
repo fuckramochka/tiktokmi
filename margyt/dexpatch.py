@@ -41,6 +41,7 @@ VIDEO = "Lcom/ss/android/ugc/aweme/feed/model/Video;"
 ACL = "Lcom/ss/android/ugc/aweme/feed/model/ACLCommonShare;"
 AWEME = "Lcom/ss/android/ugc/aweme/feed/model/Aweme;"
 USER = "Lcom/ss/android/ugc/aweme/profile/model/User;"
+PROFILE_USER = "Lcom/ss/android/ugc/profile/platform/base/data/UserProfileInfo;"
 VIDEO_CONTROL = "Lcom/ss/android/ugc/aweme/feed/model/VideoControl;"
 FEED_ITEM_LIST = "Lcom/ss/android/ugc/aweme/feed/model/FeedItemList;"
 PHOTO_IMAGE = "Lcom/ss/android/ugc/aweme/feed/model/PhotoModeImageUrlModel;"
@@ -65,8 +66,16 @@ STICKER_BASE = "Lcom/ss/android/ugc/aweme/im/common/model/StickerBase;"
 STICKER_CLICK = "Lcom/ss/android/ugc/aweme/im/messagelist/api/ability/MessageListStickerClickAbility;"
 STICKER_TEMPLATE = "Lcom/ss/android/ugc/aweme/im/message/template/card/StickerTemplate;"
 TEXT_VIEW = "Landroid/widget/TextView;"
+# TikTok writes almost everything with its own text view, and a call is
+# compiled against the type it is written on -- so a rule that names
+# TextView never matches one of these. The mod takes them as TextView all
+# the same, which is what they are.
+TUX_TEXT = "Lcom/bytedance/tux/input/TuxTextView;"
 CHAR_SEQUENCE = "Ljava/lang/CharSequence;"
 SEEKBAR = "Lcat/narezany/margyt/Seekbar;"
+FONTS = "Lcat/narezany/margyt/Fonts;"
+TYPEFACE = "Landroid/graphics/Typeface;"
+PAINT_CLASS = "Landroid/graphics/Paint;"
 MUSIC = "Lcom/ss/android/ugc/aweme/music/model/Music;"
 
 # A method whose name is real on a class whose name is not. Matching the owner
@@ -151,6 +160,21 @@ DISCOVERED_STATICS: List[Tuple[str, str, str, str]] = [
     ("comment sticker tapped", COMMENT_TAP, "stickerTapped", COMMENTS),
 ]
 
+STICKER_ITEM_D = "Lcom/ss/android/ugc/aweme/im/common/model/StickerItem;"
+FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
+
+#: the sheet that opens on a comment's sticker -- Share, Save, Use. Found the
+#: same way, by what it takes: a sticker and the view it was touched in. The
+#: receiver comes through as an Object and the call is handed back by
+#: reflection, so the class it lives on is never written down here either.
+COMMENT_SHEET = ("(Ljava/lang/String;%s Landroid/view/View;ZLjava/lang/String;"
+                 "Ljava/util/Map;%s %s %s)V"
+                 % (STICKER_ITEM_D, FUNCTION0, FUNCTION0, FUNCTION0)).replace(" ", "")
+
+DISCOVERED_VIRTUALS: List[Tuple[str, str, str, str]] = [
+    ("comment sticker sheet", COMMENT_SHEET, "stickerSheet", COMMENTS),
+]
+
 # filled in by the build: label -> (owner, the name it carries this release)
 FOUND: Dict[str, Tuple[str, str]] = {}
 
@@ -213,14 +237,36 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
     # and becomes a picture on the way into the view that shows it
     (USER, "getNickname", "()Ljava/lang/String;",
      "(%s)Ljava/lang/String;" % USER, BADGE),
+    # and the model a profile switches to once it has finished loading, which
+    # is why a badge used to appear while the profile loaded and then go away
+    (PROFILE_USER, "getNickname", "()Ljava/lang/String;",
+     "(%s)Ljava/lang/String;" % PROFILE_USER, BADGE),
 
     # the avatar, at the sizes the app actually asks for: the mod does not need
     # to know whose profile is open, only which picture was last wanted
     (USER, "getAvatarLarger", "()%s" % URL_MODEL, "(%s)%s" % (USER, URL_MODEL), AVATARS),
     (USER, "getAvatar300", "()%s" % URL_MODEL, "(%s)%s" % (USER, URL_MODEL), AVATARS),
     (USER, "getAvatarMedium", "()%s" % URL_MODEL, "(%s)%s" % (USER, URL_MODEL), AVATARS),
+    # the typeface, wherever TikTok chooses one for itself. Most views never
+    # do -- they inherit it -- and those are reached on the way text goes in,
+    # which the mod is already standing in for the badges
+    (TEXT_VIEW, "setTypeface", "(%s)V" % TYPEFACE,
+     "(%s%s)V" % (TEXT_VIEW, TYPEFACE), FONTS),
+    (TEXT_VIEW, "setTypeface", "(%sI)V" % TYPEFACE,
+     "(%s%sI)V" % (TEXT_VIEW, TYPEFACE), FONTS),
+    (TUX_TEXT, "setTypeface", "(%s)V" % TYPEFACE,
+     "(%s%s)V" % (TEXT_VIEW, TYPEFACE), FONTS),
+    (TUX_TEXT, "setTypeface", "(%sI)V" % TYPEFACE,
+     "(%s%sI)V" % (TEXT_VIEW, TYPEFACE), FONTS),
+    (PAINT_CLASS, "setTypeface", "(%s)%s" % (TYPEFACE, TYPEFACE),
+     "(%s%s)%s" % (PAINT_CLASS, TYPEFACE, TYPEFACE), FONTS),
+
     (TEXT_VIEW, "setText", "(%s)V" % CHAR_SEQUENCE,
      "(%s%s)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
+    (TUX_TEXT, "setText", "(%s)V" % CHAR_SEQUENCE,
+     "(%s%s)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
+    (TUX_TEXT, "setText", "(%sLandroid/widget/TextView$BufferType;)V" % CHAR_SEQUENCE,
+     "(%s%sLandroid/widget/TextView$BufferType;)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
     (TEXT_VIEW, "setText", "(%sLandroid/widget/TextView$BufferType;)V" % CHAR_SEQUENCE,
      "(%s%sLandroid/widget/TextView$BufferType;)V" % (TEXT_VIEW, CHAR_SEQUENCE), BADGE),
 
@@ -242,6 +288,19 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
      "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
     (STREAK_SERVICE, ("h0", "showsStreak"), "(%sZ)Z" % STRING,
      "(%s%sZ)Z" % (STREAK_SERVICE, STRING), STREAKS),
+    # every other question the app asks about one conversation, because the
+    # first three between them only ever turned up a single conversation and a
+    # feature that only knows about one chat is no feature
+    (STREAK_SERVICE, ("w", "streakCount"), "(%s)I" % STRING,
+     "(%s%s)I" % (STREAK_SERVICE, STRING), STREAKS),
+    (STREAK_SERVICE, ("X", "asksAbout"), "(%s)Z" % STRING,
+     "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
+    (STREAK_SERVICE, ("Y", "asksAboutToo"), "(%s)Z" % STRING,
+     "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
+    (STREAK_SERVICE, ("l0", "streakState"), "(%s)Ljava/lang/Integer;" % STRING,
+     "(%s%s)Ljava/lang/Integer;" % (STREAK_SERVICE, STRING), STREAKS),
+    (STREAK_SERVICE, ("O", "streakText"), "(%s)%s" % (STRING, STRING),
+     "(%s%s)%s" % (STREAK_SERVICE, STRING, STRING), STREAKS),
 
     # a sound pulled for copyright: the video stays and these four mute it
     (MUSIC, "available", "()Z", "(%s)Z" % MUSIC, SOUND),
@@ -301,7 +360,36 @@ COLOUR_SOURCES: List[Tuple[str, str, str]] = [
     ("Landroid/content/Context;", "getColor",
      "(I)I", "(Landroid/content/Context;I)I"),
 
+    # A background written in a layout is not a colour by the time the app sees
+    # it -- the framework has already wrapped it in a ColorDrawable, and every
+    # rule above looks straight past it. This is the way most of TikTok's
+    # screens get their background, which is why the comments, the inbox and a
+    # conversation kept TikTok's own while everything else moved.
+    ("Landroid/content/res/TypedArray;", "getDrawable",
+     "(I)Landroid/graphics/drawable/Drawable;",
+     "(Landroid/content/res/TypedArray;I)Landroid/graphics/drawable/Drawable;"),
+    ("Landroid/view/View;", "setBackgroundResource",
+     "(I)V", "(Landroid/view/View;I)V"),
+
+    # a colour that comes with a state to go with it: enabled, pressed, chosen
+    ("Landroid/content/res/Resources;", "getColorStateList",
+     "(I)Landroid/content/res/ColorStateList;",
+     "(Landroid/content/res/Resources;I)Landroid/content/res/ColorStateList;"),
+    ("Landroid/content/res/TypedArray;", "getColorStateList",
+     "(I)Landroid/content/res/ColorStateList;",
+     "(Landroid/content/res/TypedArray;I)Landroid/content/res/ColorStateList;"),
+
     # where a colour is put to use: the brush, the shape, the tint, the text
+    ("Landroid/view/Window;", "setStatusBarColor",
+     "(I)V", "(Landroid/view/Window;I)V"),
+    ("Landroid/view/Window;", "setNavigationBarColor",
+     "(I)V", "(Landroid/view/Window;I)V"),
+    ("Landroid/widget/TextView;", "setHintTextColor",
+     "(I)V", "(Landroid/widget/TextView;I)V"),
+    ("Landroid/graphics/drawable/Drawable;", "setTint",
+     "(I)V", "(Landroid/graphics/drawable/Drawable;I)V"),
+    ("Landroid/graphics/drawable/GradientDrawable;", "setColors",
+     "([I)V", "(Landroid/graphics/drawable/GradientDrawable;[I)V"),
     ("Landroid/graphics/Paint;", "setColor",
      "(I)V", "(Landroid/graphics/Paint;I)V"),
     ("Landroid/graphics/drawable/GradientDrawable;", "setColor",
@@ -312,6 +400,10 @@ COLOUR_SOURCES: List[Tuple[str, str, str]] = [
      "(ILandroid/graphics/PorterDuff$Mode;)V",
      "(Landroid/widget/ImageView;ILandroid/graphics/PorterDuff$Mode;)V"),
     ("Landroid/widget/TextView;", "setTextColor",
+     "(I)V", "(Landroid/widget/TextView;I)V"),
+    ("Lcom/bytedance/tux/input/TuxTextView;", "setTextColor",
+     "(I)V", "(Landroid/widget/TextView;I)V"),
+    ("Lcom/bytedance/tux/input/TuxTextView;", "setHintTextColor",
      "(I)V", "(Landroid/widget/TextView;I)V"),
     ("Landroid/view/View;", "setBackgroundColor",
      "(I)V", "(Landroid/view/View;I)V"),
@@ -427,6 +519,21 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
                        % (re.escape(owner), theirs, re.escape(original))),
             r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
         ))
+    for label, descriptor, ours, target in DISCOVERED_VIRTUALS:
+        found = FOUND.get(label)
+        if found is None:
+            continue
+        owner, theirs = found
+        # the receiver is already the first register of an invoke-virtual, so
+        # the instruction keeps its registers and only its kind changes; the
+        # mod takes that receiver as a plain Object and hands the call back
+        out.append((
+            label,
+            re.compile(r"invoke-virtual(/range)? (\{[^}]*\}), %s->%s%s"
+                       % (re.escape(owner), re.escape(theirs), re.escape(descriptor))),
+            r"invoke-static\1 \2, %s->%s%s"
+            % (target, ours, "(Ljava/lang/Object;" + descriptor[1:]),
+        ))
     for label, descriptor, ours, target in DISCOVERED_STATICS:
         found = FOUND.get(label)
         if found is None:
@@ -481,7 +588,8 @@ def rewrite_models(root: str) -> Dict[str, int]:
                        + [name for name, _o, _r, _t in WILD_SOURCES]
                        # and one whose owner was found rather than written down
                        # is recognised by the owner that was found
-                       + [FOUND[label][0] for label, _d, _o, _t in DISCOVERED_STATICS
+                       + [FOUND[label][0]
+                          for label, _d, _o, _t in DISCOVERED_STATICS + DISCOVERED_VIRTUALS
                           if label in FOUND]))
     for dirpath, _dirs, files in os.walk(root):
         for name in files:
@@ -557,7 +665,7 @@ def touches_a_model(dex: bytes) -> bool:
     for name, _original, _replacement, _target in WILD_SOURCES:
         if name.encode() in dex:
             return True
-    for label, _descriptor, _ours, _target in DISCOVERED_STATICS:
+    for label, _descriptor, _ours, _target in DISCOVERED_STATICS + DISCOVERED_VIRTUALS:
         found = FOUND.get(label)
         if found and found[0].encode() in dex and found[1].encode() in dex:
             return True
@@ -791,6 +899,10 @@ def rewrite_targets() -> List[str]:
     for label, descriptor, ours, target in DISCOVERED_STATICS:
         if label in FOUND:
             out.append("%s->%s%s" % (target, ours, descriptor))
+    for label, descriptor, ours, target in DISCOVERED_VIRTUALS:
+        if label in FOUND:
+            out.append("%s->%s%s"
+                       % (target, ours, "(Ljava/lang/Object;" + descriptor[1:]))
     return out
 
 
@@ -875,7 +987,7 @@ def find_statics(dexes: Dict[str, bytes]) -> Dict[str, Tuple[str, str]]:
     place is worse than one that does not land at all.
     """
     wanted = {descriptor: label for label, descriptor, _ours, _target
-              in DISCOVERED_STATICS}
+              in DISCOVERED_STATICS + DISCOVERED_VIRTUALS}
     seen: Dict[str, set] = {label: set() for label in wanted.values()}
 
     for dex in dexes.values():

@@ -48,6 +48,16 @@ public final class MargyProvider extends ContentProvider {
             Diary.note("badges failed to start: " + error);
         }
         try {
+            Themes.keepAtIt();
+        } catch (Throwable error) {
+            Diary.note("themes failed to start: " + error);
+        }
+        try {
+            TikTokYou.start(context);
+        } catch (Throwable error) {
+            Diary.note("tiktok you failed to start: " + error);
+        }
+        try {
             Streaks.start(context);
         } catch (Throwable error) {
             Diary.note("streaks failed to start: " + error);

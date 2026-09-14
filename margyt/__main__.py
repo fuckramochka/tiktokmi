@@ -1,6 +1,7 @@
 """MargyT's command line.
 
     python3 -m margyt path/to/tiktok.apk
+    python3 -m margyt --badge supporter 7551880794956989495
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ import os
 import sys
 
 from .build import Build
+from .grant import grant
 from .toolchain import Toolchain
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +22,15 @@ def main(argv=None) -> int:
         prog="margyt",
         description="Build MargyT from an official TikTok apk.",
     )
-    parser.add_argument("apk", help="a universal TikTok apk (type APK, not BUNDLE)")
+    parser.add_argument("apk", nargs="?",
+                        help="a universal TikTok apk (type APK, not BUNDLE)")
+    parser.add_argument("--badge", metavar="ID",
+                        help="give accounts this badge from badges.json instead of "
+                             "building: the ids follow, and the file is pushed")
+    parser.add_argument("uids", nargs="*", metavar="UID",
+                        help="the TikTok account ids to give it to")
+    parser.add_argument("--no-push", action="store_true",
+                        help="with --badge: edit badges.json but do not push it")
     parser.add_argument("-o", "--out", default=os.path.join(ROOT, "build", "margyt.apk"),
                         help="where the finished apk goes")
     parser.add_argument("--work", default=os.path.join(ROOT, "work"),
@@ -33,6 +43,17 @@ def main(argv=None) -> int:
                              "than code: vector icons, colour resources, selectors")
     args = parser.parse_args(argv)
 
+    if args.badge:
+        # the apk is positional and greedy, so with --badge the first account
+        # id lands in it -- it is an account id, not an apk, and belongs here
+        uids = ([args.apk] if args.apk else []) + args.uids
+        if not uids:
+            parser.error("--badge wants at least one account id after it")
+        print(grant(ROOT, args.badge, uids, push=not args.no_push))
+        return 0
+
+    if not args.apk:
+        parser.error("a TikTok apk to build from, or --badge to hand one out")
     if not os.path.exists(args.apk):
         parser.error("no apk at %s" % args.apk)
 

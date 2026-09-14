@@ -15,4 +15,8 @@ final class Anchors {
     /** comment sticker tapped */
     static final String COMMENT_STICKER_TAPPED = "X.0HcQ";
     static final String COMMENT_STICKER_TAPPED_METHOD = "LIZ";
+
+    /** comment sticker sheet */
+    static final String COMMENT_STICKER_SHEET = "X.0HmG";
+    static final String COMMENT_STICKER_SHEET_METHOD = "LJ";
 }

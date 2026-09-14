@@ -52,6 +52,8 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     public void onActivityResumed(Activity activity) {
         Plugins.onActivityResumed(activity);
         Screen.at(activity);
+        Updater.resumed(activity);
+        Themes.watch(activity);
 
         String name = activity.getClass().getName();
 

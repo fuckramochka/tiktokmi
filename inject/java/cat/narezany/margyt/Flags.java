@@ -12,9 +12,8 @@ import java.util.Map;
  *
  * Every feature in the app is behind a named flag, and the value of each is
  * decided per account on the server. Two people on the same version get
- * different apps: background playback, voice comments, the feed scrolling
- * itself -- all of them are already written, already shipped, and simply not
- * switched on for most accounts.
+ * different apps: voice comments, the splash advertisement, features already
+ * written and shipped and simply not switched on for every account.
  *
  * The flag is read through one class whose name is real,
  * `com.bytedance.ies.abmock.SettingsManager`, with one static per type -- no
@@ -35,12 +34,8 @@ public final class Flags {
 
     // the groups, each with a switch on the mod's screen
     public static final int ADS = 0;
-    public static final int BACKGROUND = 1;
-    public static final int AUTOSCROLL = 2;
-    public static final int VOICE = 3;
+    public static final int VOICE = 1;
 
-    public static final String KEY_BACKGROUND = "flag_background";
-    public static final String KEY_AUTOSCROLL = "flag_autoscroll";
     public static final String KEY_VOICE = "flag_voice";
 
     private static final class Override {
@@ -67,10 +62,6 @@ public final class Flags {
                 "enable_live_splash", "search_ad_refactor_enable", "search_enable_mix_adgap",
                 "commerce_enable");
 
-        put(BACKGROUND, Integer.valueOf(1), "background_play_enable");
-
-        put(AUTOSCROLL, Integer.valueOf(1), "fyp_auto_scroll");
-
         put(VOICE, Integer.valueOf(1), "audio_comment_publish");
     }
 
@@ -83,8 +74,6 @@ public final class Flags {
 
     private static String keyOf(int group) {
         switch (group) {
-            case BACKGROUND: return KEY_BACKGROUND;
-            case AUTOSCROLL: return KEY_AUTOSCROLL;
             default: return KEY_VOICE;
         }
     }

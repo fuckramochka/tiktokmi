@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.18",
-  "url": "https://github.com/narezany/MargyT/releases/download/v0.18/margyt.apk",
-  "notes": "A theme of your own, over the colours TikTok itself repaints when it switches between light and dark. Saving a sticker out of a comment, keeping a streak alive on its own, and four hidden features dropped because TikTok now ships them to everybody.",
-  "notes_ru": "Своя тема поверх тех цветов, которые тикток и сам перекрашивает при смене светлой темы на тёмную. Сохранение стикера из комментария, автоматическое продление серий и четыре скрытых функции убраны — тикток выдаёт их уже всем.",
-  "notes_uk": "Своя тема поверх тих кольорів, які тікток і сам перефарбовує при зміні світлої теми на темну. Збереження стікера з коментаря, автоматичне продовження серій та чотири приховані функції прибрано — тікток видає їх уже всім."
+  "version": "0.19",
+  "url": "https://github.com/narezany/MargyT/releases/download/v0.19/margyt.apk",
+  "notes": "Themes that reach the whole app, ten launcher icons to choose from, a typeface and an emoji pack of your own, badges for everyone who has one, and saving a sticker out of a comment.",
+  "notes_ru": "Темы, которые доходят до всего приложения, десять иконок на выбор, свой шрифт и свой пак эмодзи, значки у всех, кому они выданы, и сохранение стикера из комментария.",
+  "notes_uk": "Теми, які доходять до всього застосунку, десять іконок на вибір, свій шрифт і свій пак емодзі, значки в усіх, кому їх видано, та збереження стікера з коментаря."
 }

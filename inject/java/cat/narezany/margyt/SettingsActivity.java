@@ -73,6 +73,10 @@ public class SettingsActivity extends Activity {
     private boolean accentOpen;
     private boolean textOpen;
     private boolean backgroundOpen;
+    private boolean fontOpen;
+    private boolean iconOpen;
+    private ScrollView page;
+    private View donateAnchor;
     private boolean thanksOpen;
     private boolean streakOpen;
     private boolean diaryOpen;
@@ -83,8 +87,9 @@ public class SettingsActivity extends Activity {
         Margy.attach(this);
         skin = Skin.remembered(this);
         dressTheWindow();
+        maybeAskForSupport();
 
-        ScrollView scroll = new ScrollView(this);
+        ScrollView scroll = page = new ScrollView(this);
         scroll.setBackgroundColor(skin.page);
         scroll.setFillViewport(true);
 
@@ -127,6 +132,8 @@ public class SettingsActivity extends Activity {
         column.addView(backArrow());
         column.addView(title("MargyT"));
 
+        column.addView(donateBanner());
+
         column.addView(section(Text.REGION));
         LinearLayout head = card();
         head.addView(switchRow());
@@ -149,6 +156,10 @@ public class SettingsActivity extends Activity {
         if (accentOpen) {
             accent.addView(line());
             accent.addView(palette());
+            if (Accent.fromWallpaper() != 0) {
+                accent.addView(line());
+                accent.addView(wallpaperRow());
+            }
         }
         column.addView(wrap(accent));
 
@@ -179,10 +190,56 @@ public class SettingsActivity extends Activity {
                     theme.addView(shades(false));
                 }
             }
+            if (!Themes.isMaterial()) {
+                theme.addView(line());
+                theme.addView(strengthRow());
+            }
             theme.addView(line());
             theme.addView(quiet(Text.THEME_NOTE));
         }
         column.addView(wrap(theme));
+
+        column.addView(section(Text.FONT));
+        LinearLayout fonts = card();
+        fonts.addView(fontHead());
+        if (fontOpen) {
+            fonts.addView(line());
+            fonts.addView(fontChoices());
+        }
+        column.addView(wrap(fonts));
+
+        column.addView(section(Text.ICON));
+        LinearLayout icons = card();
+        icons.addView(iconHead());
+        if (iconOpen) {
+            icons.addView(line());
+            icons.addView(iconChoices());
+        }
+        column.addView(wrap(icons));
+
+        column.addView(section(Text.TTYOU));
+        LinearLayout tty = card();
+        tty.addView(toggleRow("group", Text.TTYOU_ON, TikTokYou.isEnabled(), on -> {
+            TikTokYou.setEnabled(on);
+            rebuild();
+        }));
+        if (TikTokYou.isEnabled()) {
+            tty.addView(line());
+            tty.addView(actionRow("text_fields", Text.TTYOU_PREFIX, TikTokYou.prefix(),
+                    () -> Popup.write(this, Text.TTYOU_PREFIX, TikTokYou.prefix(),
+                            Text.SAVE, written -> {
+                                TikTokYou.setPrefix(written.trim().length() == 0
+                                        ? TikTokYou.DEFAULT_PREFIX : written.trim());
+                                rebuild();
+                            })));
+        }
+        tty.addView(line());
+        tty.addView(actionRow("info", Text.TTYOU_WHY, null,
+                () -> Popup.show(this, Text.TTYOU_WHY, Text.TTYOU_WHY_TEXT,
+                        null, Pictures.AGAINST, Text.AGAINST_CAPTIONS)));
+        tty.addView(line());
+        tty.addView(quiet(Text.TTYOU_NOTE));
+        column.addView(wrap(tty));
 
         column.addView(section(Text.FEED));
         LinearLayout feed = card();
@@ -199,8 +256,6 @@ public class SettingsActivity extends Activity {
         column.addView(section(Text.HIDDEN));
         LinearLayout hidden = card();
         String[][] antiAb = {
-                {"play_circle", Text.BACKGROUND, Flags.KEY_BACKGROUND},
-                {"swap_vert", Text.AUTOSCROLL, Flags.KEY_AUTOSCROLL},
                 {"mic", Text.VOICE, Flags.KEY_VOICE},
         };
         for (int i = 0; i < antiAb.length; i++) {
@@ -245,6 +300,25 @@ public class SettingsActivity extends Activity {
         column.addView(wrap(plugins));
         column.addView(caption(Text.PLUGIN_WARNING));
 
+        column.addView(section(Text.STREAKS));
+        LinearLayout streaks = card();
+        streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(),
+                Streaks::setEnabled));
+        streaks.addView(line());
+        streaks.addView(stickerHead());
+        if (streakOpen) {
+            streaks.addView(line());
+            streaks.addView(stickerChoices());
+        }
+        streaks.addView(line());
+        streaks.addView(actionRow("play_circle", Text.STREAK_TEST, Text.STREAK_TEST_NOTE,
+                () -> {
+                    Streaks.test(this);
+                    Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
+                }));
+        column.addView(wrap(streaks));
+        column.addView(caption(Text.STREAK_NOTE));
+
         column.addView(section(Text.LINKS));
         LinearLayout links = card();
         links.addView(linkRow("link", Text.CHANNEL, "@margytiktok", CHANNEL));
@@ -261,7 +335,8 @@ public class SettingsActivity extends Activity {
             links.addView(line());
             links.addView(thanks());
         }
-        column.addView(wrap(links));
+        donateAnchor = wrap(links);
+        column.addView(donateAnchor);
 
         column.addView(section(Text.ACCOUNT));
         LinearLayout account = card();
@@ -269,19 +344,6 @@ public class SettingsActivity extends Activity {
         account.addView(line());
         account.addView(idRow(Text.ACCOUNT_SEC_ID, Account.secId()));
         column.addView(wrap(account));
-
-        column.addView(section(Text.STREAKS));
-        LinearLayout streaks = card();
-        streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(),
-                Streaks::setEnabled));
-        streaks.addView(line());
-        streaks.addView(stickerHead());
-        if (streakOpen) {
-            streaks.addView(line());
-            streaks.addView(stickerChoices());
-        }
-        column.addView(wrap(streaks));
-        column.addView(caption(Text.STREAK_NOTE));
 
         column.addView(section(Text.UPDATE));
         LinearLayout updates = card();
@@ -433,6 +495,382 @@ public class SettingsActivity extends Activity {
         });
         return sized(row, 56);
     }
+
+    /** Counted in preferences: asked on the third visit and then never again. */
+    private static final String VISITS = "settings_visits";
+    private static final String ASKED = "settings_asked";
+    private static final int ON_VISIT = 3;
+
+    /**
+     * Ask once, on the third time this screen is opened.
+     *
+     * Once, and only once: refusing is remembered for good, and so is having
+     * been asked. Somebody who opens the settings twenty times should be left
+     * alone after the first answer.
+     */
+    private void maybeAskForSupport() {
+        try {
+            android.content.SharedPreferences prefs =
+                    getSharedPreferences(Margy.PREFS, MODE_PRIVATE);
+            if (prefs.getBoolean(ASKED, false)) return;
+
+            int visits = prefs.getInt(VISITS, 0) + 1;
+            prefs.edit().putInt(VISITS, visits).apply();
+            if (visits < ON_VISIT) return;
+            prefs.edit().putBoolean(ASKED, true).apply();
+
+            column.post(() -> Popup.ask(this, Text.REMIND_TITLE, Text.REMIND_TEXT,
+                    Text.REMIND_MORE, this::showDonations,
+                    Text.REMIND_NEVER, null,
+                    null, null));
+        } catch (Throwable error) {
+            Diary.note("settings: " + error);
+        }
+    }
+
+    // ------------------------------------------------------ the donation
+
+    /**
+     * The first thing on the screen, and the only thing here that asks for
+     * something. Short, because a long one is an advertisement.
+     */
+    private View donateBanner() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(18), dp(16), dp(18), dp(16));
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(Math.max(skin.radius, dp(18)));
+        background.setColor(skin.card);
+        card.setBackground(background);
+
+        TextView head = new TextView(this);
+        head.setText(Text.DONATE_BANNER);
+        head.setTextColor(skin.text);
+        head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+        head.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        card.addView(head);
+
+        TextView body = new TextView(this);
+        body.setText(Text.DONATE_BANNER_TEXT);
+        body.setTextColor(skin.text);
+        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        body.setPadding(0, dp(4), 0, 0);
+        card.addView(body);
+
+        TextView how = new TextView(this);
+        how.setText(Text.DONATE_BANNER_HOW);
+        how.setTextColor(skin.muted());
+        how.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        how.setPadding(0, dp(8), 0, 0);
+        card.addView(how);
+
+        TextView go = new TextView(this);
+        go.setText(Text.DONATE_BANNER_BUTTON);
+        go.setTextColor(onAccent());
+        go.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        go.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        go.setGravity(Gravity.CENTER);
+        go.setPadding(0, dp(11), 0, dp(11));
+        GradientDrawable pill = new GradientDrawable();
+        pill.setColor(Accent.colour());
+        pill.setCornerRadius(dp(14));
+        go.setBackground(pill);
+        go.setOnClickListener(v -> showDonations());
+
+        TextView write = new TextView(this);
+        write.setText(Text.DONATE_BANNER_WRITE);
+        write.setTextColor(skin.text);
+        write.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        write.setGravity(Gravity.CENTER);
+        write.setPadding(0, dp(11), 0, dp(11));
+        GradientDrawable quiet = new GradientDrawable();
+        quiet.setColor(0x00000000);
+        quiet.setCornerRadius(dp(14));
+        quiet.setStroke(dp(1), skin.muted());
+        write.setBackground(quiet);
+        write.setOnClickListener(v -> open(OWNER_TELEGRAM));
+
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams below = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        below.topMargin = dp(14);
+
+        LinearLayout.LayoutParams half =
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        LinearLayout.LayoutParams second =
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        second.leftMargin = dp(8);
+        buttons.addView(go, half);
+        buttons.addView(write, second);
+        card.addView(buttons, below);
+
+        LinearLayout holder = new LinearLayout(this);
+        holder.setPadding(skin.margin, dp(14), skin.margin, dp(2));
+        holder.addView(card, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return holder;
+    }
+
+    /** Open the thanks, then take the screen down to it. */
+    private void showDonations() {
+        thanksOpen = true;
+        rebuild();
+        final View anchor = donateAnchor;
+        if (page == null || anchor == null) return;
+        page.post(() -> {
+            try {
+                page.smoothScrollTo(0, anchor.getTop());
+            } catch (Throwable ignored) {
+            }
+        });
+    }
+
+    /** Two colours mixed, for a banner that is the accent without shouting. */
+    private static int blend(int colour, int into, float how) {
+        int red = (int) (((colour >> 16) & 0xFF) * (1 - how) + ((into >> 16) & 0xFF) * how);
+        int green = (int) (((colour >> 8) & 0xFF) * (1 - how) + ((into >> 8) & 0xFF) * how);
+        int blue = (int) ((colour & 0xFF) * (1 - how) + (into & 0xFF) * how);
+        return 0xFF000000 | (red << 16) | (green << 8) | blue;
+    }
+
+    // -------------------------------------------------------- the colours
+
+    private View wallpaperRow() {
+        final int colour = Accent.fromWallpaper();
+        LinearLayout row = row();
+        row.addView(icon("wallpaper"));
+        row.addView(label(Text.ACCENT_WALLPAPER), grow());
+        row.addView(new Dot(this, colour, colour == Accent.colour()));
+        row.setOnClickListener(v -> {
+            Accent.set(colour);
+            markChanged();
+        });
+        return sized(row, 56);
+    }
+
+    /** How far the chosen background sits from the theme's own extreme. */
+    private View strengthRow() {
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        rows.setPadding(dp(16), dp(12), dp(16), dp(14));
+
+        rows.addView(label(Text.THEME_STRENGTH));
+
+        android.widget.SeekBar bar = new android.widget.SeekBar(this);
+        bar.setMax(100);
+        bar.setProgress(Themes.strength());
+        bar.getProgressDrawable().setColorFilter(
+                Accent.colour(), android.graphics.PorterDuff.Mode.SRC_IN);
+        bar.getThumb().setColorFilter(
+                Accent.colour(), android.graphics.PorterDuff.Mode.SRC_IN);
+        bar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seek, int value, boolean human) {
+            }
+
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar seek) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar seek) {
+                Themes.setStrength(seek.getProgress());
+                markChanged();
+            }
+        });
+        rows.addView(bar);
+        rows.addView(quiet(Text.THEME_STRENGTH_NOTE));
+        return rows;
+    }
+
+    // ---------------------------------------------------------- the font
+
+    private static final int PICK_FONT = 0x4D46;  // "MF"
+    private static final int PICK_EMOJI = 0x4D45;  // "ME"
+
+    private View fontHead() {
+        LinearLayout row = row();
+        row.addView(icon("text_fields"));
+        row.addView(label(Text.FONT), grow());
+
+        TextView now = detail(fontName(Fonts.name()));
+        now.setTextColor(skin.text);
+        row.addView(now);
+
+        TextView chevron = new TextView(this);
+        chevron.setText(fontOpen ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        chevron.setPadding(dp(12), 0, 0, 0);
+        row.addView(chevron);
+
+        row.setOnClickListener(v -> {
+            fontOpen = !fontOpen;
+            rebuild();
+        });
+        return sized(row, 56);
+    }
+
+    private static String fontName(String which) {
+        if (Fonts.SANS.equals(which)) return Text.FONT_SANS;
+        if (Fonts.SANS_LIGHT.equals(which)) return Text.FONT_SANS_LIGHT;
+        if (Fonts.SANS_CONDENSED.equals(which)) return Text.FONT_SANS_CONDENSED;
+        if (Fonts.SERIF.equals(which)) return Text.FONT_SERIF;
+        if (Fonts.MONOSPACE.equals(which)) return Text.FONT_MONOSPACE;
+        if (Fonts.CURSIVE.equals(which)) return Text.FONT_CURSIVE;
+        if (Fonts.FILE.equals(which)) return Text.FONT_FILE;
+        return Text.FONT_SYSTEM;
+    }
+
+    private View fontChoices() {
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+
+        String now = Fonts.name();
+        for (int i = 0; i < Fonts.PRESETS.length; i++) {
+            final String which = Fonts.PRESETS[i];
+            if (i > 0) rows.addView(line());
+            rows.addView(pickRow(fontName(which), which.equals(now),
+                    Fonts.SYSTEM.equals(which) ? null : which, () -> {
+                        Fonts.choose(which);
+                        markChanged();
+                    }));
+        }
+        rows.addView(line());
+        rows.addView(actionRow("download", Text.FONT_PICK,
+                Fonts.FILE.equals(now) ? Text.FONT_FILE : null, this::pickFont));
+
+        rows.addView(line());
+        rows.addView(section(Text.EMOJI));
+        String emoji = Fonts.emoji();
+        rows.addView(pickRow(Text.EMOJI_SYSTEM, Fonts.SYSTEM.equals(emoji), null, () -> {
+            Fonts.chooseEmoji(this, Fonts.SYSTEM);
+            markChanged();
+        }));
+        rows.addView(line());
+        rows.addView(pickRow(Text.EMOJI_TWEMOJI, Fonts.TWEMOJI.equals(emoji), null, () -> {
+            Fonts.chooseEmoji(this, Fonts.TWEMOJI);
+            if (!Fonts.emojiReady(this)) {
+                Toast.makeText(this, Text.EMOJI_FETCHING, Toast.LENGTH_LONG).show();
+            }
+            markChanged();
+        }));
+        rows.addView(line());
+        rows.addView(actionRow("download", Text.EMOJI_FILE,
+                Fonts.EMOJI_FILE.equals(emoji) ? Text.EMOJI_FILE : null, this::pickEmoji));
+        rows.addView(quiet(Text.EMOJI_NOTE));
+        return rows;
+    }
+
+    private void pickEmoji() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            startActivityForResult(intent, PICK_EMOJI);
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * A row that is one of several answers to one question.
+     *
+     * `preview` is a typeface name to write the row in, so a font can be read
+     * before it is chosen; null leaves the row in the app's own.
+     */
+    private View pickRow(String title, boolean chosen, String preview, final Runnable action) {
+        LinearLayout row = row();
+        row.setPadding(dp(16), 0, dp(16), 0);
+
+        TextView name = label(title);
+        if (preview != null) {
+            try {
+                name.setTypeface(android.graphics.Typeface.create(
+                        preview, android.graphics.Typeface.NORMAL));
+            } catch (Throwable ignored) {
+            }
+        }
+        row.addView(name, grow());
+        if (chosen) row.addView(new Check(this, Accent.colour()));
+        row.setOnClickListener(v -> action.run());
+        return sized(row, 52);
+    }
+
+    private void pickFont() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            startActivityForResult(intent, PICK_FONT);
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // ---------------------------------------------------------- the icon
+
+    private View iconHead() {
+        LinearLayout row = row();
+        row.addView(icon("image"));
+        row.addView(label(Text.ICON), grow());
+
+        TextView now = detail(Launcher.nameOf(Launcher.chosen()));
+        now.setTextColor(skin.text);
+        row.addView(now);
+
+        TextView chevron = new TextView(this);
+        chevron.setText(iconOpen ? "⌃" : "⌄");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        chevron.setPadding(dp(12), 0, 0, 0);
+        row.addView(chevron);
+
+        row.setOnClickListener(v -> {
+            iconOpen = !iconOpen;
+            rebuild();
+        });
+        return sized(row, 56);
+    }
+
+    private View iconChoices() {
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+
+        String now = Launcher.chosen();
+        String[] all = Launcher.all();
+        for (int i = 0; i < all.length; i++) {
+            final String which = all[i];
+            if (i > 0) rows.addView(line());
+            LinearLayout row = row();
+            row.setPadding(dp(16), 0, dp(16), 0);
+
+            android.widget.ImageView shot = new android.widget.ImageView(this);
+            android.graphics.Bitmap picture = Launcher.preview(which);
+            if (picture != null) shot.setImageBitmap(picture);
+            LinearLayout.LayoutParams size =
+                    new LinearLayout.LayoutParams(dp(34), dp(34));
+            size.rightMargin = dp(14);
+            row.addView(shot, size);
+
+            row.addView(label(Launcher.nameOf(which)), grow());
+            if (which.equals(now)) row.addView(new Check(this, Accent.colour()));
+            row.setOnClickListener(v -> {
+                Launcher.choose(this, which);
+                rebuild();
+            });
+            rows.addView(sized(row, 56));
+        }
+        rows.addView(line());
+        rows.addView(quiet(Text.ICON_NOTE));
+        rows.addView(linkRow("link", Text.ICON_CONTEST, "@margytiktok", CONTEST));
+        return rows;
+    }
+
+    /** Where the icons come from. */
+    private static final String CONTEST = "https://t.me/margytiktok/49";
 
     /** The row that opens one of the theme's two colours. */
     private View shadeHead(final boolean forText) {
@@ -867,9 +1305,17 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
-        if (request != PICK_PLUGIN || result != RESULT_OK || data == null) return;
+        if (result != RESULT_OK || data == null) return;
         Uri source = data.getData();
         if (source == null) return;
+
+        if (request == PICK_FONT || request == PICK_EMOJI) {
+            if (Fonts.take(this, source, request == PICK_EMOJI)) markChanged();
+            else Toast.makeText(this, Text.FONT_FAILED, Toast.LENGTH_LONG).show();
+            rebuild();
+            return;
+        }
+        if (request != PICK_PLUGIN) return;
         try {
             Plugins.install(this, source);
             Toast.makeText(this, Text.PLUGIN_INSTALLED, Toast.LENGTH_SHORT).show();

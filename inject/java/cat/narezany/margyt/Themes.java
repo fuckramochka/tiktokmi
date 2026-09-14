@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
+import android.view.View;
 
 /**
  * A theme of your own, over the one TikTok is wearing.
@@ -34,6 +35,7 @@ public final class Themes {
     public static final String KEY_MATERIAL = "theme_material";
     public static final String KEY_TEXT = "theme_text";
     public static final String KEY_BACKGROUND = "theme_background";
+    public static final String KEY_STRENGTH = "theme_strength";
 
     /** What the mod falls back to: TikTok's own dark, near enough. */
     private static final int TEXT = 0xFFFFFFFF;
@@ -74,6 +76,63 @@ public final class Themes {
     }
 
     /**
+     * How much of the chosen background colour to actually use, 0 to 100.
+     *
+     * A background is mostly not a colour, it is a darkness -- and a screen
+     * painted in full green is a toy rather than a theme. So the colour picked
+     * is one end of a line whose other end is the theme's own extreme, black
+     * in the dark theme and white in the light one, and this says how far
+     * along that line to sit. At 10 it is a black that is faintly green; at
+     * 100 it is green.
+     */
+    public static int strength() {
+        Settled now = settled;
+        return (now == null ? read() : now).strength;
+    }
+
+    public static void setStrength(int percent) {
+        if (percent < 0) percent = 0;
+        if (percent > 100) percent = 100;
+        put(KEY_STRENGTH, percent);
+    }
+
+    /** The chosen colour as it will actually be used. */
+    public static int backgroundInUse() {
+        Settled now = settled;
+        if (now == null) now = read();
+        return toned(now.background, now.strength);
+    }
+
+    /**
+     * The chosen colour at the depth asked for.
+     *
+     * Not a mix with black, which is what this used to be: mixing a colour
+     * with black by channel takes the colour away with it, so at a tenth of
+     * the way the answer was black and nothing else. What is wanted is the
+     * same colour, darker -- so the hue and the saturation are kept exactly
+     * and only the brightness is moved. A tenth of the way is now a very dark
+     * green rather than a black that used to be green.
+     */
+    private static int toned(int chosen, int percent) {
+        try {
+            float[] hsv = new float[3];
+            android.graphics.Color.colorToHSV(chosen, hsv);
+            float how = percent / 100.0f;
+            if (isDark()) {
+                // from nearly black up to the colour's own brightness
+                hsv[2] = 0.04f + (hsv[2] - 0.04f) * how;
+            } else {
+                // and from nearly white down to it
+                hsv[2] = 1.0f - (1.0f - hsv[2]) * how;
+                hsv[1] = hsv[1] * how;
+            }
+            return 0xFF000000 | (android.graphics.Color.HSVToColor(hsv) & 0xFFFFFF);
+        } catch (Throwable ignored) {
+            return chosen;
+        }
+    }
+
+    /**
      * What the settings say, read once and kept.
      *
      * This is asked on every colour the app draws -- `Paint.setColor` alone is
@@ -89,12 +148,14 @@ public final class Themes {
         final boolean material;
         final int text;
         final int background;
+        final int strength;
 
-        Settled(boolean on, boolean material, int text, int background) {
+        Settled(boolean on, boolean material, int text, int background, int strength) {
             this.on = on;
             this.material = material;
             this.text = text;
             this.background = background;
+            this.strength = strength;
         }
     }
 
@@ -112,7 +173,11 @@ public final class Themes {
         if (chosenText == 0) chosenText = number(KEY_TEXT, TEXT);
         if (chosenBackground == 0) chosenBackground = number(KEY_BACKGROUND, BACKGROUND);
 
-        Settled fresh = new Settled(on, material, chosenText, chosenBackground);
+        int strength = number(KEY_STRENGTH, 100);
+        if (strength < 0) strength = 0;
+        if (strength > 100) strength = 100;
+
+        Settled fresh = new Settled(on, material, chosenText, chosenBackground, strength);
         settled = fresh;
         return fresh;
     }
@@ -155,18 +220,30 @@ public final class Themes {
      * the list, or when there is nothing sensible to say -- so a caller can
      * hand anything to this and use the answer without asking.
      */
-    public static int recolour(int colour) {
+    /**
+     * A colour, if this is one of the ones the theme owns.
+     *
+     * `fromTheme` says how the colour was come by. True when it was read as a
+     * theme colour -- out of a theme attribute or a colour resource -- and any
+     * of the theme's colours is fair game. False when it is a number handed
+     * straight to a Paint, where only the colours that mean nothing else are
+     * safe to touch: TikTok's dark theme writes in white, and so does the
+     * caption over a video, and those two must not share a fate.
+     */
+    public static int recolour(int colour, boolean fromTheme) {
         Settled now = settled;
         if (now == null) now = read();
         if (!now.on) return colour;
-        if (!Nightly.owns(colour)) return colour;
+        if (!(fromTheme ? Nightly.owns(colour) : Nightly.unmistakable(colour))) {
+            return colour;
+        }
 
         // how far this colour is from its own theme's background: in the dark
         // theme the background is the black end, in the light theme the white
         float level = brightness(colour);
         if (!isDark()) level = 1.0f - level;
 
-        int mixed = mix(now.background, now.text, level);
+        int mixed = mix(toned(now.background, now.strength), now.text, level);
         return (colour & 0xFF000000) | (mixed & 0xFFFFFF);
     }
 
@@ -191,6 +268,202 @@ public final class Themes {
     private static int round(int from, int to, float how) {
         return (int) (from + (to - from) * how + 0.5f);
     }
+
+    // ------------------------------------------------- the ones already drawn
+
+    /**
+     * Repaint what is already on screen.
+     *
+     * Every rule in the patcher rewrites TikTok's own bytecode, and a
+     * background written in a layout is never touched by TikTok's bytecode at
+     * all: the framework reads the attribute and builds the drawable inside
+     * its own code, where nothing can be rewritten. That is most of the
+     * comments panel, the inbox and a conversation -- which is exactly what
+     * stayed TikTok's own colour while everything else moved.
+     *
+     * So those are dealt with from the other end, after they exist. The tree
+     * is walked and anything wearing a colour the theme owns is repainted. It
+     * is bounded: only flat colours, only colours on the list, and a cap on
+     * how much of a tree is walked at once.
+     */
+    public static void repaint(View root) {
+        Settled now = settled;
+        if (now == null) now = read();
+        if (!now.on || root == null) return;
+        try {
+            seen = 0;
+            walk(root, 0);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+     * How deep to go, and how much to do at once.
+     *
+     * Fourteen was far too shallow and it showed: a comment sheet is a few
+     * levels down and was reached, while a profile or the inbox -- a fragment
+     * inside a pager inside a list inside a coordinator -- is twenty and more,
+     * and the walk simply stopped before it got there. The budget is what
+     * keeps this bounded now, rather than the depth: a screen is a few hundred
+     * views, and anything claiming to be tens of thousands is not a screen.
+     */
+    private static final int DEEP = 40;
+    private static final int BUDGET = 4000;
+
+    private static int seen;
+
+    /**
+     * Repaint a drawable, whatever kind it turns out to be.
+     *
+     * A flat colour is the easy case and not the common one: a panel is
+     * usually a shape with rounded corners, and a row is often a stack of
+     * drawables with the colour somewhere inside it. Both are followed. A
+     * shape is repainted where it stands, which is why the view is handed in
+     * as well -- the same shape can be shared between views, and a new one is
+     * made rather than the shared one changed.
+     */
+    private static void paint(android.graphics.drawable.Drawable drawable,
+                              View view, int depth) {
+        if (drawable == null || depth > 3) return;
+        try {
+            if (drawable instanceof android.graphics.drawable.ColorDrawable) {
+                int was = ((android.graphics.drawable.ColorDrawable) drawable).getColor();
+                int now = recolour(was, true);
+                if (now != was && view != null) {
+                    view.setBackground(new android.graphics.drawable.ColorDrawable(now));
+                }
+                return;
+            }
+            if (drawable instanceof android.graphics.drawable.GradientDrawable) {
+                android.graphics.drawable.GradientDrawable shape =
+                        (android.graphics.drawable.GradientDrawable) drawable;
+                android.content.res.ColorStateList held =
+                        Build.VERSION.SDK_INT >= 24 ? shape.getColor() : null;
+                if (held == null) return;
+                int was = held.getDefaultColor();
+                int now = recolour(was, true);
+                if (now != was) {
+                    android.graphics.drawable.Drawable copy = shape.mutate();
+                    ((android.graphics.drawable.GradientDrawable) copy).setColor(now);
+                    if (view != null) view.setBackground(copy);
+                }
+                return;
+            }
+            if (drawable instanceof android.graphics.drawable.LayerDrawable) {
+                android.graphics.drawable.LayerDrawable layers =
+                        (android.graphics.drawable.LayerDrawable) drawable;
+                for (int i = 0; i < layers.getNumberOfLayers(); i++) {
+                    paint(layers.getDrawable(i), null, depth + 1);
+                }
+                return;
+            }
+            if (drawable instanceof android.graphics.drawable.InsetDrawable) {
+                paint(((android.graphics.drawable.InsetDrawable) drawable).getDrawable(),
+                        null, depth + 1);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void walk(View view, int depth) {
+        if (view == null || depth > DEEP || ++seen > BUDGET) return;
+
+        paint(view.getBackground(), view, 0);
+
+        // Backgrounds only. Text colours are already answered where the app
+        // sets them, in their thousands, and repainting them here as well
+        // collapsed two colours that were close into one: the labels under the
+        // last row of the share sheet came out the colour of the sheet.
+
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            int many = group.getChildCount();
+            for (int i = 0; i < many; i++) walk(group.getChildAt(i), depth + 1);
+        }
+    }
+
+    /**
+     * Watch a screen, so that panels opened inside it are repainted too.
+     *
+     * A comment sheet or a conversation is not a new screen as far as Android
+     * is concerned -- it is more views inside the one that is already up -- so
+     * waiting for the next screen would never repaint them. A layout listener
+     * hears about them, and the work is held off until the layouts stop
+     * arriving, because one of these fires many times a second while anything
+     * is moving.
+     */
+    public static void watch(final android.app.Activity activity) {
+        if (activity == null) return;
+        try {
+            final View root = activity.getWindow().getDecorView();
+            if (Boolean.TRUE.equals(root.getTag(WATCHING))) {
+                repaint(root);
+                Badge.rewrite(root);
+                return;
+            }
+            root.setTag(WATCHING, Boolean.TRUE);
+            root.getViewTreeObserver().addOnGlobalLayoutListener(
+                    new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override
+                        public void onGlobalLayout() {
+                            long now = android.os.SystemClock.uptimeMillis();
+                            if (now - last < QUIET) return;
+                            last = now;
+                            repaint(root);
+                            Badge.rewrite(root);
+                        }
+                    });
+            repaint(root);
+            Badge.rewrite(root);
+        } catch (Throwable error) {
+            Diary.note("theme: " + error);
+        }
+    }
+
+    private static volatile long last;
+    private static final long QUIET = 400;
+
+    /**
+     * And a slow round, over and over, on whatever screen is up.
+     *
+     * A layout listener only hears about screens that lay themselves out
+     * again, and a screen that has finished settling never does -- which is
+     * why a name replaced at the end of loading, or a panel built once and
+     * left alone, was never caught. This does not wait to be told: it walks
+     * what is on screen every second and a half, and does nothing at all when
+     * there is nothing to change.
+     */
+    public static synchronized void keepAtIt() {
+        if (rounding) return;
+        rounding = true;
+        final android.os.Handler handler =
+                new android.os.Handler(android.os.Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    android.app.Activity now = Screen.now();
+                    if (now != null && !now.isFinishing()) {
+                        View root = now.getWindow().getDecorView();
+                        repaint(root);
+                        Badge.rewrite(root);
+                    }
+                } catch (Throwable ignored) {
+                }
+                handler.postDelayed(this, ROUND);
+            }
+        }, ROUND);
+    }
+
+    private static volatile boolean rounding;
+    private static final long ROUND = 1500;
+
+    // setTag(int, ...) wants a key that looks like a resource id, and every key
+    // the mod uses has to differ from every other one. This was the same
+    // number SettingsRow marks a window with, so whichever ran first told the
+    // other its work was already done -- and the MargyT row stopped appearing
+    // in TikTok's settings at all.
+    private static final int WATCHING = 0x4D61726A;  // "Marj"
 
     // ------------------------------------------------- which theme is on
 

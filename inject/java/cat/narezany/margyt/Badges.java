@@ -93,8 +93,11 @@ public static final String KEY = "badges_on";
         }
     }
 
-    /** uid -> badge. Replaced wholesale on a refresh, never edited in place. */
-    private static volatile Map<String, Badge> known = new HashMap<String, Badge>();
+    /**
+     * uid -> every badge that account has, in the order the file lists them.
+     * Replaced wholesale on a refresh, never edited in place.
+     */
+    private static volatile Map<String, Badge[]> known = new HashMap<String, Badge[]>();
 
     /**
      * The same badges by number, because a name has to carry which one it has.
@@ -113,21 +116,33 @@ public static final String KEY = "badges_on";
 
     private static volatile boolean started;
 
-    public static Badge of(String uid) {
+    public static Badge[] of(String uid) {
         if (uid == null) return null;
         return known.get(uid);
     }
 
-    /** The character that stands for this account's badge, or zero. */
-    public static char markFor(String uid) {
-        if (!isEnabled()) return 0;
-        Badge badge = of(uid);
-        if (badge == null) return 0;
+    /**
+     * The characters that stand for this account's badges, in order.
+     *
+     * An account can hold several -- one for supporting the mod, one for
+     * drawing an icon it ships with -- and each is its own character, so each
+     * becomes its own picture and answers its own tap.
+     */
+    public static String marksFor(String uid) {
+        if (!isEnabled()) return "";
+        Badge[] held = of(uid);
+        if (held == null || held.length == 0) return "";
         Badge[] list = numbered;
-        for (int i = 0; i < list.length; i++) {
-            if (list[i] == badge) return (char) (FIRST + i);
+        StringBuilder out = new StringBuilder(held.length);
+        for (Badge badge : held) {
+            for (int i = 0; i < list.length; i++) {
+                if (list[i] == badge) {
+                    out.append((char) (FIRST + i));
+                    break;
+                }
+            }
         }
-        return 0;
+        return out.toString();
     }
 
     /** Whether a character is one of ours, without looking anything up. */
@@ -154,7 +169,10 @@ public static final String KEY = "badges_on";
         started = true;
 
         byte[] cached = Net.read(file(context));
-        if (cached != null) apply(cached);
+        if (cached != null) {
+            apply(cached);
+            prefetch(context);
+        }
 
         final Handler handler = new Handler(Looper.getMainLooper());
         final Context application = context.getApplicationContext();
@@ -177,10 +195,33 @@ public static final String KEY = "badges_on";
                 if (old != null && java.util.Arrays.equals(old, fresh)) return;
                 if (apply(fresh)) {
                     Net.save(file(context), fresh);
-                    Diary.note("badges: " + known.size() + " from the repository");
+                    prefetch(context);
+                    Diary.note("badges: " + known.size() + " accounts, "
+                            + numbered.length + " badges");
                 }
             }
         });
+    }
+
+    /**
+     * Fetch every badge's picture now rather than when a name needs it.
+     *
+     * A picture asked for while a name is being drawn cannot be waited on --
+     * the badge falls back to the mod's own note and only becomes itself the
+     * next time that view is drawn, which is why badges used to appear a beat
+     * late or not at all on a profile. There are a handful of pictures and
+     * they are cached on disk, so fetching them all at the start costs one
+     * round trip on the first run and nothing afterwards.
+     */
+    private static void prefetch(Context context) {
+        try {
+            for (Badge badge : numbered) {
+                if (badge != null && badge.image.length() > 0) {
+                    picture(context, badge.image);
+                }
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     private static boolean apply(byte[] json) {
@@ -189,7 +230,10 @@ public static final String KEY = "badges_on";
             JSONArray list = root.optJSONArray("badges");
             if (list == null) return false;
 
-            Map<String, Badge> built = new HashMap<String, Badge>();
+            Map<String, java.util.List<Badge>> built =
+                    new HashMap<String, java.util.List<Badge>>();
+            java.util.LinkedHashMap<Badge, Boolean> distinct =
+                    new java.util.LinkedHashMap<Badge, Boolean>();
             for (int i = 0; i < list.length(); i++) {
                 JSONObject one = list.optJSONObject(i);
                 if (one == null) continue;
@@ -202,14 +246,18 @@ public static final String KEY = "badges_on";
                         localised(one, "button"));
                 JSONArray users = one.optJSONArray("users");
                 if (users == null) continue;
+                distinct.put(badge, Boolean.TRUE);
                 for (int u = 0; u < users.length(); u++) {
                     String uid = users.optString(u, "");
-                    if (uid.length() > 0) built.put(uid, badge);
+                    if (uid.length() == 0) continue;
+                    java.util.List<Badge> theirs = built.get(uid);
+                    if (theirs == null) {
+                        theirs = new java.util.ArrayList<Badge>(2);
+                        built.put(uid, theirs);
+                    }
+                    if (!theirs.contains(badge)) theirs.add(badge);
                 }
             }
-            java.util.LinkedHashMap<Badge, Boolean> distinct =
-                    new java.util.LinkedHashMap<Badge, Boolean>();
-            for (Badge badge : built.values()) distinct.put(badge, Boolean.TRUE);
             Badge[] order = new Badge[Math.min(distinct.size(), MOST)];
             int at = 0;
             for (Badge badge : distinct.keySet()) {
@@ -217,8 +265,13 @@ public static final String KEY = "badges_on";
                 order[at++] = badge;
             }
 
+            Map<String, Badge[]> settled = new HashMap<String, Badge[]>(built.size());
+            for (Map.Entry<String, java.util.List<Badge>> entry : built.entrySet()) {
+                settled.put(entry.getKey(), entry.getValue().toArray(new Badge[0]));
+            }
+
             numbered = order;
-            known = built;
+            known = settled;
             return true;
         } catch (Throwable error) {
             Diary.note("badges: unreadable, keeping the last ones -- " + error);

@@ -24,7 +24,7 @@ the distance it keeps from the chosen one.
 from __future__ import annotations
 
 import struct
-from typing import List, Set
+from typing import List, Set, Tuple
 
 from .arsc import Arsc
 from .palette import captures
@@ -36,8 +36,21 @@ FLAG_OFFSET16 = 0x02
 ENTRY_FLAG_COMPLEX = 0x0001
 
 
-def theme_colours(arsc: Arsc, accent_reference: int) -> List[int]:
-    """Every colour value that is one side of a light/dark pair, sorted."""
+def theme_colours(arsc: Arsc, accent_reference: int) -> Tuple[List[int], List[int]]:
+    """The theme's colours, and the subset that means nothing else.
+
+    Two lists, because knowing a colour belongs to the theme is not the same as
+    knowing that *this* use of it is the theme's. `#FFFFFFFF` is the dark
+    theme's text and it is also the white of an icon over a video and the white
+    of a photo's background; `#FF1B1B1B` is a card and is nothing else in the
+    whole apk.
+
+    So a colour that appears nowhere except in a theme token is repainted
+    wherever it turns up. One that is used elsewhere as an ordinary colour is
+    repainted only where it arrives *as* a theme colour -- read from a theme
+    attribute or a colour resource -- and left alone when some drawing code
+    simply asked for white.
+    """
     holds = {}
     for package in arsc.packages:
         for type_id, chunks in package.types.items():
@@ -50,18 +63,88 @@ def theme_colours(arsc: Arsc, accent_reference: int) -> List[int]:
 
     out: Set[int] = set()
     for values in holds.values():
-        if len(values) != 2:
+        # two for a plain light/dark pair, and up to four because some tokens
+        # carry a variant or two beside them
+        if not 2 <= len(values) <= 4:
             continue
-        first, second = sorted(values)
-        # the same colour at two opacities is one colour, not two themes
-        if (first & 0xFFFFFF) == (second & 0xFFFFFF):
+        # the same colour at several opacities is one colour, not two themes
+        if len(set(value & 0xFFFFFF for value in values)) < 2:
             continue
-        for value in (first, second):
+        for value in values:
             # the brand colour is the accent's to move, not the theme's
             if captures(value, accent_reference):
                 continue
             out.add(value)
-    return sorted(out)
+
+    # and the handful that are done the ordinary way, with a `night` variant
+    out |= _night_pairs(arsc, accent_reference)
+
+    elsewhere = _ordinary_colours(arsc)
+    safe = sorted(value for value in out if value not in elsewhere)
+    return sorted(out), safe
+
+
+def _night_pairs(arsc: Arsc, accent_reference: int) -> Set[int]:
+    """Colours that do have a `night` variant, few as they are.
+
+    Twenty-two resources in this apk, which is nothing next to the style table
+    -- but they are unambiguously the theme's, so there is no reason to leave
+    them out.
+    """
+    from .accent import _entry_count
+
+    out: Set[int] = set()
+    for package in arsc.packages:
+        for type_id in list(package.types):
+            name = package.type_names.get(type_id - 1) if package.type_names else None
+            if name != "color":
+                continue
+            for entry_id in range(_entry_count(arsc, package, type_id)):
+                res_id = (package.id << 24) | (type_id << 16) | entry_id
+                lit = dark = None
+                for value in arsc.values(res_id):
+                    if value.kind not in COLOUR_TYPES:
+                        continue
+                    if _is_night(value.config):
+                        dark = value.data
+                    elif not any(value.config[4:]):
+                        lit = value.data
+                if lit is None or dark is None or lit == dark:
+                    continue
+                for value in (lit, dark):
+                    if not captures(value, accent_reference):
+                        out.add(value)
+    return out
+
+
+# ResTable_config: screenLayout at 28, uiMode at 29
+_UI_MODE = 29
+_NIGHT_MASK = 0x30
+_NIGHT_YES = 0x20
+
+
+def _is_night(config: bytes) -> bool:
+    if len(config) <= _UI_MODE:
+        return False
+    return (config[_UI_MODE] & _NIGHT_MASK) == _NIGHT_YES
+
+
+def _ordinary_colours(arsc: Arsc) -> Set[int]:
+    """Every colour the table holds outside a theme, as a plain resource."""
+    from .accent import _entry_count
+
+    seen: Set[int] = set()
+    for package in arsc.packages:
+        for type_id in list(package.types):
+            name = package.type_names.get(type_id - 1) if package.type_names else None
+            if name not in ("color", "drawable"):
+                continue
+            for entry_id in range(_entry_count(arsc, package, type_id)):
+                res_id = (package.id << 24) | (type_id << 16) | entry_id
+                for value in arsc.values(res_id):
+                    if value.kind in COLOUR_TYPES:
+                        seen.add(value.data)
+    return seen
 
 
 def _bag_colours(arsc: Arsc, chunk: int):

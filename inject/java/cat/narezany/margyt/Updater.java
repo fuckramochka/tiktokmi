@@ -241,6 +241,13 @@ public final class Updater {
                 try {
                     if (Build.VERSION.SDK_INT >= 26
                             && !context.getPackageManager().canRequestPackageInstalls()) {
+                        // Asking for the permission means leaving the app, and
+                        // what used to happen is that coming back forgot the
+                        // whole thing: the apk sat on disk, downloaded, and
+                        // nothing ever offered to put it on again. So this
+                        // remembers that an install was underway, and the
+                        // first screen that comes up afterwards picks it up.
+                        waitingOnPermission = true;
                         Screen.say(Text.UPDATE_ALLOW);
                         Intent allow = new Intent(
                                 android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -249,6 +256,7 @@ public final class Updater {
                         context.startActivity(allow);
                         return;
                     }
+                    waitingOnPermission = false;
 
                     Uri apk = MargyProvider.share(context, file(context));
                     if (apk == null) {
@@ -266,6 +274,35 @@ public final class Updater {
                 }
             }
         });
+    }
+
+    /** Set while the person is away granting the permission the install needs. */
+    private static volatile boolean waitingOnPermission;
+
+    /**
+     * A screen came up. If an install was interrupted to ask for permission
+     * and the permission is now there, carry on with it.
+     *
+     * Called for every screen of the app, so it answers in two comparisons
+     * unless something is actually waiting.
+     */
+    public static void resumed(Context context) {
+        if (!waitingOnPermission) return;
+        try {
+            if (Build.VERSION.SDK_INT >= 26
+                    && !context.getPackageManager().canRequestPackageInstalls()) {
+                return;  // still not granted; it can stay pending
+            }
+            if (!waiting(context)) {
+                waitingOnPermission = false;
+                return;
+            }
+            waitingOnPermission = false;
+            Diary.note("install: the permission is there, carrying on");
+            install(context);
+        } catch (Throwable error) {
+            Diary.note("install: " + error);
+        }
     }
 
     /** Whether an apk is already waiting, so the settings can offer to put it on. */

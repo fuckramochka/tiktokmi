@@ -5,6 +5,9 @@ import android.view.View;
 import com.ss.android.ugc.aweme.base.model.UrlModel;
 import com.ss.android.ugc.aweme.comment.model.CommentImageStruct;
 import com.ss.android.ugc.aweme.comment.model.CommentStickerStruct;
+import com.ss.android.ugc.aweme.im.common.model.StickerItem;
+
+import kotlin.jvm.functions.Function0;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -86,6 +89,51 @@ public final class Comments {
         }
     }
 
+    /**
+     * The sheet that opens on a comment's sticker -- Share, Save, Use.
+     *
+     * This is the one, and the earlier attempts were not. The static the build
+     * found first turned out to be the Save button itself, which is why the
+     * offer only ever appeared once something in the sheet had been pressed.
+     * This is the method that builds the sheet, it is handed the sticker it is
+     * about, and it runs the moment the sheet opens.
+     *
+     * The sticker arrives as TikTok's own `StickerItem` -- the same model a
+     * sticker in a conversation is -- so saving it needs nothing new.
+     *
+     * The sheet is handed its call back first and the offer is made after, so
+     * that the offer's window is created second and lands on top of it.
+     */
+    public static void stickerSheet(Object helper, String where, StickerItem sticker,
+                                    View view, boolean saved, String from, Map extras,
+                                    Function0 onShare, Function0 onSave, Function0 onUse) {
+        try {
+            java.lang.reflect.Method their = null;
+            for (java.lang.reflect.Method method : helper.getClass().getMethods()) {
+                if (method.getName().equals(Anchors.COMMENT_STICKER_SHEET_METHOD)
+                        && method.getParameterTypes().length == 9) {
+                    their = method;
+                    break;
+                }
+            }
+            if (their != null) {
+                their.setAccessible(true);
+                their.invoke(helper, where, sticker, view, Boolean.valueOf(saved),
+                        from, extras, onShare, onSave, onUse);
+            } else {
+                Diary.note("comment sticker sheet: nothing to hand it back to");
+            }
+        } catch (Throwable error) {
+            Diary.note("comment sticker sheet: " + error);
+        }
+
+        try {
+            if (sticker != null && Stickers.isEnabled()) Stickers.seen(sticker);
+        } catch (Throwable error) {
+            Diary.note("comment sticker: " + error);
+        }
+    }
+
     /** The sticker a comment is carrying, remembered for the view that shows it. */
     public static CommentStickerStruct getStickerStruct(Object comment) {
         CommentStickerStruct sticker = null;
@@ -121,18 +169,20 @@ public final class Comments {
     public static void setOnLongClickListener(View view,
                                               final View.OnLongClickListener theirs) {
         if (view == null) return;
-        final CommentStickerStruct sticker = hunt(theirs, new HashSet<Object>(), 0);
-        final CommentStickerStruct fallback = lastBound;
-        if (sticker == null && fallback == null) {
-            view.setOnLongClickListener(theirs);
-            return;
-        }
+        // Wrapped without asking what the view is showing, because at the
+        // moment a listener is set it is usually showing nothing at all: these
+        // are recycled list rows, built once and filled over and over. Asking
+        // then found no sticker and left the row unwrapped for good, so the
+        // offer only ever turned up later, by way of the menu the press opens.
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View pressed) {
                 try {
                     if (Stickers.isEnabled()) {
-                        Stickers.seen(sticker != null ? sticker : fallback);
+                        CommentStickerStruct sticker =
+                                hunt(theirs, new HashSet<Object>(), 0);
+                        if (sticker == null) sticker = lastBound;
+                        if (sticker != null) Stickers.seen(sticker);
                     }
                 } catch (Throwable error) {
                     Diary.note("comment sticker: " + error);

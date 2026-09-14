@@ -13,7 +13,9 @@
   "badges": [
     {
       "id": "owner",
-      "users": ["7551880794956989495"],
+      "users": [
+        "7551880794956989495"
+      ],
       "colour": "8DD1B0",
       "title": "MargyT",
       "text": "The owner of Margy and MargyT",
@@ -25,7 +27,9 @@
     },
     {
       "id": "helper",
-      "users": ["6525428607760733199"],
+      "users": [
+        "6525428607760733199"
+      ],
       "colour": "64B5F6",
       "title": "MargyT",
       "text": "помог с разработкой MargyT",
@@ -35,10 +39,44 @@
     },
     {
       "id": "hype",
-      "users": ["7547438221832160262"],
+      "users": [
+        "7547438221832160262"
+      ],
       "colour": "E57373",
       "title": "MargyT",
       "text": "мемодел, хайпует плесень",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
+    },
+    {
+      "id": "icon",
+      "users": [
+        "7287645946535560197",
+        "7643071085839533070",
+        "7639730829493896210",
+        "7510468511841141767",
+        "6774941623367320582",
+        "7573980629898494987",
+        "7547438221832160262"
+      ],
+      "colour": "B388FF",
+      "title": "MargyT",
+      "text": "drew an icon MargyT ships with",
+      "text_ru": "нарисовал иконку, которая есть в MargyT",
+      "text_uk": "намалював іконку, яка є в MargyT",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
+    },
+    {
+      "id": "supporter",
+      "users": [],
+      "colour": "FF6FA5",
+      "title": "MargyT",
+      "text": "supported the making of MargyT",
+      "text_ru": "поддержал разработку MargyT",
+      "text_uk": "підтримав розробку MargyT",
       "button": "Got it",
       "button_ru": "Понятно",
       "button_uk": "Зрозуміло"

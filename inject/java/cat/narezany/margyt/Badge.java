@@ -6,7 +6,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.Layout;
-import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ClickableSpan;
 import android.text.style.ImageSpan;
@@ -16,6 +16,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.ss.android.ugc.aweme.profile.model.User;
+import com.ss.android.ugc.profile.platform.base.data.UserProfileInfo;
 
 /**
  * A mark after a name, wherever that name is written.
@@ -49,16 +50,166 @@ public final class Badge {
 
     public static String getNickname(User user) {
         if (user == null) return null;
-        String name = user.getNickname();
+        return marked(user.getNickname(), user.getUid());
+    }
+
+    /** The same name, off the model a loaded profile uses instead. */
+    public static String getNickname(UserProfileInfo user) {
+        if (user == null) return null;
+        return marked(user.getNickname(), user.getUid());
+    }
+
+    /**
+     * What a name becomes: a word in front of it, and marks after it.
+     *
+     * Done once and not twice. A profile is built out of the model the feed
+     * already had, so by the time the profile's own model is asked for the
+     * name it is handing back a name this has already been through -- and
+     * marking it again gave everybody two badges and two prefixes.
+     */
+    private static String marked(String name, String uid) {
         if (name == null || name.length() == 0) return name;
         try {
-            char mark = Badges.markFor(user.getUid());
-            // a thin space first: an emblem set flush against the last letter
-            // reads as part of the word
-            if (mark != 0) return name + ' ' + mark;
+            for (int i = 0; i < name.length(); i++) {
+                if (Badges.isMark(name.charAt(i))) return name;  // already done
+            }
+            remember(uid, name);
+            String prefix = TikTokYou.prefixFor(uid);
+            if (prefix.length() > 0 && !name.startsWith(prefix)) {
+                name = prefix + ' ' + name;
+            }
+            String marks = Badges.marksFor(uid);
+            if (marks.length() > 0) return name + '\u2009' + marks;
         } catch (Throwable ignored) {
         }
         return name;
+    }
+
+    // ------------------------------------------- names already on the screen
+
+    /**
+     * Names the mod has seen, so one already drawn can be recognised.
+     *
+     * A profile finishes loading and writes the name again by a road the mod
+     * does not stand on -- the mark never gets added, and what was there is
+     * replaced by the plain name. Rather than hunt for every such road, the
+     * mod remembers which name belongs to which account and puts the mark back
+     * on whatever is showing it.
+     *
+     * Only names that are worth marking are kept, and only the last few
+     * hundred: this is a lookup that runs against every piece of text on a
+     * screen, so it has to stay small and exact.
+     */
+    private static final java.util.LinkedHashMap<String, String> plain =
+            new java.util.LinkedHashMap<String, String>();
+
+    private static void remember(String uid, String name) {
+        if (uid == null || name == null || name.length() == 0) return;
+        try {
+            if (Badges.marksFor(uid).length() == 0
+                    && TikTokYou.prefixFor(uid).length() == 0) {
+                return;  // nothing would be added, so nothing to put back
+            }
+            synchronized (plain) {
+                if (plain.size() > 300) {
+                    plain.remove(plain.keySet().iterator().next());
+                }
+                plain.put(name, uid);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+     * Put the marks back on names already drawn.
+     *
+     * Walked after the screen has settled. A view is only touched when its
+     * text is exactly a name the mod knows belongs to an account with
+     * something to show -- so nothing else on the screen can be caught by it.
+     */
+    public static void rewrite(View root) {
+        if (root == null) return;
+        synchronized (plain) {
+            if (plain.isEmpty()) return;
+        }
+        try {
+            seen = 0;
+            walk(root, 0);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+     * How deep to go, and how much to do at once.
+     *
+     * Fourteen was far too shallow and it showed: a comment sheet is a few
+     * levels down and was reached, while a profile or the inbox -- a fragment
+     * inside a pager inside a list inside a coordinator -- is twenty and more,
+     * and the walk simply stopped before it got there. The budget is what
+     * keeps this bounded now, rather than the depth: a screen is a few hundred
+     * views, and anything claiming to be tens of thousands is not a screen.
+     */
+    private static final int DEEP = 40;
+    private static final int BUDGET = 4000;
+
+    private static int seen;
+
+    private static volatile boolean said;
+    private static volatile int puzzled;
+
+    /**
+     * Temporary. Say when a name on screen is nearly one the mod knows.
+     *
+     * A profile that loses its badge is showing a name the mod has seen, so
+     * either it is not exactly the same string or the mod never saw it. This
+     * says which, once or twice, and then goes quiet.
+     */
+    private static void near(String showing) {
+        if (puzzled > 2) return;
+        try {
+            synchronized (plain) {
+                for (String name : plain.keySet()) {
+                    if (name.equals(showing)) return;
+                    if (showing.contains(name) || name.contains(showing)) {
+                        puzzled++;
+                        Diary.note("badge: on screen [" + showing + "] but known as ["
+                                + name + "]");
+                        return;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void walk(View view, int depth) {
+        if (view == null || depth > DEEP || ++seen > BUDGET) return;
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            CharSequence showing = text.getText();
+            if (showing != null && showing.length() > 0 && showing.length() < 80) {
+                String uid;
+                synchronized (plain) {
+                    uid = plain.get(showing.toString());
+                }
+                if (uid == null) near(showing.toString());
+                if (uid != null) {
+                    String out = marked(showing.toString(), uid);
+                    if (!out.equals(showing.toString())) {
+                        setText(text, out);
+                        if (!said) {
+                            said = true;
+                            Diary.note("badge: a name already drawn was marked again");
+                        }
+                    }
+                }
+            }
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            int many = group.getChildCount();
+            for (int i = 0; i < many; i++) walk(group.getChildAt(i), depth + 1);
+        }
     }
 
     /**
@@ -68,6 +219,7 @@ public final class Badge {
      * scan of a short string, and nothing else.
      */
     public static void setText(TextView view, CharSequence text) {
+        Fonts.apply(view);
         CharSequence out = marked(view, text);
         // asking for it to be kept spannable, because a TextView told to store
         // plain text copies the spans into an immutable SpannedString and the
@@ -80,45 +232,69 @@ public final class Badge {
     }
 
     public static void setText(TextView view, CharSequence text, TextView.BufferType type) {
+        Fonts.apply(view);
         CharSequence out = marked(view, text);
         view.setText(out, out != text ? TextView.BufferType.SPANNABLE : type);
     }
 
     private static CharSequence marked(TextView view, CharSequence text) {
-        if (!(text instanceof String)) return text;
-        String plain = (String) text;
+        if (text == null) return text;
 
-        int at = -1;
-        for (int i = plain.length() - 1; i >= 0; i--) {
-            if (Badges.isMark(plain.charAt(i))) {
-                at = i;
-                break;
-            }
+        boolean any = false;
+        for (int i = text.length() - 1; i >= 0 && !any; i--) {
+            any = Badges.isMark(text.charAt(i));
         }
-        if (at < 0) return text;
+        if (!any) return text;
 
         try {
-            Badges.Badge badge = Badges.byMark(plain.charAt(at));
-            Drawable picture = badge == null ? null : picture(view, badge);
-            if (picture == null) return without(plain, at);
-
-            SpannableString out = new SpannableString(plain);
-            out.setSpan(new ImageSpan(picture, ImageSpan.ALIGN_BOTTOM), at, at + 1,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            out.setSpan(new Tap(badge), at, at + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            // Anything that is text, not only a plain String. A profile writes
+            // the name once while it loads and again when it is loaded, and
+            // the second time it is rich text -- which is why the badge used
+            // to appear on the way in and then vanish: the mark was still
+            // there, invisible, and nothing turned it into a picture.
+            //
+            // Walked backwards so that dropping a mark cannot move the ones
+            // not yet looked at.
+            SpannableStringBuilder out = new SpannableStringBuilder(text);
+            boolean drew = false;
+            for (int i = out.length() - 1; i >= 0; i--) {
+                char c = out.charAt(i);
+                if (!Badges.isMark(c)) continue;
+                Badges.Badge badge = Badges.byMark(c);
+                Drawable picture = badge == null ? null : picture(view, badge);
+                if (picture == null) {
+                    out.delete(i, i + 1);
+                    continue;
+                }
+                out.setSpan(new ImageSpan(picture, ImageSpan.ALIGN_BOTTOM), i, i + 1,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                out.setSpan(new Tap(badge), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                drew = true;
+            }
+            if (!drew) return tidy(out.toString());
             listen(view);
             return out;
         } catch (Throwable ignored) {
             // a name with a stray invisible character is bad; a name that
             // crashes the screen it is on is worse
-            return without(plain, at);
+            return strip(text.toString());
         }
     }
 
-    /** The name as it was, when the badge cannot be drawn. */
-    private static String without(String plain, int at) {
-        String out = plain.substring(0, at) + plain.substring(at + 1);
-        return out.endsWith(" ") ? out.substring(0, out.length() - 1) : out;
+    /** The name with no marks left in it at all. */
+    private static String strip(String plain) {
+        StringBuilder out = new StringBuilder(plain.length());
+        for (int i = 0; i < plain.length(); i++) {
+            char c = plain.charAt(i);
+            if (!Badges.isMark(c)) out.append(c);
+        }
+        return tidy(out.toString());
+    }
+
+    /** No dangling separator, for a name whose marks all went away. */
+    private static String tidy(String name) {
+        return name.endsWith(" ") || name.endsWith(" ")
+                ? name.substring(0, name.length() - 1) : name;
     }
 
     /** Sized to the text it sits in, so it matches whatever draws it. */

@@ -63,7 +63,7 @@ final class Text {
     static final String CLOSE = pick("Понятно", "Зрозуміло", "Got it");
 
     static final String SAVE_STICKER = pick(
-            "Сохранить стикер", "Зберегти стікер", "Save the sticker");
+            "Скачать стикер", "Завантажити стікер", "Download the sticker");
 
     static final String STICKER_FAILED = pick(
             "Не получилось сохранить стикер", "Не вдалося зберегти стікер",
@@ -132,6 +132,189 @@ final class Text {
 
     static final String VOICE = pick(
             "Голосовые комментарии", "Голосові коментарі", "Voice comments");
+
+    static final String THEME_STRENGTH = pick(
+            "Насыщенность фона", "Насиченість тла", "How much of that background");
+
+    static final String THEME_STRENGTH_NOTE = pick(
+            "Слева — почти чёрный с оттенком выбранного цвета, справа — сам цвет.",
+            "Ліворуч — майже чорний з відтінком обраного кольору, праворуч — сам колір.",
+            "To the left, near black with a hint of the colour; to the right, the colour.");
+
+    static final String ACCENT_WALLPAPER = pick(
+            "Взять цвет с обоев", "Взяти колір зі шпалер", "Take the colour from the wallpaper");
+
+    // ---------------------------------------------------------- tiktok you
+
+    static final String TTYOU = pick("Тикток Ю", "Тікток Ю", "TikTok You");
+
+    static final String TTYOU_ON = pick(
+            "Префикс поддержавшим TikTok You",
+            "Префікс тим, хто підтримав TikTok You",
+            "A word in front of everyone who backed TikTok You");
+
+    static final String TTYOU_PREFIX = pick("Какой префикс", "Який префікс", "Which word");
+
+    static final String TTYOU_NOTE = pick(
+            "Список они публикуют сами, он открытый. Мод только читает его и "
+                    + "ничего никуда не отправляет.",
+            "Список вони публікують самі, він відкритий. Мод лише читає його і "
+                    + "нічого нікуди не надсилає.",
+            "They publish the list themselves and it is public. The mod reads it "
+                    + "and sends nothing anywhere.");
+
+    static final String TTYOU_WHY = pick(
+            "Чем плохи TikTok You и ExteraGram?",
+            "Чим погані TikTok You і ExteraGram?",
+            "What is wrong with TikTok You and ExteraGram?");
+
+    static final String TTYOU_WHY_TEXT = pick(
+            "Команда TikTok You нагло ворует фишки из других модов на тикток с "
+                    + "открытым исходным кодом, не указывая авторов. А когда им за это "
+                    + "предъявляют — начинают угрожать и шантажировать.\n\n"
+                    + "То же самое с ExteraGram, только у него вдобавок закрытый "
+                    + "исходный код, хотя по лицензии GPL 2.0 каждый мод на телеграм "
+                    + "обязан быть открытым.",
+            "Команда TikTok You нахабно краде фішки з інших модів на тікток з "
+                    + "відкритим кодом, не вказуючи авторів. А коли їм за це "
+                    + "дорікають — починають погрожувати й шантажувати.\n\n"
+                    + "Те саме з ExteraGram, тільки в нього ще й закритий код, хоча "
+                    + "за ліцензією GPL 2.0 кожен мод на телеграм має бути відкритим.",
+            "The TikTok You team takes features from other open source TikTok mods "
+                    + "without crediting anybody, and answers being called out on it "
+                    + "with threats and blackmail.\n\n"
+                    + "The same goes for ExteraGram, which on top of that keeps its "
+                    + "source closed -- while the GPL 2.0 it is built on requires every "
+                    + "Telegram mod to be open.");
+
+    static final String[] AGAINST_CAPTIONS = {
+            pick("Человека забанили просто за упоминание нашего клиента.",
+                 "Людину забанили просто за згадку нашого клієнта.",
+                 "Banned for no more than mentioning our client."),
+            pick("Сначала создатели ExteraGram говорят, что большую часть мода "
+                 + "пишет за них нейросеть. Потом — что все такие моды мусор.",
+                 "Спочатку творці ExteraGram кажуть, що більшу частину мода пише "
+                 + "за них нейромережа. Потім — що всі такі моди сміття.",
+                 "First the ExteraGram team says a model writes most of the mod for "
+                 + "them. Then that every mod written that way is rubbish."),
+            pick("Авторы ExteraGram открыто поддерживают доксинг.",
+                 "Автори ExteraGram відкрито підтримують доксинг.",
+                 "The ExteraGram authors openly endorse doxxing."),
+            pick("Автор ExteraGram искренне не понимает, какие у открытого кода "
+                 + "плюсы и почему его мод обязан быть открытым.",
+                 "Автор ExteraGram щиро не розуміє, які в відкритого коду плюси "
+                 + "і чому його мод має бути відкритим.",
+                 "The author of ExteraGram genuinely wonders what open source is "
+                 + "for, and why his mod has to be open at all."),
+    };
+
+    // --------------------------------------------------------------- fonts
+
+    static final String FONT = pick("Шрифт", "Шрифт", "Typeface");
+
+    static final String FONT_SYSTEM = pick("Системный", "Системний", "The system one");
+    static final String FONT_SANS = pick("Обычный", "Звичайний", "Sans");
+    static final String FONT_SANS_LIGHT = pick("Тонкий", "Тонкий", "Light");
+    static final String FONT_SANS_CONDENSED = pick("Узкий", "Вузький", "Condensed");
+    static final String FONT_SERIF = pick("С засечками", "Із засічками", "Serif");
+    static final String FONT_MONOSPACE = pick("Моноширинный", "Моноширинний", "Monospace");
+    static final String FONT_CURSIVE = pick("Рукописный", "Рукописний", "Cursive");
+    static final String FONT_FILE = pick("Свой файл", "Свій файл", "A file of your own");
+
+    static final String FONT_PICK = pick(
+            "Выбрать .ttf или .otf", "Обрати .ttf або .otf", "Pick a .ttf or .otf");
+
+    static final String FONT_FAILED = pick(
+            "Не получилось прочитать шрифт", "Не вдалося прочитати шрифт",
+            "That file is not a font this phone can read");
+
+    static final String EMOJI = pick("Шрифт эмодзи", "Шрифт емодзі", "Emoji");
+
+    static final String EMOJI_SYSTEM = pick("Системные", "Системні", "The system ones");
+    static final String EMOJI_TWEMOJI = pick("Twemoji", "Twemoji", "Twemoji");
+    static final String EMOJI_FILE = pick("Свой файл", "Свій файл", "A file of your own");
+
+    static final String EMOJI_NOTE = pick(
+            "Twemoji скачается один раз, несколько мегабайт. Нужен Android 10 и выше: "
+                    + "ниже него меняются только буквы.",
+            "Twemoji завантажиться один раз, кілька мегабайтів. Потрібен Android 10 і вище: "
+                    + "нижче змінюються лише літери.",
+            "Twemoji is fetched once, a few megabytes. Android 10 and up: below that "
+                    + "only the letters change.");
+
+    static final String EMOJI_FETCHING = pick(
+            "Скачиваю, потом перезапусти приложение",
+            "Завантажую, потім перезапусти застосунок",
+            "Fetching it; restart the app afterwards");
+
+    // ---------------------------------------------------------- the icon
+
+    static final String ICON = pick("Иконка", "Іконка", "The icon");
+
+    static final String ICON_NOTE = pick(
+            "Иконки с конкурса. Хочешь, чтобы твоя была здесь — участвуй.",
+            "Іконки з конкурсу. Хочеш, щоб твоя була тут — бери участь.",
+            "These came from a contest. Enter it if you want yours here.");
+
+    static final String ICON_CONTEST = pick(
+            "Участвовать в конкурсе", "Взяти участь у конкурсі", "Enter the contest");
+
+    static final String ICON_DEFAULT = pick("Обычная", "Звичайна", "The usual one");
+
+    // -------------------------------------------------------- the donation
+
+    static final String DONATE_BANNER = pick(
+            "Значок за поддержку", "Значок за підтримку", "A badge for supporting");
+
+    static final String DONATE_BANNER_TEXT = pick(
+            "Пожертвование от 250 ₽ даёт персональный значок рядом с ником — "
+                    + "его видят все, у кого установлен MargyT.",
+            "Пожертва від 250 ₽ дає персональний значок поруч із ніком — "
+                    + "його бачать усі, у кого встановлено MargyT.",
+            "A donation of 250 roubles or more comes with a personal badge beside "
+                    + "your name, visible to everyone running MargyT.");
+
+    static final String DONATE_BANNER_HOW = pick(
+            "После перевода напишите @narezany в Telegram или TikTok и приложите "
+                    + "свой ID аккаунта вместе с чеком или скриншотом перевода.",
+            "Після переказу напишіть @narezany в Telegram або TikTok і додайте "
+                    + "свій ID акаунта разом із чеком або скріншотом переказу.",
+            "Once it has gone through, write to @narezany on Telegram or TikTok "
+                    + "with your account ID and the receipt.");
+
+    static final String DONATE_BANNER_BUTTON = pick(
+            "Пожертвовать", "Пожертвувати", "Donate");
+
+    static final String DONATE_BANNER_WRITE = pick(
+            "Написать в Telegram", "Написати в Telegram", "Write on Telegram");
+
+    static final String REMIND_TITLE = pick(
+            "Нравится MargyT?", "Подобається MargyT?", "Enjoying MargyT?");
+
+    static final String REMIND_TEXT = pick(
+            "Поддержи разработку и получи свой значок рядом с ником.",
+            "Підтримай розробку й отримай свій значок поруч із ніком.",
+            "Support the making of it and get a badge beside your name.");
+
+    static final String REMIND_MORE = pick("Подробнее", "Докладніше", "Tell me more");
+
+    static final String REMIND_NEVER = pick(
+            "Больше не напоминать", "Більше не нагадувати", "Never remind me");
+
+    static final String STREAK_TEST = pick(
+            "Отправить тестовое сообщение", "Надіслати тестове повідомлення",
+            "Send a test message");
+
+    static final String STREAK_TEST_NOTE = pick(
+            "Всем, у кого есть серия — даже если огонёк горит. Результат в дневнике.",
+            "Усім, у кого є серія — навіть якщо вогник горить. Результат у щоденнику.",
+            "To everyone with a streak, lit or not. The diary says what happened.");
+
+    static final String STREAK_TEST_GOING = pick(
+            "Отправляю, смотри дневник", "Надсилаю, дивись щоденник",
+            "Sending; the diary will say");
+
+    static final String SAVE = pick("Сохранить", "Зберегти", "Save");
 
     // -------------------------------------------------------- the downloads
 

@@ -50,6 +50,7 @@ ATTR_IDS = {
     # 16842779, read out of android.jar rather than written down: the build
     # checks every one of these against it and stops on a disagreement
     "grantUriPermissions": 0x0101001B,
+    "targetActivity": 0x01010202,
     "taskAffinity": 0x01010012,
     "minSdkVersion": 0x0101020C,
 }
