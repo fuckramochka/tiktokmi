@@ -24,6 +24,16 @@
       "button_uk": "Зрозуміло"
     },
     {
+      "id": "helper",
+      "users": ["6525428607760733199"],
+      "colour": "64B5F6",
+      "title": "MargyT",
+      "text": "помог с разработкой MargyT",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
+    },
+    {
       "id": "hype",
       "users": ["7547438221832160262"],
       "colour": "E57373",
