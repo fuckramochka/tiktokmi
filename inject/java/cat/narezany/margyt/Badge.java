@@ -74,10 +74,6 @@ public final class Badge {
                 if (Badges.isMark(name.charAt(i))) return name;  // already done
             }
             remember(uid, name);
-            String prefix = TikTokYou.prefixFor(uid);
-            if (prefix.length() > 0 && !name.startsWith(prefix)) {
-                name = prefix + ' ' + name;
-            }
             String marks = Badges.marksFor(uid);
             if (marks.length() > 0) return name + '\u2009' + marks;
         } catch (Throwable ignored) {
@@ -106,8 +102,7 @@ public final class Badge {
     private static void remember(String uid, String name) {
         if (uid == null || name == null || name.length() == 0) return;
         try {
-            if (Badges.marksFor(uid).length() == 0
-                    && TikTokYou.prefixFor(uid).length() == 0) {
+            if (Badges.marksFor(uid).length() == 0) {
                 return;  // nothing would be added, so nothing to put back
             }
             synchronized (plain) {

@@ -217,30 +217,6 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(icons));
 
-        column.addView(section(Text.TTYOU));
-        LinearLayout tty = card();
-        tty.addView(toggleRow("group", Text.TTYOU_ON, TikTokYou.isEnabled(), on -> {
-            TikTokYou.setEnabled(on);
-            rebuild();
-        }));
-        if (TikTokYou.isEnabled()) {
-            tty.addView(line());
-            tty.addView(actionRow("text_fields", Text.TTYOU_PREFIX, TikTokYou.prefix(),
-                    () -> Popup.write(this, Text.TTYOU_PREFIX, TikTokYou.prefix(),
-                            Text.SAVE, written -> {
-                                TikTokYou.setPrefix(written.trim().length() == 0
-                                        ? TikTokYou.DEFAULT_PREFIX : written.trim());
-                                rebuild();
-                            })));
-        }
-        tty.addView(line());
-        tty.addView(actionRow("info", Text.TTYOU_WHY, null,
-                () -> Popup.show(this, Text.TTYOU_WHY, Text.TTYOU_WHY_TEXT,
-                        null, Pictures.AGAINST, Text.AGAINST_CAPTIONS)));
-        tty.addView(line());
-        tty.addView(quiet(Text.TTYOU_NOTE));
-        column.addView(wrap(tty));
-
         column.addView(section(Text.FEED));
         LinearLayout feed = card();
         feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));

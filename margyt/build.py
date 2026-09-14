@@ -115,7 +115,6 @@ class Build:
         self.find_anchors(apk)
         self.write_theme(arsc)
         self.write_shots(manifest)
-        self.write_pictures()
 
         self.say("Building the mod's own dex")
         dex_path = self.tools.compile_dex(
@@ -407,44 +406,10 @@ class Build:
                 handle.write("    };\n\n")
             handle.write("}\n")
 
-    def write_pictures(self) -> None:
-        """Pictures the mod shows in its own windows, as base64 in the code.
-
-        In pieces, because a Java string literal cannot be longer than 64k of
-        utf-8 and a photograph is bigger than that. They are joined back
-        together the first time one is needed and then kept.
-        """
-        wanted = [("AGAINST_%d" % i,
-                   os.path.join(self.root, "assets", "against-%d.jpg" % i))
-                  for i in (1, 2, 3, 4)]
-
-        out = os.path.join(self.root, "inject", "java", "cat", "narezany", "margyt",
-                           "Pictures.java")
-        with open(out, "w", encoding="utf-8") as handle:
-            handle.write(
-                "package cat.narezany.margyt;\n\n"
-                "/** Written by the build. Do not edit. */\n"
-                "final class Pictures {\n\n"
-                "    private Pictures() {}\n"
-            )
-            for name, path in wanted:
-                with open(path, "rb") as picture:
-                    encoded = base64.b64encode(picture.read()).decode("ascii")
-                handle.write("\n    static final String[] %s = {\n" % name)
-                for i in range(0, len(encoded), 20000):
-                    handle.write("        \"%s\",\n" % encoded[i:i + 20000])
-                handle.write("    };\n")
-                self.detail("%s: %d bytes of picture in the code" % (name, len(encoded)))
-            handle.write("\n    static final String[][] AGAINST = {\n")
-            for name, _path in wanted:
-                handle.write("        %s,\n" % name)
-            handle.write("    };\n}\n")
-
     # --------------------------------------------------------- the icons
 
     #: what ships, in the order the settings show them
     ICONS = [
-        ("hru", "TikTok хрю"),
         ("grafiti", "Графити"),
         ("shine", "Блестящий"),
         ("tiktok", "Косплей на ТикТок"),
