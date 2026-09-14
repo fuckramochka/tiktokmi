@@ -22,6 +22,16 @@
       "button": "Got it",
       "button_ru": "Понятно",
       "button_uk": "Зрозуміло"
+    },
+    {
+      "id": "hype",
+      "users": ["7547438221832160262"],
+      "image": "badges/hype.png",
+      "title": "MargyT",
+      "text": "хайпует плесень",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
     }
   ]
 }

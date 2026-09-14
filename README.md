@@ -559,6 +559,7 @@ only thing here that wants aapt2.
 | `margyt/plugin.py` | packs a folder into an `.mtp`, with the same pinned toolchain |
 | `inject/java/` | the mod itself: its screen, and the methods the rewrites land in |
 | `badges.json` | the badges, read from here by every install |
+| `badges/` | the pictures they name, fetched the same way |
 | `version.json` | what the latest release is, read from here by every install |
 | `docs/plugins.md` | the plugin format, the hooks, and the honest part about safety |
 | `examples/hello/` | a plugin small enough to read in a minute |
