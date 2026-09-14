@@ -1,7 +1,7 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.19",
-  "url": "https://github.com/narezany/MargyT/releases/download/v0.19/margyt.apk",
+  "version": "0.18",
+  "url": "https://github.com/narezany/MargyT/releases/download/v0.18/margyt.apk",
   "notes": "Themes that reach the whole app, ten launcher icons to choose from, a typeface and an emoji pack of your own, badges for everyone who has one, and saving a sticker out of a comment.",
   "notes_ru": "Темы, которые доходят до всего приложения, десять иконок на выбор, свой шрифт и свой пак эмодзи, значки у всех, кому они выданы, и сохранение стикера из комментария.",
   "notes_uk": "Теми, які доходять до всього застосунку, десять іконок на вибір, свій шрифт і свій пак емодзі, значки в усіх, кому їх видано, та збереження стікера з коментаря."
