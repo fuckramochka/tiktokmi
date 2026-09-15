@@ -109,9 +109,9 @@ final class Text {
     static final String THEME_BACKGROUND = pick("Фон", "Тло", "Background");
 
     static final String THEME_NOTE = pick(
-            "Перекрашивается только то, что тикток и сам перекрашивает при "
+            "Перекрашивается только то, что TikTok и сам перекрашивает при "
                     + "смене светлой темы на тёмную. Акцент живёт отдельно.",
-            "Перефарбовується лише те, що тікток і сам перефарбовує при зміні "
+            "Перефарбовується лише те, що TikTok і сам перефарбовує при зміні "
                     + "світлої теми на темну. Акцент живе окремо.",
             "Only what TikTok itself repaints when you switch between light and "
                     + "dark. The accent is its own thing.");
@@ -168,20 +168,21 @@ final class Text {
 
     static final String EMOJI_SYSTEM = pick("Системные", "Системні", "The system ones");
     static final String EMOJI_TWEMOJI = pick("Twemoji", "Twemoji", "Twemoji");
+    static final String EMOJI_NOTO = pick("Noto", "Noto", "Noto");
+    static final String EMOJI_BLOB = pick("Blobmoji", "Blobmoji", "Blobmoji");
     static final String EMOJI_FILE = pick("Свой файл", "Свій файл", "A file of your own");
 
     static final String EMOJI_NOTE = pick(
-            "Twemoji скачается один раз, несколько мегабайт. Нужен Android 10 и выше: "
-                    + "ниже него меняются только буквы.",
-            "Twemoji завантажиться один раз, кілька мегабайтів. Потрібен Android 10 і вище: "
-                    + "нижче змінюються лише літери.",
-            "Twemoji is fetched once, a few megabytes. Android 10 and up: below that "
-                    + "only the letters change.");
+            "Все паки уже внутри мода, скачивать ничего не нужно. Нужен Android 10 "
+                    + "и выше: ниже него меняются только буквы.",
+            "Усі паки вже всередині мода, завантажувати нічого не треба. Потрібен "
+                    + "Android 10 і вище: нижче змінюються лише літери.",
+            "Every pack is already inside the mod; nothing is fetched. Android 10 "
+                    + "and up: below that only the letters change.");
 
-    static final String EMOJI_FETCHING = pick(
-            "Скачиваю, потом перезапусти приложение",
-            "Завантажую, потім перезапусти застосунок",
-            "Fetching it; restart the app afterwards");
+    static final String EMOJI_READY = pick(
+            "Готово — перезапусти приложение", "Готово — перезапусти застосунок",
+            "Done -- restart the app");
 
     // ---------------------------------------------------------- the icon
 
@@ -249,6 +250,17 @@ final class Text {
     static final String STREAK_TEST_GOING = pick(
             "Отправляю, смотри дневник", "Надсилаю, дивись щоденник",
             "Sending; the diary will say");
+
+    static final String CAT_FROM = pick("Принёс", "Приніс", "Brought by");
+
+    static final String CAT_YOURS = pick(
+            "Хочешь своего кота здесь? Напиши @narezany в Telegram",
+            "Хочеш свого кота тут? Напиши @narezany в Telegram",
+            "Want your cat here? Write to @narezany on Telegram");
+
+    static final String CAT_WAIT = pick(
+            "Коты ещё едут, попробуй ещё раз", "Коти ще їдуть, спробуй ще раз",
+            "The cats are still on their way; try again");
 
     static final String SAVE = pick("Сохранить", "Зберегти", "Save");
 

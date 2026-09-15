@@ -57,6 +57,14 @@ public final class Streaks {
 
     public static final String KEY_ON = "streak_auto";
     public static final String KEY_STICKER = "streak_sticker";
+    public static final String KEY_MODE = "streak_mode";
+    public static final String KEY_TEXT = "streak_text";
+
+    /** What to send: a sticker, or a message. */
+    public static final String BY_STICKER = "sticker";
+    public static final String BY_TEXT = "text";
+
+    public static final String DEFAULT_TEXT = "Это авто серия!";
 
     /**
      * The status TikTok gives a streak whose flame has gone grey.
@@ -92,6 +100,30 @@ public final class Streaks {
     public static void setEnabled(boolean on) {
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putBoolean(KEY_ON, on).apply();
+    }
+
+    public static String mode() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? BY_STICKER : prefs.getString(KEY_MODE, BY_STICKER);
+    }
+
+    public static void setMode(String mode) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putString(KEY_MODE, mode).apply();
+    }
+
+    public static String text() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? DEFAULT_TEXT : prefs.getString(KEY_TEXT, DEFAULT_TEXT);
+    }
+
+    public static void setText(String value) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) {
+            prefs.edit().putString(KEY_TEXT,
+                    value == null || value.trim().length() == 0 ? DEFAULT_TEXT : value.trim())
+                    .apply();
+        }
     }
 
     public static String chosen() {
@@ -305,8 +337,9 @@ public final class Streaks {
     /** One pass over what is known, sending where it is needed. */
     public static void round(final Context context) {
         if (!isEnabled()) return;
-        final StickerItem sticker = sticker(chosen());
-        if (sticker == null) {
+        final boolean byText = BY_TEXT.equals(mode());
+        final StickerItem sticker = byText ? null : sticker(chosen());
+        if (!byText && sticker == null) {
             Diary.note("streaks: nothing to send -- no sticker chosen yet");
             return;
         }
@@ -349,7 +382,7 @@ public final class Streaks {
             @Override
             public void run() {
                 for (String conversation : due) {
-                    if (send(context, sticker, conversation)) {
+                    if (deliver(context, sticker, conversation)) {
                         remember(conversation);
                         Diary.note("streak kept: " + conversation);
                     } else {
@@ -408,25 +441,56 @@ public final class Streaks {
      * sent today, none of it -- and writes down what happened to each one.
      */
     public static void test(final Context context) {
-        final StickerItem sticker = sticker(chosen());
+        final boolean byText = BY_TEXT.equals(mode());
+        final StickerItem sticker = byText ? null : sticker(chosen());
         final List<String> all = conversations();
-        Diary.note("streak test: " + all.size() + " conversation(s) known, sticker "
-                + (sticker == null ? "NOT chosen" : "chosen") + ", service "
-                + (service == null ? "not seen yet" : "seen"));
+        Diary.note("streak test: " + all.size() + " conversation(s) known, sending "
+                + (byText ? "text [" + text() + "]"
+                          : "a sticker " + (sticker == null ? "NOT chosen" : "chosen"))
+                + ", service " + (service == null ? "not seen yet" : "seen"));
         describe();
-        if (sticker == null || all.isEmpty()) return;
+        if (all.isEmpty()) return;
+        if (!byText && sticker == null) return;
 
         Net.away("streak test", new Runnable() {
             @Override
             public void run() {
                 for (String conversation : all) {
                     String state = statusOf(ask(conversation));
-                    boolean sent = send(context, sticker, conversation);
+                    boolean sent = deliver(context, sticker, conversation);
                     Diary.note("streak test: " + conversation + " (" + state + ") -> "
                             + (sent ? "sent" : "not sent"));
                 }
             }
         });
+    }
+
+    /** Whichever way was chosen. */
+    private static boolean deliver(Context context, StickerItem sticker,
+                                   String conversation) {
+        if (BY_TEXT.equals(mode())) return sendText(context, conversation, text());
+        return send(context, sticker, conversation);
+    }
+
+    /**
+     * Sending words rather than a sticker. Not done, and not guessed at.
+     *
+     * This used to look for a method by its shape -- something taking the
+     * conversation and the words -- and call whatever matched. That is a
+     * dangerous way to find anything: the methods on a messenger service are
+     * not all senders, plenty of them take two strings, and one of the ones it
+     * reached reported an account. A blind call can do anything the app can
+     * do, and "it had the right shape" is not a reason to let one run.
+     *
+     * So nothing is called until the right method is known the way the sticker
+     * sender is known: TikTok's own call to that one is in the apk and could be
+     * read. Nothing in the apk sends plain text under any name, and the service
+     * that would arrives in a module downloaded at runtime -- so this waits
+     * rather than experiments on somebody's account.
+     */
+    private static boolean sendText(Context context, String conversation, String words) {
+        Diary.note("streak text: not available in this build");
+        return false;
     }
 
     /** Every conversation worth asking about, newest first. */
@@ -511,16 +575,41 @@ public final class Streaks {
                 return false;
             }
 
+            // TikTok's own call, which is in the apk even though the service
+            // that answers it is not:
+            //
+            //   LIZJ(context.getApplicationContext(), null, null,
+            //        AUTO_CONSECUTIVE_SA_STICKERS, sticker, new X(null),
+            //        null, null, conversationId, null, null, null, false)
+            //
+            // Null for everything not named. The first version of this built
+            // an object for every argument it had not been told about, which
+            // meant handing made-up protocol messages to a sender that wanted
+            // none -- and that is what the exception was.
             Class<?>[] types = sender.getParameterTypes();
-            Object[] args = new Object[13];
-            for (int i = 0; i < 13; i++) args[i] = blank(types[i]);
-            for (int i = 0; i < 13; i++) {
-                if (types[i] == Context.class) args[i] = context;
-                else if (types[i].isInstance(sticker)) args[i] = sticker;
-                else if (types[i] == String.class) args[i] = conversation;
-                else if (types[i].isEnum()) args[i] = constant(types[i], SOURCE);
-                else if (!types[i].isPrimitive() && args[i] == null) {
+            Object[] args = new Object[types.length];
+            int stickerAt = -1;
+            for (int i = 0; i < types.length; i++) {
+                if (types[i].isInstance(sticker)) stickerAt = i;
+            }
+
+            for (int i = 0; i < types.length; i++) {
+                if (types[i].isPrimitive()) {
+                    args[i] = blank(types[i]);
+                } else if (types[i] == Context.class) {
+                    args[i] = context.getApplicationContext();
+                } else if (i == stickerAt) {
+                    args[i] = sticker;
+                } else if (types[i] == String.class) {
+                    args[i] = conversation;
+                } else if (types[i].isEnum()) {
+                    args[i] = constant(types[i], SOURCE);
+                } else if (i == stickerAt + 1) {
+                    // the one argument TikTok does build, and it builds it
+                    // with nothing in it
                     args[i] = maybe(types[i]);
+                } else {
+                    args[i] = null;
                 }
             }
 
@@ -529,15 +618,11 @@ public final class Streaks {
             Diary.note("streak send: " + sender.getName() + " called for " + conversation);
             return true;
         } catch (Throwable error) {
-            // reflection wraps whatever actually went wrong, and the wrapper
-            // says nothing at all -- the cause is the message
             Throwable why = error instanceof java.lang.reflect.InvocationTargetException
                     && error.getCause() != null ? error.getCause() : error;
             Diary.note("streak send failed: " + why);
             StackTraceElement[] where = why.getStackTrace();
-            if (where != null && where.length > 0) {
-                Diary.note("   at " + where[0]);
-            }
+            if (where != null && where.length > 0) Diary.note("   at " + where[0]);
             return false;
         }
     }

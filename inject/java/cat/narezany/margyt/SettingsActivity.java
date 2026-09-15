@@ -189,8 +189,6 @@ public class SettingsActivity extends Activity {
                     theme.addView(line());
                     theme.addView(shades(false));
                 }
-            }
-            if (!Themes.isMaterial()) {
                 theme.addView(line());
                 theme.addView(strengthRow());
             }
@@ -226,20 +224,14 @@ public class SettingsActivity extends Activity {
         LinearLayout video = card();
         video.addView(toggleRow("volume_up", Text.SOUND, Sound.isEnabled(), Sound::setEnabled));
         video.addView(line());
-        video.addView(toggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(), Seekbar::setEnabled));
+        video.addView(toggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(),
+                Seekbar::setEnabled));
         column.addView(wrap(video));
 
         column.addView(section(Text.HIDDEN));
         LinearLayout hidden = card();
-        String[][] antiAb = {
-                {"mic", Text.VOICE, Flags.KEY_VOICE},
-        };
-        for (int i = 0; i < antiAb.length; i++) {
-            if (i > 0) hidden.addView(line());
-            final String key = antiAb[i][2];
-            hidden.addView(toggleRow(antiAb[i][0], antiAb[i][1], Flags.isOn(key),
-                    on -> Flags.set(key, on)));
-        }
+        hidden.addView(toggleRow("mic", Text.VOICE, Flags.isOn(Flags.KEY_VOICE),
+                on -> Flags.set(Flags.KEY_VOICE, on)));
         column.addView(wrap(hidden));
         column.addView(caption(Text.HIDDEN_NOTE));
 
@@ -434,6 +426,7 @@ public class SettingsActivity extends Activity {
     private View countryRow(final String[] country) {
         boolean selected = country[Margy.ISO].equals(Margy.iso());
         LinearLayout row = row();
+        row.addView(flag(country[Margy.ISO]));
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
@@ -450,6 +443,44 @@ public class SettingsActivity extends Activity {
             markChanged();
         });
         return sized(row, 60);
+    }
+
+    /**
+     * A country's flag, spelled rather than drawn.
+     *
+     * The two letters of a country's code have twin characters in the regional
+     * indicator block, and a pair of those is a flag -- so `ru` becomes the
+     * Russian flag with no picture involved, in whichever emoji font is on.
+     * Which is also why it is worth having: with an emoji pack chosen in the
+     * settings above, these are that pack's flags.
+     */
+    private View flag(String iso) {
+        TextView view = new TextView(this);
+        StringBuilder out = new StringBuilder();
+        String code = iso.toUpperCase(Locale.US);
+        for (int i = 0; i < code.length() && i < 2; i++) {
+            int letter = code.charAt(i) - 'A';
+            if (letter < 0 || letter > 25) return spacer();
+            out.appendCodePoint(0x1F1E6 + letter);
+        }
+        view.setText(out.toString());
+        // always Twemoji, whatever is chosen for the app: a phone's own flag
+        // emoji is often two letters in a box, and this one is always a flag
+        android.graphics.Typeface flags = Fonts.twemoji(this);
+        if (flags != null) view.setTypeface(flags);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        view.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams size =
+                new LinearLayout.LayoutParams(dp(34), ViewGroup.LayoutParams.WRAP_CONTENT);
+        size.rightMargin = dp(10);
+        view.setLayoutParams(size);
+        return view;
+    }
+
+    private View spacer() {
+        View view = new View(this);
+        view.setLayoutParams(new LinearLayout.LayoutParams(dp(34), 1));
+        return view;
     }
 
     private View accentHead() {
@@ -721,23 +752,26 @@ public class SettingsActivity extends Activity {
         rows.addView(line());
         rows.addView(section(Text.EMOJI));
         String emoji = Fonts.emoji();
-        rows.addView(pickRow(Text.EMOJI_SYSTEM, Fonts.SYSTEM.equals(emoji), null, () -> {
-            Fonts.chooseEmoji(this, Fonts.SYSTEM);
-            markChanged();
-        }));
-        rows.addView(line());
-        rows.addView(pickRow(Text.EMOJI_TWEMOJI, Fonts.TWEMOJI.equals(emoji), null, () -> {
-            Fonts.chooseEmoji(this, Fonts.TWEMOJI);
-            if (!Fonts.emojiReady(this)) {
-                Toast.makeText(this, Text.EMOJI_FETCHING, Toast.LENGTH_LONG).show();
-            }
-            markChanged();
-        }));
+        for (int i = 0; i < Fonts.EMOJI_PACKS.length; i++) {
+            final String which = Fonts.EMOJI_PACKS[i];
+            if (i > 0) rows.addView(line());
+            rows.addView(pickRow(emojiName(which), which.equals(emoji), null, () -> {
+                Fonts.chooseEmoji(this, which);
+                markChanged();
+            }));
+        }
         rows.addView(line());
         rows.addView(actionRow("download", Text.EMOJI_FILE,
                 Fonts.EMOJI_FILE.equals(emoji) ? Text.EMOJI_FILE : null, this::pickEmoji));
         rows.addView(quiet(Text.EMOJI_NOTE));
         return rows;
+    }
+
+    private static String emojiName(String which) {
+        if (Fonts.TWEMOJI.equals(which)) return Text.EMOJI_TWEMOJI;
+        if (Fonts.NOTO.equals(which)) return Text.EMOJI_NOTO;
+        if (Fonts.BLOBMOJI.equals(which)) return Text.EMOJI_BLOB;
+        return Text.EMOJI_SYSTEM;
     }
 
     private void pickEmoji() {
@@ -1613,12 +1647,14 @@ public class SettingsActivity extends Activity {
     }
 
     private View title(String text) {
-        TextView view = new TextView(this);
+        final TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(skin.text);
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
         view.setTypeface(Typeface.DEFAULT_BOLD);
         view.setPadding(skin.margin, dp(8), skin.margin, dp(20));
+        // five taps in a row and a cat turns up; one by accident does nothing
+        view.setOnClickListener(v -> Cats.tapped(view));
         return view;
     }
 

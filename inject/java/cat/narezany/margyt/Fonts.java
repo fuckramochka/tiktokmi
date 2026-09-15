@@ -29,14 +29,35 @@ public final class Fonts {
     public static final String KEY = "font";
     public static final String KEY_EMOJI = "font_emoji";
 
-    /** The emoji packs on offer. TWEMOJI is fetched the first time it is used. */
+    /**
+     * The emoji packs on offer, each fetched the first time it is chosen.
+     *
+     * All of them are open: Twemoji is CC-BY, Noto is under the Open Font
+     * Licence, Blobmoji is Noto's older round faces kept going by somebody
+     * else under the same licence. Apple's is not here and will not be -- it
+     * is theirs and not redistributable -- but any font file will do, so
+     * nothing stops you pointing at one you own.
+     */
     public static final String TWEMOJI = "twemoji";
+    public static final String NOTO = "noto";
+    public static final String BLOBMOJI = "blobmoji";
     public static final String EMOJI_FILE = "emoji_file";
 
-    /** Where Twemoji comes from: Mozilla's colour build of it, CC-BY 4.0. */
-    private static final String TWEMOJI_URL =
-            "https://github.com/mozilla/twemoji-colr/releases/download/v0.7.0/"
-            + "Twemoji.Mozilla.ttf";
+    /**
+     * Every pack rides inside the apk. Nothing is fetched, ever.
+     *
+     * They came to twenty-four megabytes between them, on an apk that is three
+     * hundred and sixty -- which is a better trade than a setting that says it
+     * is downloading something and gives no sign of when it will be done.
+     */
+    public static final String TWEMOJI_ASSET = "margyt/twemoji.ttf";
+
+    private static String packAsset(String which) {
+        if (TWEMOJI.equals(which)) return TWEMOJI_ASSET;
+        if (NOTO.equals(which)) return "margyt/noto.ttf";
+        if (BLOBMOJI.equals(which)) return "margyt/blobmoji.ttf";
+        return null;
+    }
 
     /** The names of the ones that need no file. */
     public static final String SYSTEM = "";
@@ -47,6 +68,8 @@ public final class Fonts {
     public static final String MONOSPACE = "monospace";
     public static final String CURSIVE = "cursive";
     public static final String FILE = "file";
+
+    public static final String[] EMOJI_PACKS = {SYSTEM, TWEMOJI, NOTO, BLOBMOJI};
 
     public static final String[] PRESETS = {
             SYSTEM, SANS, SANS_LIGHT, SANS_CONDENSED, SERIF, MONOSPACE, CURSIVE,
@@ -91,7 +114,6 @@ public final class Fonts {
         forget();
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putString(KEY_EMOJI, value).apply();
-        if (TWEMOJI.equals(value)) fetchTwemoji(context);
     }
 
     private static void forget() {
@@ -99,48 +121,34 @@ public final class Fonts {
         looked = false;
     }
 
-    /** Whether the emoji pack that was chosen is actually on the phone yet. */
+    /** Every pack is in the apk, so one is ready the moment it is chosen. */
     public static boolean emojiReady(Context context) {
         String which = emoji();
-        if (SYSTEM.equals(which)) return true;
-        return emojiFile(context, which).isFile();
-    }
-
-    private static File emojiFile(Context context, String which) {
-        return new File(context.getFilesDir(), "margyt/emoji-" + which);
+        if (EMOJI_FILE.equals(which)) return emojiFile(context, which).isFile();
+        return true;
     }
 
     /**
-     * Fetch Twemoji once.
+     * Twemoji as a typeface, straight out of the apk.
      *
-     * It is a few megabytes and it is somebody else's font under a licence
-     * that allows this, so it is downloaded rather than carried inside the mod
-     * -- an apk that is already three hundred and sixty megabytes does not
-     * need a font nobody may ever turn on.
+     * Used for the flags beside the countries whatever else is chosen: a flag
+     * is the one emoji where the phone's own is often a pair of letters in a
+     * box, and this one is always a flag.
      */
-    private static void fetchTwemoji(final Context context) {
-        final File out = emojiFile(context, TWEMOJI);
-        if (out.isFile()) return;
-        Net.away("twemoji", new Runnable() {
-            @Override
-            public void run() {
-                byte[] raw = Net.bytes(TWEMOJI_URL);
-                if (raw == null || raw.length < 100000) {
-                    Diary.note("emoji: could not fetch Twemoji");
-                    return;
-                }
-                File parent = out.getParentFile();
-                if (parent != null) parent.mkdirs();
-                Net.save(out, raw);
-                forget();
-                Diary.note("emoji: Twemoji is here, " + (raw.length / 1024) + " kB");
-            }
-        });
+    public static Typeface twemoji(Context context) {
+        Typeface known = bundled;
+        if (known != null) return known;
+        try {
+            known = Typeface.createFromAsset(context.getAssets(), TWEMOJI_ASSET);
+            bundled = known;
+            return known;
+        } catch (Throwable error) {
+            Diary.note("twemoji: " + error);
+            return null;
+        }
     }
 
-    public static boolean isOn() {
-        return !SYSTEM.equals(name());
-    }
+    private static volatile Typeface bundled;
 
     /** Where a font picked out of the phone's storage is kept. */
     public static File file(Context context) {
@@ -182,6 +190,10 @@ public final class Fonts {
             Diary.note("font: " + error);
             return false;
         }
+    }
+
+    private static File emojiFile(Context context, String which) {
+        return new File(context.getFilesDir(), "margyt/emoji-" + which);
     }
 
     // ----------------------------------------------------------- using it
@@ -231,30 +243,43 @@ public final class Fonts {
             return plain;
         }
 
-        File pack = emojiFile(context, emoji);
-        if (!pack.isFile()) {
-            // asked for but not here yet; the letters still change
-            looked = false;
-            return plain;
-        }
+        String asset = packAsset(emoji);
+        if (asset != null) return hybrid(context, letters, null, asset);
 
+        File pack = emojiFile(context, emoji);
+        if (!pack.isFile()) return plain;
+        return hybrid(context, letters, pack, null);
+    }
+
+    /**
+     * The letters and the emoji as one typeface.
+     *
+     * `pack` is a file on disk, or null for the one inside the apk -- which is
+     * read through the asset manager rather than as a file, because an asset
+     * is not one.
+     */
+    private static Typeface hybrid(Context context, String letters, File pack,
+                                   String asset) {
         try {
             File base = FILE.equals(letters) ? file(context) : systemFont();
-            if (base == null || !base.isFile()) return plain;
+            if (base == null || !base.isFile()) return null;
 
             android.graphics.fonts.FontFamily letterFamily =
                     new android.graphics.fonts.FontFamily.Builder(
                             new android.graphics.fonts.Font.Builder(base).build()).build();
+
+            android.graphics.fonts.Font.Builder emojiFont = asset != null
+                    ? new android.graphics.fonts.Font.Builder(context.getAssets(), asset)
+                    : new android.graphics.fonts.Font.Builder(pack);
             android.graphics.fonts.FontFamily emojiFamily =
-                    new android.graphics.fonts.FontFamily.Builder(
-                            new android.graphics.fonts.Font.Builder(pack).build()).build();
+                    new android.graphics.fonts.FontFamily.Builder(emojiFont.build()).build();
 
             return new Typeface.CustomFallbackBuilder(letterFamily)
                     .addCustomFallback(emojiFamily)
                     .build();
         } catch (Throwable error) {
             Diary.note("emoji: " + error);
-            return plain;
+            return null;
         }
     }
 

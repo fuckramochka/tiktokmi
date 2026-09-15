@@ -204,7 +204,18 @@ BOXED_BOOLEAN = "Ljava/lang/Boolean;"
 LIST = "Ljava/util/List;"
 
 # owner, method, its descriptor, ours, the class ours lives in
+SUBSCRIPTIONS = "Landroid/telephony/SubscriptionManager;"
+
 MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
+    # How many SIMs the system says are in the phone. Answering the six
+    # questions about the card is not enough on a phone with no card in it:
+    # the app asks how many there are first, gets nothing, and never asks the
+    # rest. These say one, which is what a phone with a card says.
+    (TELEPHONY, "getPhoneCount", "()I", "(%s)I" % TELEPHONY, REGION),
+    (TELEPHONY, "getActiveModemCount", "()I", "(%s)I" % TELEPHONY, REGION),
+    (TELEPHONY, "getPhoneType", "()I", "(%s)I" % TELEPHONY, REGION),
+    (SUBSCRIPTIONS, "getActiveSubscriptionInfoCount", "()I",
+     "(%s)I" % SUBSCRIPTIONS, REGION),
     # the save button's address: stamped, and the clean one beside it
     (VIDEO, "getDownloadAddr", "()%s" % URL_MODEL, "(%s)%s" % (VIDEO, URL_MODEL), DOWNLOAD),
     # what the post says may be done with it, which TikTok reads before it
@@ -316,6 +327,15 @@ MODEL_STATICS: List[Tuple[str, str, str, str, str]] = [
     (SETTINGS_MANAGER, (name, "flag"), "(%s)%s" % (args, kind),
      "(%s)%s" % (args, kind), FLAGS)
     for name, args, kind in AB_READERS
+]
+
+# and which subscription the system calls the default, which is -1 when there
+# is no card at all -- code that asks usually gives up on the spot
+MODEL_STATICS += [
+    (SUBSCRIPTIONS, "getDefaultDataSubscriptionId", "()I", "()I", REGION),
+    (SUBSCRIPTIONS, "getDefaultVoiceSubscriptionId", "()I", "()I", REGION),
+    (SUBSCRIPTIONS, "getDefaultSmsSubscriptionId", "()I", "()I", REGION),
+    (SUBSCRIPTIONS, "getActiveDataSubscriptionId", "()I", "()I", REGION),
 ]
 
 # owner, field, its type, ours, the class ours lives in. A field rather than a

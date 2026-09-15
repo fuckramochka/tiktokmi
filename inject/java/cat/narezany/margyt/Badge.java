@@ -150,32 +150,6 @@ public final class Badge {
     private static int seen;
 
     private static volatile boolean said;
-    private static volatile int puzzled;
-
-    /**
-     * Temporary. Say when a name on screen is nearly one the mod knows.
-     *
-     * A profile that loses its badge is showing a name the mod has seen, so
-     * either it is not exactly the same string or the mod never saw it. This
-     * says which, once or twice, and then goes quiet.
-     */
-    private static void near(String showing) {
-        if (puzzled > 2) return;
-        try {
-            synchronized (plain) {
-                for (String name : plain.keySet()) {
-                    if (name.equals(showing)) return;
-                    if (showing.contains(name) || name.contains(showing)) {
-                        puzzled++;
-                        Diary.note("badge: on screen [" + showing + "] but known as ["
-                                + name + "]");
-                        return;
-                    }
-                }
-            }
-        } catch (Throwable ignored) {
-        }
-    }
 
     private static void walk(View view, int depth) {
         if (view == null || depth > DEEP || ++seen > BUDGET) return;
@@ -187,7 +161,6 @@ public final class Badge {
                 synchronized (plain) {
                     uid = plain.get(showing.toString());
                 }
-                if (uid == null) near(showing.toString());
                 if (uid != null) {
                     String out = marked(showing.toString(), uid);
                     if (!out.equals(showing.toString())) {

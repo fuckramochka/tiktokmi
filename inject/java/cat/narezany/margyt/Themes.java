@@ -423,40 +423,6 @@ public final class Themes {
     private static volatile long last;
     private static final long QUIET = 400;
 
-    /**
-     * And a slow round, over and over, on whatever screen is up.
-     *
-     * A layout listener only hears about screens that lay themselves out
-     * again, and a screen that has finished settling never does -- which is
-     * why a name replaced at the end of loading, or a panel built once and
-     * left alone, was never caught. This does not wait to be told: it walks
-     * what is on screen every second and a half, and does nothing at all when
-     * there is nothing to change.
-     */
-    public static synchronized void keepAtIt() {
-        if (rounding) return;
-        rounding = true;
-        final android.os.Handler handler =
-                new android.os.Handler(android.os.Looper.getMainLooper());
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    android.app.Activity now = Screen.now();
-                    if (now != null && !now.isFinishing()) {
-                        View root = now.getWindow().getDecorView();
-                        repaint(root);
-                        Badge.rewrite(root);
-                    }
-                } catch (Throwable ignored) {
-                }
-                handler.postDelayed(this, ROUND);
-            }
-        }, ROUND);
-    }
-
-    private static volatile boolean rounding;
-    private static final long ROUND = 1500;
 
     // setTag(int, ...) wants a key that looks like a resource id, and every key
     // the mod uses has to differ from every other one. This was the same

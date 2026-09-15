@@ -180,6 +180,7 @@ class Build:
 
         self.say("Icons to choose from")
         extended = self.add_icon_choices(apk, arsc, manifest)
+        self.add_assets(apk)
 
         apk.replace("AndroidManifest.xml", manifest.build())
         if extended is not None:
@@ -406,6 +407,23 @@ class Build:
                 handle.write("    };\n\n")
             handle.write("}\n")
 
+    def add_assets(self, apk: Apk) -> None:
+        """Files the mod reads at runtime, put in the apk beside TikTok's own.
+
+        An asset rather than a download: the emoji font is a megabyte and a
+        half and the cat's meow is twenty kilobytes, and a setting that says
+        "trust me, it is coming" is not a setting. They are read straight out
+        of the apk with no network involved.
+        """
+        for name in ("twemoji.ttf", "noto.ttf", "blobmoji.ttf", "meow.ogg"):
+            path = os.path.join(self.root, "assets", name)
+            with open(path, "rb") as handle:
+                raw = handle.read()
+            # stored rather than deflated: a font and a sound are both read
+            # straight out of the apk, and neither can be read compressed
+            apk.add("assets/margyt/" + name, raw, STORED)
+            self.detail("assets/margyt/%s: %d kB" % (name, len(raw) // 1024))
+
     # --------------------------------------------------------- the icons
 
     #: what ships, in the order the settings show them
@@ -419,6 +437,7 @@ class Build:
         ("glitch", "Глитч"),
         ("google", "Google"),
         ("dotted", "Точечная"),
+        ("terminal", "Терминал"),
     ]
 
     ICON_PACKAGE = 0x30
