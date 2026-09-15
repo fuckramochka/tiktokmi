@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.21",
-  "url": "https://github.com/narezany/MargyT/releases/download/v0.21/margyt.apk",
-  "notes": "Streaks keep themselves again, the region works with no SIM in the phone, every emoji pack rides inside the mod, and there is a cat.",
-  "notes_ru": "Серии снова продлеваются сами, регион работает без симкарты, все паки эмодзи внутри мода, и есть кот.",
-  "notes_uk": "Серії знову продовжуються самі, регіон працює без сімкарти, усі паки емодзі всередині мода, і є кіт."
+  "version": "0.1.0",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.1.0/tiktokmi.apk",
+  "notes": "First TikTok MI release, forked from MargyT and rebranded. Set your own release URL before shipping.",
+  "notes_ru": "Первый выпуск TikTok MI, форк MargyT с новым именем. Перед публикацией укажи свой URL релиза.",
+  "notes_uk": "Перший випуск TikTok MI, форк MargyT з новою назвою. Перед публікацією вкажи свій URL релізу."
 }

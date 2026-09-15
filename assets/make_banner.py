@@ -22,7 +22,7 @@ WHITE = (255, 255, 255)
 BOLD = "/usr/share/fonts/noto/NotoSans-Bold.ttf"
 REGULAR = "/usr/share/fonts/noto/NotoSans-Regular.ttf"
 
-WORDMARK = "MargyT"
+WORDMARK = "TikTok MI"
 SUBTITLE = "a TikTok mod for Android"
 
 

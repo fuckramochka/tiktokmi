@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build MargyT from an official TikTok apk.
+# Build TikTok MI from an official TikTok apk.
 #
 #   ./build.sh path/to/tiktok.apk
 #
@@ -13,4 +13,4 @@
 
 set -euo pipefail
 cd "$(dirname "$0")"
-exec python3 -m margyt "$@"
+exec python3 -m tiktokmi "$@"
