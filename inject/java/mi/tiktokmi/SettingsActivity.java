@@ -55,19 +55,16 @@ public class SettingsActivity extends Activity {
      */
     private static boolean pending;
 
-    /** Where the mod, its people and its money live. */
-    private static final String CHANNEL = "https://t.me/tiktokmiiktok";
-    private static final String FORUM = "https://t.me/margeletforum";
-    private static final String OWNER_TELEGRAM = "https://t.me/narezany";
+    /** Where the mod and its people live. */
+    private static final String CHANNEL = "https://t.me/fuckramochka";
+    private static final String OWNER_TELEGRAM = "https://t.me/dkramochka";
     private static final String OWNER_TIKTOK =
-            "https://tiktok.com/@narezany?_r=1&_t=ZT-99hPDJ26hji_";
+            "https://tiktok.com/@fuckramochka";
     private static final String HELPER = "https://www.tiktok.com/@MS4wLjABAAAApBE7v5"
             + "y_tClqKlwqBpZNwzIBn1K7aRJLDxegPPnx8joas1EmS8NZpVFdWATb4zGf";
     private static final String GITHUB = "https://github.com/fuckramochka/tiktokmi";
     private static final String DOCS =
             "https://github.com/fuckramochka/tiktokmi/blob/main/docs/plugins.md";
-    private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
-    private static final String CARD_NUMBER = "2204120143055305";
 
     private boolean countriesOpen;
     private boolean accentOpen;
@@ -76,7 +73,6 @@ public class SettingsActivity extends Activity {
     private boolean fontOpen;
     private boolean iconOpen;
     private ScrollView page;
-    private View donateAnchor;
     private boolean thanksOpen;
     private boolean streakOpen;
     private boolean diaryOpen;
@@ -87,7 +83,6 @@ public class SettingsActivity extends Activity {
         Margy.attach(this);
         skin = Skin.remembered(this);
         dressTheWindow();
-        maybeAskForSupport();
 
         ScrollView scroll = page = new ScrollView(this);
         scroll.setBackgroundColor(skin.page);
@@ -131,8 +126,6 @@ public class SettingsActivity extends Activity {
         column.removeAllViews();
         column.addView(backArrow());
         column.addView(title("TikTok MI"));
-
-        column.addView(donateBanner());
 
         column.addView(section(Text.REGION));
         LinearLayout head = card();
@@ -289,9 +282,7 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.LINKS));
         LinearLayout links = card();
-        links.addView(linkRow("link", Text.CHANNEL, "@tiktokmiiktok", CHANNEL));
-        links.addView(line());
-        links.addView(linkRow("group", Text.FORUM, "@margeletforum", FORUM));
+        links.addView(linkRow("link", Text.CHANNEL, "@fuckramochka", CHANNEL));
         links.addView(line());
         links.addView(linkRow("extension", Text.SOURCE, "fuckramochka/tiktokmi", GITHUB));
         links.addView(line());
@@ -303,8 +294,7 @@ public class SettingsActivity extends Activity {
             links.addView(line());
             links.addView(thanks());
         }
-        donateAnchor = wrap(links);
-        column.addView(donateAnchor);
+        column.addView(wrap(links));
 
         column.addView(section(Text.ACCOUNT));
         LinearLayout account = card();
@@ -501,145 +491,6 @@ public class SettingsActivity extends Activity {
             rebuild();
         });
         return sized(row, 56);
-    }
-
-    /** Counted in preferences: asked on the third visit and then never again. */
-    private static final String VISITS = "settings_visits";
-    private static final String ASKED = "settings_asked";
-    private static final int ON_VISIT = 3;
-
-    /**
-     * Ask once, on the third time this screen is opened.
-     *
-     * Once, and only once: refusing is remembered for good, and so is having
-     * been asked. Somebody who opens the settings twenty times should be left
-     * alone after the first answer.
-     */
-    private void maybeAskForSupport() {
-        try {
-            android.content.SharedPreferences prefs =
-                    getSharedPreferences(Margy.PREFS, MODE_PRIVATE);
-            if (prefs.getBoolean(ASKED, false)) return;
-
-            int visits = prefs.getInt(VISITS, 0) + 1;
-            prefs.edit().putInt(VISITS, visits).apply();
-            if (visits < ON_VISIT) return;
-            prefs.edit().putBoolean(ASKED, true).apply();
-
-            column.post(() -> Popup.ask(this, Text.REMIND_TITLE, Text.REMIND_TEXT,
-                    Text.REMIND_MORE, this::showDonations,
-                    Text.REMIND_NEVER, null,
-                    null, null));
-        } catch (Throwable error) {
-            Diary.note("settings: " + error);
-        }
-    }
-
-    // ------------------------------------------------------ the donation
-
-    /**
-     * The first thing on the screen, and the only thing here that asks for
-     * something. Short, because a long one is an advertisement.
-     */
-    private View donateBanner() {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(18), dp(16), dp(18), dp(16));
-
-        GradientDrawable background = new GradientDrawable();
-        background.setCornerRadius(Math.max(skin.radius, dp(18)));
-        background.setColor(skin.card);
-        card.setBackground(background);
-
-        TextView head = new TextView(this);
-        head.setText(Text.DONATE_BANNER);
-        head.setTextColor(skin.text);
-        head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
-        head.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        card.addView(head);
-
-        TextView body = new TextView(this);
-        body.setText(Text.DONATE_BANNER_TEXT);
-        body.setTextColor(skin.text);
-        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        body.setPadding(0, dp(4), 0, 0);
-        card.addView(body);
-
-        TextView how = new TextView(this);
-        how.setText(Text.DONATE_BANNER_HOW);
-        how.setTextColor(skin.muted());
-        how.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        how.setPadding(0, dp(8), 0, 0);
-        card.addView(how);
-
-        TextView go = new TextView(this);
-        go.setText(Text.DONATE_BANNER_BUTTON);
-        go.setTextColor(onAccent());
-        go.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        go.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        go.setGravity(Gravity.CENTER);
-        go.setPadding(0, dp(11), 0, dp(11));
-        GradientDrawable pill = new GradientDrawable();
-        pill.setColor(Accent.colour());
-        pill.setCornerRadius(dp(14));
-        go.setBackground(pill);
-        go.setOnClickListener(v -> showDonations());
-
-        TextView write = new TextView(this);
-        write.setText(Text.DONATE_BANNER_WRITE);
-        write.setTextColor(skin.text);
-        write.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        write.setGravity(Gravity.CENTER);
-        write.setPadding(0, dp(11), 0, dp(11));
-        GradientDrawable quiet = new GradientDrawable();
-        quiet.setColor(0x00000000);
-        quiet.setCornerRadius(dp(14));
-        quiet.setStroke(dp(1), skin.muted());
-        write.setBackground(quiet);
-        write.setOnClickListener(v -> open(OWNER_TELEGRAM));
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams below = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        below.topMargin = dp(14);
-
-        LinearLayout.LayoutParams half =
-                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        LinearLayout.LayoutParams second =
-                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        second.leftMargin = dp(8);
-        buttons.addView(go, half);
-        buttons.addView(write, second);
-        card.addView(buttons, below);
-
-        LinearLayout holder = new LinearLayout(this);
-        holder.setPadding(skin.margin, dp(14), skin.margin, dp(2));
-        holder.addView(card, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return holder;
-    }
-
-    /** Open the thanks, then take the screen down to it. */
-    private void showDonations() {
-        thanksOpen = true;
-        rebuild();
-        final View anchor = donateAnchor;
-        if (page == null || anchor == null) return;
-        page.post(() -> {
-            try {
-                page.smoothScrollTo(0, anchor.getTop());
-            } catch (Throwable ignored) {
-            }
-        });
-    }
-
-    /** Two colours mixed, for a banner that is the accent without shouting. */
-    private static int blend(int colour, int into, float how) {
-        int red = (int) (((colour >> 16) & 0xFF) * (1 - how) + ((into >> 16) & 0xFF) * how);
-        int green = (int) (((colour >> 8) & 0xFF) * (1 - how) + ((into >> 8) & 0xFF) * how);
-        int blue = (int) ((colour & 0xFF) * (1 - how) + (into & 0xFF) * how);
-        return 0xFF000000 | (red << 16) | (green << 8) | blue;
     }
 
     // -------------------------------------------------------- the colours
@@ -875,12 +726,12 @@ public class SettingsActivity extends Activity {
         }
         rows.addView(line());
         rows.addView(quiet(Text.ICON_NOTE));
-        rows.addView(linkRow("link", Text.ICON_CONTEST, "@tiktokmiiktok", CONTEST));
+        rows.addView(linkRow("link", Text.ICON_CONTEST, "@fuckramochka", CONTEST));
         return rows;
     }
 
     /** Where the icons come from. */
-    private static final String CONTEST = "https://t.me/tiktokmiiktok/49";
+    private static final String CONTEST = "https://t.me/fuckramochka";
 
     /** The row that opens one of the theme's two colours. */
     private View shadeHead(final boolean forText) {
@@ -1387,7 +1238,7 @@ public class SettingsActivity extends Activity {
         return sized(row, 56);
     }
 
-    /** Who made this, and the two ways to pay for it. */
+    /** Who made this. */
     private View thanks() {
         LinearLayout rows = new LinearLayout(this);
         rows.setOrientation(LinearLayout.VERTICAL);
@@ -1397,29 +1248,6 @@ public class SettingsActivity extends Activity {
         rows.addView(owner());
         rows.addView(person("Claude Opus 5", Text.THANKS_CLAUDE, null));
         rows.addView(person("апрель14", Text.THANKS_HELPER, HELPER));
-
-        rows.addView(line());
-
-        TextView heading = new TextView(this);
-        heading.setText(Text.DONATE);
-        heading.setTextColor(skin.text);
-        heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        heading.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        heading.setPadding(dp(16), dp(14), dp(16), dp(2));
-        rows.addView(heading);
-
-        rows.addView(quiet(Text.DONATE_NOTE));
-
-        LinearLayout card = row();
-        LinearLayout cardText = new LinearLayout(this);
-        cardText.setOrientation(LinearLayout.VERTICAL);
-        cardText.addView(label(spaced(CARD_NUMBER)));
-        cardText.addView(detail(Text.CARD + "  ·  " + Text.TAP_TO_COPY));
-        card.addView(cardText, grow());
-        card.setOnClickListener(v -> copy(Text.CARD, CARD_NUMBER));
-        rows.addView(sized(card, 64));
-
-        rows.addView(linkRow("star", Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
         return rows;
     }
 
@@ -1429,7 +1257,7 @@ public class SettingsActivity extends Activity {
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
-        text.addView(label("@narezany"));
+        text.addView(label("@dkramochka"));
         text.addView(detail(Text.THANKS_OWNER));
         row.addView(text, grow());
         row.addView(away());
@@ -1437,7 +1265,7 @@ public class SettingsActivity extends Activity {
         row.setOnClickListener(v -> {
             try {
                 new android.app.AlertDialog.Builder(this)
-                        .setTitle("@narezany")
+                        .setTitle("@dkramochka")
                         .setItems(new CharSequence[]{"Telegram", "TikTok"}, (dialog, which) ->
                                 open(which == 0 ? OWNER_TELEGRAM : OWNER_TIKTOK))
                         .setNegativeButton(Text.CANCEL, null)
@@ -1483,16 +1311,6 @@ public class SettingsActivity extends Activity {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         view.setPadding(dp(16), dp(2), dp(16), dp(8));
         return view;
-    }
-
-    /** A card number is read off the screen by a person, so it is grouped. */
-    private static String spaced(String digits) {
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < digits.length(); i++) {
-            if (i > 0 && i % 4 == 0) out.append(' ');
-            out.append(digits.charAt(i));
-        }
-        return out.toString();
     }
 
     private void open(String url) {

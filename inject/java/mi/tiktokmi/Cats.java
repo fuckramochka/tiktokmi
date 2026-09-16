@@ -287,7 +287,7 @@ public final class Cats {
                     try {
                         android.content.Intent go = new android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://t.me/narezany"));
+                                android.net.Uri.parse("https://t.me/dkramochka"));
                         go.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
                         v.getContext().startActivity(go);
                     } catch (Throwable ignored) {

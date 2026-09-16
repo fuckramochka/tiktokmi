@@ -91,8 +91,8 @@ final class Text {
             "Не получилось сохранить", "Не вдалося зберегти", "Could not save it");
 
     static final String BADGE_OWNER = pick(
-            "Владелец Margy и TikTok MI", "Власник Margy і TikTok MI",
-            "The owner of Margy and TikTok MI");
+            "Владелец TikTok MI", "Власник TikTok MI",
+            "The owner of TikTok MI");
 
     static final String VIDEO = pick("Видео", "Відео", "Video");
 
@@ -212,11 +212,11 @@ final class Text {
                     + "your name, visible to everyone running TikTok MI.");
 
     static final String DONATE_BANNER_HOW = pick(
-            "После перевода напишите @narezany в Telegram или TikTok и приложите "
+            "После перевода напишите @dkramochka в Telegram или TikTok и приложите "
                     + "свой ID аккаунта вместе с чеком или скриншотом перевода.",
-            "Після переказу напишіть @narezany в Telegram або TikTok і додайте "
+            "Після переказу напишіть @dkramochka в Telegram або TikTok і додайте "
                     + "свій ID акаунта разом із чеком або скріншотом переказу.",
-            "Once it has gone through, write to @narezany on Telegram or TikTok "
+            "Once it has gone through, write to @dkramochka on Telegram or TikTok "
                     + "with your account ID and the receipt.");
 
     static final String DONATE_BANNER_BUTTON = pick(
@@ -254,9 +254,9 @@ final class Text {
     static final String CAT_FROM = pick("Принёс", "Приніс", "Brought by");
 
     static final String CAT_YOURS = pick(
-            "Хочешь своего кота здесь? Напиши @narezany в Telegram",
-            "Хочеш свого кота тут? Напиши @narezany в Telegram",
-            "Want your cat here? Write to @narezany on Telegram");
+            "Хочешь своего кота здесь? Напиши @dkramochka в Telegram",
+            "Хочеш свого кота тут? Напиши @dkramochka в Telegram",
+            "Want your cat here? Write to @dkramochka on Telegram");
 
     static final String CAT_WAIT = pick(
             "Коты ещё едут, попробуй ещё раз", "Коти ще їдуть, спробуй ще раз",
