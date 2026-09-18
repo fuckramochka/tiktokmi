@@ -1,0 +1,64 @@
+name: build apk
+
+# Manual only: the official apk is proprietary and cannot live in this
+# repository, so whoever starts the build points at it. Give a direct link
+# to a universal TikTok apk (type APK, not BUNDLE, arm64-v8a, nodpi).
+# The finished mod is uploaded as an artifact; the official apk never is.
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: "Direct link to a universal TikTok apk"
+        required: true
+      accent:
+        description: "Baked accent RRGGBB (empty keeps TikTok pink)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/cache@v4
+        with:
+          path: tools
+          key: toolchain-${{ hashFiles('tiktokmi/toolchain.py') }}
+
+      - name: validate inputs
+        run: |
+          if [ -n "${{ inputs.accent }}" ]; then
+            echo "${{ inputs.accent }}" | grep -Eq '^[0-9a-fA-F]{6}$' \
+              || { echo "accent must be six hex digits, like 8DD1B0"; exit 1; }
+          fi
+
+      - name: download the official apk
+        run: |
+          curl -fSL --retry 3 -A "Mozilla/5.0" -o official.apk "${{ inputs.apk_url }}"
+          ls -la official.apk
+
+      - name: install Pillow (icon thumbnails)
+        run: pip install pillow
+
+      - name: build
+        run: |
+          ACCENT=""
+          if [ -n "${{ inputs.accent }}" ]; then ACCENT="--accent ${{ inputs.accent }}"; fi
+          python3 -m tiktokmi official.apk $ACCENT
+
+      - name: upload the mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiktokmi.apk
+          path: build/tiktokmi.apk
