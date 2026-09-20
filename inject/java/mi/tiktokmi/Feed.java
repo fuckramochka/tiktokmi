@@ -29,8 +29,10 @@ public final class Feed {
     private Feed() {}
 
     public static final String KEY = "hide_ads";
+    public static final String KEY_HIDE_LIVES = "hide_lives";
 
     private static volatile Boolean cached;
+    private static volatile Boolean cachedLives;
 
     public static boolean isEnabled() {
         Boolean known = cached;
@@ -50,6 +52,40 @@ public final class Feed {
         cached = enabled;
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putBoolean(KEY, enabled).apply();
+    }
+
+    public static boolean isHideLivesEnabled() {
+        Boolean known = cachedLives;
+        if (known != null) return known;
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return true;  // default true on install
+        boolean on = true;
+        try {
+            on = prefs.getBoolean(KEY_HIDE_LIVES, true);
+        } catch (Throwable ignored) {
+        }
+        cachedLives = on;
+        return on;
+    }
+
+    public static void setHideLivesEnabled(boolean enabled) {
+        cachedLives = enabled;
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putBoolean(KEY_HIDE_LIVES, enabled).apply();
+    }
+
+    public static boolean isLiveAweme(Aweme aweme) {
+        if (aweme == null) return false;
+        try {
+            if (aweme.isLive()) return true;
+        } catch (Throwable ignored) {
+        }
+        try {
+            int type = aweme.getAwemeType();
+            if (type == 101 || type == 102) return true;
+        } catch (Throwable ignored) {
+        }
+        return false;
     }
 
     private static SharedPreferences prefs() {
@@ -73,26 +109,42 @@ public final class Feed {
      * The list is only rebuilt when there is something to leave out -- the
      * ordinary page comes back as the very object the app asked for, which
      * keeps this out of the way of everything that reads a feed and is not
-     * looking for advertisements.
+     * looking for advertisements or live streams.
      */
     public static List getItems(FeedItemList page) {
         if (page == null) return null;
         List items = page.getItems();
-        if (items == null || !isEnabled()) return items;
-        try {
-            int ads = 0;
-            for (Object item : items) {
-                if (item instanceof Aweme && ((Aweme) item).isAd()) ads++;
-            }
-            if (ads == 0) return items;
+        if (items == null) return null;
 
-            List kept = new ArrayList(items.size() - ads);
+        boolean dropAds = isEnabled();
+        boolean dropLives = isHideLivesEnabled();
+        if (!dropAds && !dropLives) return items;
+
+        try {
+            int toDrop = 0;
             for (Object item : items) {
-                if (item instanceof Aweme && ((Aweme) item).isAd()) continue;
+                if (item instanceof Aweme) {
+                    Aweme aweme = (Aweme) item;
+                    if (dropAds && aweme.isAd()) {
+                        toDrop++;
+                    } else if (dropLives && isLiveAweme(aweme)) {
+                        toDrop++;
+                    }
+                }
+            }
+            if (toDrop == 0) return items;
+
+            List kept = new ArrayList(items.size() - toDrop);
+            for (Object item : items) {
+                if (item instanceof Aweme) {
+                    Aweme aweme = (Aweme) item;
+                    if (dropAds && aweme.isAd()) continue;
+                    if (dropLives && isLiveAweme(aweme)) continue;
+                }
                 kept.add(item);
             }
-            dropped += ads;
-            Diary.note("feed: " + ads + " ad(s) dropped, " + dropped + " so far");
+            dropped += toDrop;
+            Diary.note("feed: " + toDrop + " item(s) dropped (ads/lives), " + dropped + " so far");
             return kept;
         } catch (Throwable error) {
             Diary.note("feed: leaving the page alone, " + error);

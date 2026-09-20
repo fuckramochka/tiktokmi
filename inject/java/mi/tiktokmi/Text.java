@@ -40,6 +40,18 @@ final class Text {
                     + "are pictures rather than code; their colour is settled at build "
                     + "time and does not follow.");
 
+    static final String ACCENT_CUSTOM = pick(
+            "Свой цвет (HEX)", "Свій колір (HEX)", "Custom colour (HEX)");
+
+    static final String ACCENT_CUSTOM_HINT = pick(
+            "#FE2C55 или FFB7C5", "#FE2C55 або FFB7C5", "#FE2C55 or FFB7C5");
+
+    static final String COLOR_INVALID = pick(
+            "Неверный формат цвета (нужен #RRGGBB)", "Невірний формат кольору (потрібен #RRGGBB)",
+            "Invalid colour format (#RRGGBB needed)");
+
+    static final String APPLY = pick("Применить", "Застосувати", "Apply");
+
     /** The bar at the foot of the screen: one line, not a paragraph. */
     static final String RESTART_PENDING = pick(
             "Изменения применятся после перезапуска",
@@ -279,6 +291,9 @@ final class Text {
     static final String HIDE_ADS = pick(
             "Убирать рекламу", "Прибирати рекламу", "Drop the advertisements");
 
+    static final String HIDE_LIVES = pick(
+            "Скрыть прямые эфиры", "Приховати прямі ефіри", "Hide live streams");
+
     // --------------------------------------------------------- the plugins
 
     static final String PLUGINS = pick("Плагины", "Плагіни", "Plugins");
@@ -352,6 +367,11 @@ final class Text {
             "Откройте стикеры в переписке, и они появятся здесь",
             "Відкрийте стікери в листуванні, і вони з'являться тут",
             "Open the stickers in a chat and they will show up here");
+
+    static final String STREAK_NEED_STICKER = pick(
+            "Сначала откройте стикеры в любом чате TikTok!",
+            "Спершу відкрийте стікери у будь-якому чаті TikTok!",
+            "First open stickers in any TikTok chat!");
 
     // ------------------------------------------------------- the updates
 
@@ -462,6 +482,26 @@ final class Text {
 
     static final String ACCOUNT_UNKNOWN = pick(
             "Пока неизвестен", "Поки невідомий", "Not seen yet");
+
+    // ------------------------------------------------ Amegram Ecosystem
+    static final String ECOSYSTEM = pick("Экосистема Amegram", "Екосистема Amegram", "Amegram Ecosystem");
+    static final String ECOSYSTEM_CONNECTED = pick("● Amegram подключен", "● Amegram підключено", "● Amegram connected");
+    static final String ECOSYSTEM_NOT_INSTALLED = pick("○ Amegram не установлен", "○ Amegram не встановлено", "○ Amegram not installed");
+    static final String SYNC_THEME = pick("Синхронизация темы", "Синхронізація теми", "Mirror theme & accent");
+    static final String SYNC_THEME_NOTE = pick(
+            "Транслирует цвета акцента и тёмную тему в Amegram без перезапуска",
+            "Транслює кольори акценту та темну тему в Amegram без перезапуску",
+            "Broadcasts accent color and dark theme to Amegram without restart");
+    static final String DIRECT_SHARE_SAVED = pick("1-Tap в Сохранённое", "1-Tap у Збережене", "1-Tap to Saved Messages");
+    static final String DIRECT_SHARE_SAVED_NOTE = pick(
+            "Отправка чистого видео сразу в Избранное Telegram без лишних диалогов",
+            "Надсилання чистого відео одразу в Збережене Telegram без зайвих діалогів",
+            "Sends clean video directly to Saved Messages without extra dialogs");
+    static final String CLIPVAULT = pick("Фоновый буфер ClipVault", "Фоновий буфер ClipVault", "Ambient ClipVault");
+    static final String CLIPVAULT_NOTE = pick(
+            "Делится скопированными видео и звуками с Amegram без навязчивых окон",
+            "Ділиться скопійованими відео та звуками з Amegram без нав'язливих вікон",
+            "Silently shares copied video links and audio with Amegram without popups");
 
     private static String language() {
         try {

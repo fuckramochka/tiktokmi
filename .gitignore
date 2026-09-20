@@ -3,6 +3,7 @@
 apk/
 work/
 build/
+*.apk
 
 # Downloaded tooling
 tools/

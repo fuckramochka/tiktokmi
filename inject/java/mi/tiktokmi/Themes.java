@@ -52,6 +52,12 @@ public final class Themes {
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putBoolean(KEY_ON, on).apply();
         forget();
+        if (!MiogramBridge.isSyncingFromAmegram() && MiogramBridge.isThemeSyncEnabled()) {
+            try {
+                MiogramBridge.syncThemeToAmegram(Margy.context(), Accent.colour(), isDark(), backgroundInUse() == 0xFF000000);
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     public static boolean isMaterial() {

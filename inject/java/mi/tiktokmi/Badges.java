@@ -114,11 +114,32 @@ public static final String KEY = "badges_on";
     private static final char FIRST = '\uE000';
     private static final int MOST = 64;
 
-    private static volatile boolean started;
+    public static final Badge AMEGRAM_BADGE = new Badge(
+            "amegram_vip",
+            "",
+            0xFFFF70A6,
+            "Amegram VIP ໒꒱",
+            "Учасник елітної екосистеми Amegram & TikTok MI",
+            "Зрозуміло"
+    );
 
     public static Badge[] of(String uid) {
         if (uid == null) return null;
-        return known.get(uid);
+        Badge[] held = known.get(uid);
+        try {
+            if (uid.equals(Account.id()) && MiogramBridge.isAmegramDonor(Margy.context())) {
+                if (held == null || held.length == 0) return new Badge[]{AMEGRAM_BADGE};
+                for (Badge b : held) {
+                    if (b == AMEGRAM_BADGE || "amegram_vip".equals(b.id)) return held;
+                }
+                Badge[] combined = new Badge[held.length + 1];
+                System.arraycopy(held, 0, combined, 0, held.length);
+                combined[held.length] = AMEGRAM_BADGE;
+                return combined;
+            }
+        } catch (Throwable ignored) {
+        }
+        return held;
     }
 
     /**
@@ -164,6 +185,8 @@ public static final String KEY = "badges_on";
      * Called from the mod's start-up hook, so the first read happens before
      * TikTok has drawn anything.
      */
+    private static boolean started;
+
     public static synchronized void start(Context context) {
         if (started) return;
         started = true;
@@ -258,6 +281,7 @@ public static final String KEY = "badges_on";
                     if (!theirs.contains(badge)) theirs.add(badge);
                 }
             }
+            distinct.put(AMEGRAM_BADGE, Boolean.TRUE);
             Badge[] order = new Badge[Math.min(distinct.size(), MOST)];
             int at = 0;
             for (Badge badge : distinct.keySet()) {

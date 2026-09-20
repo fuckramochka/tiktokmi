@@ -128,7 +128,15 @@ public final class Streaks {
 
     public static String chosen() {
         SharedPreferences prefs = prefs();
-        return prefs == null ? "" : prefs.getString(KEY_STICKER, "");
+        String id = prefs == null ? "" : prefs.getString(KEY_STICKER, "");
+        if (id.isEmpty()) {
+            List<String> offered = offered();
+            if (!offered.isEmpty()) {
+                id = offered.get(0);
+                choose(id);
+            }
+        }
+        return id;
     }
 
     public static void choose(String id) {
@@ -338,9 +346,12 @@ public final class Streaks {
     public static void round(final Context context) {
         if (!isEnabled()) return;
         final boolean byText = BY_TEXT.equals(mode());
-        final StickerItem sticker = byText ? null : sticker(chosen());
+        StickerItem sticker = byText ? null : sticker(chosen());
+        if (!byText && sticker == null && !seenStickers.isEmpty()) {
+            sticker = seenStickers.values().iterator().next();
+        }
         if (!byText && sticker == null) {
-            Diary.note("streaks: nothing to send -- no sticker chosen yet");
+            Diary.note("streaks: nothing to send -- no stickers seen yet (open any DM with stickers)");
             return;
         }
 
@@ -378,11 +389,12 @@ public final class Streaks {
                 + already + " already sent today, " + due.size() + " to send");
         if (due.isEmpty()) return;
 
+        final StickerItem toSend = sticker;
         Net.away("streaks", new Runnable() {
             @Override
             public void run() {
                 for (String conversation : due) {
-                    if (deliver(context, sticker, conversation)) {
+                    if (deliver(context, toSend, conversation)) {
                         remember(conversation);
                         Diary.note("streak kept: " + conversation);
                     } else {
@@ -442,22 +454,32 @@ public final class Streaks {
      */
     public static void test(final Context context) {
         final boolean byText = BY_TEXT.equals(mode());
-        final StickerItem sticker = byText ? null : sticker(chosen());
+        StickerItem sticker = byText ? null : sticker(chosen());
+        if (!byText && sticker == null && !seenStickers.isEmpty()) {
+            sticker = seenStickers.values().iterator().next();
+        }
         final List<String> all = conversations();
         Diary.note("streak test: " + all.size() + " conversation(s) known, sending "
                 + (byText ? "text [" + text() + "]"
-                          : "a sticker " + (sticker == null ? "NOT chosen" : "chosen"))
+                          : "a sticker " + (sticker == null ? "NOT chosen/seen" : "chosen"))
                 + ", service " + (service == null ? "not seen yet" : "seen"));
         describe();
-        if (all.isEmpty()) return;
-        if (!byText && sticker == null) return;
+        if (all.isEmpty()) {
+            Diary.note("streak test: no conversations known (open messages in TikTok first)");
+            return;
+        }
+        if (!byText && sticker == null) {
+            Diary.note("streak test: no sticker chosen (open stickers in messages first)");
+            return;
+        }
 
+        final StickerItem toSend = sticker;
         Net.away("streak test", new Runnable() {
             @Override
             public void run() {
                 for (String conversation : all) {
                     String state = statusOf(ask(conversation));
-                    boolean sent = deliver(context, sticker, conversation);
+                    boolean sent = deliver(context, toSend, conversation);
                     Diary.note("streak test: " + conversation + " (" + state + ") -> "
                             + (sent ? "sent" : "not sent"));
                 }
@@ -563,53 +585,64 @@ public final class Streaks {
 
             Method sender = null;
             for (Method method : service.getClass().getMethods()) {
-                if (method.getParameterTypes().length == 13
-                        && method.getReturnType() == void.class) {
-                    sender = method;
-                    break;
+                if (method.getReturnType() == void.class) {
+                    Class<?>[] params = method.getParameterTypes();
+                    boolean hasContext = false;
+                    boolean hasSticker = false;
+                    boolean hasString = false;
+                    for (Class<?> p : params) {
+                        if (Context.class.isAssignableFrom(p)) hasContext = true;
+                        if (p == StickerItem.class) hasSticker = true;
+                        if (p == String.class) hasString = true;
+                    }
+                    if (hasContext && hasSticker && hasString && params.length >= 10 && params.length <= 16) {
+                        sender = method;
+                        break;
+                    }
                 }
             }
             if (sender == null) {
-                Diary.note("streak send: no method taking thirteen arguments on "
+                for (Method method : service.getClass().getMethods()) {
+                    if (method.getParameterTypes().length == 13
+                            && method.getReturnType() == void.class) {
+                        sender = method;
+                        break;
+                    }
+                }
+            }
+            if (sender == null) {
+                Diary.note("streak send: no sticker sender method found on "
                         + service.getClass().getName());
                 return false;
             }
 
-            // TikTok's own call, which is in the apk even though the service
-            // that answers it is not:
-            //
-            //   LIZJ(context.getApplicationContext(), null, null,
-            //        AUTO_CONSECUTIVE_SA_STICKERS, sticker, new X(null),
-            //        null, null, conversationId, null, null, null, false)
-            //
-            // Null for everything not named. The first version of this built
-            // an object for every argument it had not been told about, which
-            // meant handing made-up protocol messages to a sender that wanted
-            // none -- and that is what the exception was.
             Class<?>[] types = sender.getParameterTypes();
             Object[] args = new Object[types.length];
             int stickerAt = -1;
             for (int i = 0; i < types.length; i++) {
-                if (types[i].isInstance(sticker)) stickerAt = i;
+                if (types[i] == StickerItem.class || (sticker != null && types[i].isInstance(sticker))) {
+                    stickerAt = i;
+                }
             }
 
             for (int i = 0; i < types.length; i++) {
                 if (types[i].isPrimitive()) {
                     args[i] = blank(types[i]);
-                } else if (types[i] == Context.class) {
+                } else if (Context.class.isAssignableFrom(types[i])) {
                     args[i] = context.getApplicationContext();
                 } else if (i == stickerAt) {
                     args[i] = sticker;
                 } else if (types[i] == String.class) {
                     args[i] = conversation;
-                } else if (types[i].isEnum()) {
-                    args[i] = constant(types[i], SOURCE);
-                } else if (i == stickerAt + 1) {
-                    // the one argument TikTok does build, and it builds it
-                    // with nothing in it
-                    args[i] = maybe(types[i]);
                 } else {
-                    args[i] = null;
+                    Object source = findSource(types[i]);
+                    if (source != null) {
+                        args[i] = source;
+                    } else if (i == stickerAt + 1) {
+                        args[i] = maybe(types[i]);
+                    } else {
+                        args[i] = null;
+                    }
                 }
             }
 
@@ -686,6 +719,28 @@ public final class Streaks {
             Diary.note("streak service: " + error);
             return null;
         }
+    }
+
+    private static Object findSource(Class<?> type) {
+        if (type == null) return null;
+        if (type.isEnum()) return constant(type, SOURCE);
+        try {
+            Class<?> cls = Class.forName("X.173Q", false, type.getClassLoader());
+            if (type.isAssignableFrom(cls)) {
+                return constant(cls, SOURCE);
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            for (Class<?> inner : type.getDeclaredClasses()) {
+                if (inner.isEnum() && type.isAssignableFrom(inner)) {
+                    Object c = constant(inner, SOURCE);
+                    if (c != null) return c;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
     }
 
     /** A named constant on an enum, or its first value if that name has gone. */

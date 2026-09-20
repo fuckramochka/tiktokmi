@@ -143,8 +143,16 @@ public final class Accent {
 
     public static void set(int colour) {
         cached = colour == 0 ? BUILT_WITH : colour;
+        forget();
+        Themes.forget();
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putInt(KEY, cached).apply();
+        if (!MiogramBridge.isSyncingFromAmegram() && MiogramBridge.isThemeSyncEnabled()) {
+            try {
+                MiogramBridge.syncThemeToAmegram(Margy.context(), cached, Themes.isDark(), Themes.backgroundInUse() == 0xFF000000);
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     public static boolean isDefault() {

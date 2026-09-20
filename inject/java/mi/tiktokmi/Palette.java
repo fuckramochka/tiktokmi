@@ -28,11 +28,11 @@ public final class Palette {
     private Palette() {}
 
     /** How far from the reference hue still counts as the family, in degrees. */
-    public static final float HUE = 20f;
+    public static final float HUE = 30f;
 
     /** Below these there is no hue worth moving: greys, near-black, near-white. */
-    public static final float MIN_SATURATION = 0.35f;
-    public static final float MIN_VALUE = 0.35f;
+    public static final float MIN_SATURATION = 0.15f;
+    public static final float MIN_VALUE = 0.2f;
 
     public static boolean captures(int colour, int reference) {
         // the reference itself is always in the family, at any opacity and
@@ -65,13 +65,16 @@ public final class Palette {
 
             float hue = to[0] + (here[0] - from[0]);
             hue = ((hue % 360f) + 360f) % 360f;
-            // a ratio rather than a difference: half as saturated as the pink
-            // comes out half as saturated as the accent, whatever it is
-            float saturation = from[1] == 0f ? to[1] : to[1] * (here[1] / from[1]);
-            float value = from[2] == 0f ? to[2] : to[2] * (here[2] / from[2]);
+            float satRatio = from[1] <= 0.01f ? 1f : here[1] / from[1];
+            float valRatio = from[2] <= 0.01f ? 1f : here[2] / from[2];
+            float saturation = clamp(to[1] * satRatio);
+            if (to[1] > 0.05f && saturation < 0.08f && here[1] >= 0.2f) {
+                saturation = 0.08f;
+            }
+            float value = clamp(to[2] * valRatio);
 
             return Color.HSVToColor(Color.alpha(colour),
-                    new float[]{hue, clamp(saturation), clamp(value)});
+                    new float[]{hue, saturation, value});
         } catch (Throwable ignored) {
             // nothing about a colour is worth taking an app down for
             return colour;

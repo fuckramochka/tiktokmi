@@ -149,6 +149,8 @@ public class SettingsActivity extends Activity {
         if (accentOpen) {
             accent.addView(line());
             accent.addView(palette());
+            accent.addView(line());
+            accent.addView(customAccentRow());
             if (Accent.fromWallpaper() != 0) {
                 accent.addView(line());
                 accent.addView(wallpaperRow());
@@ -211,6 +213,8 @@ public class SettingsActivity extends Activity {
         column.addView(section(Text.FEED));
         LinearLayout feed = card();
         feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
+        feed.addView(line());
+        feed.addView(toggleRow("visibility_off", Text.HIDE_LIVES, Feed.isHideLivesEnabled(), Feed::setHideLivesEnabled));
         column.addView(wrap(feed));
 
         column.addView(section(Text.VIDEO));
@@ -243,6 +247,48 @@ public class SettingsActivity extends Activity {
                 Stickers::setEnabled));
         column.addView(wrap(downloads));
 
+        column.addView(section(Text.ECOSYSTEM));
+        LinearLayout ecosystem = card();
+        final boolean isConnected = MiogramBridge.isAmegramInstalled(this);
+        ecosystem.addView(actionRow(
+                "extension",
+                "Amegram ໒꒱",
+                isConnected ? Text.ECOSYSTEM_CONNECTED : Text.ECOSYSTEM_NOT_INSTALLED,
+                () -> {
+                    if (isConnected) {
+                        try {
+                            Intent launch = getPackageManager().getLaunchIntentForPackage(MiogramBridge.getPreferredPackage(this));
+                            if (launch != null) {
+                                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(launch);
+                            }
+                        } catch (Throwable ignored) {}
+                    } else {
+                        try {
+                            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(CHANNEL));
+                            browser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(browser);
+                        } catch (Throwable ignored) {}
+                    }
+                }));
+        if (isConnected) {
+            ecosystem.addView(line());
+            ecosystem.addView(toggleRow("palette", Text.SYNC_THEME, MiogramBridge.isThemeSyncEnabled(), on -> {
+                MiogramBridge.setThemeSyncEnabled(on);
+                if (on) {
+                    MiogramBridge.syncThemeToAmegram(this, Accent.colour(), Themes.isDark(), Themes.backgroundInUse() == 0xFF000000);
+                }
+            }));
+            ecosystem.addView(line());
+            ecosystem.addView(toggleRow("download", Text.DIRECT_SHARE_SAVED, MiogramBridge.isDirectSavedEnabled(),
+                    MiogramBridge::setDirectSavedEnabled));
+            ecosystem.addView(line());
+            ecosystem.addView(toggleRow("article", Text.CLIPVAULT, MiogramBridge.isClipVaultEnabled(),
+                    MiogramBridge::setClipVaultEnabled));
+        }
+        column.addView(wrap(ecosystem));
+        column.addView(caption(Text.CLIPVAULT_NOTE));
+
         column.addView(section(Text.PLUGINS));
         LinearLayout plugins = card();
         plugins.addView(installRow());
@@ -274,8 +320,12 @@ public class SettingsActivity extends Activity {
         streaks.addView(line());
         streaks.addView(actionRow("play_circle", Text.STREAK_TEST, Text.STREAK_TEST_NOTE,
                 () -> {
-                    Streaks.test(this);
-                    Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
+                    if (Streaks.offered().isEmpty() && Streaks.chosen().isEmpty()) {
+                        Toast.makeText(this, Text.STREAK_NEED_STICKER, Toast.LENGTH_LONG).show();
+                    } else {
+                        Streaks.test(this);
+                        Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
+                    }
                 }));
         column.addView(wrap(streaks));
         column.addView(caption(Text.STREAK_NOTE));
@@ -506,6 +556,78 @@ public class SettingsActivity extends Activity {
             markChanged();
         });
         return sized(row, 56);
+    }
+
+    private View customAccentRow() {
+        final int current = Accent.colour();
+        LinearLayout row = row();
+        row.addView(icon("format_color_fill"));
+        row.addView(label(Text.ACCENT_CUSTOM), grow());
+        row.addView(new Dot(this, current, false));
+        row.setOnClickListener(v -> pickCustomAccent());
+        return sized(row, 56);
+    }
+
+    private void pickCustomAccent() {
+        try {
+            final int current = Accent.colour();
+            String currentHex = String.format("#%06X", (0xFFFFFF & current));
+            final android.widget.EditText input = new android.widget.EditText(this);
+            input.setText(currentHex);
+            input.setHint(Text.ACCENT_CUSTOM_HINT);
+            input.setTextColor(skin.text);
+            input.setHintTextColor(skin.muted());
+            input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            input.setSingleLine(true);
+            input.setPadding(dp(12), dp(10), dp(12), dp(10));
+
+            final Dot previewDot = new Dot(this, current, false);
+
+            LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.HORIZONTAL);
+            layout.setGravity(Gravity.CENTER_VERTICAL);
+            layout.setPadding(dp(20), dp(14), dp(20), dp(14));
+            layout.addView(previewDot, new LinearLayout.LayoutParams(dp(36), dp(36)));
+            LinearLayout.LayoutParams editParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            editParams.leftMargin = dp(12);
+            layout.addView(input, editParams);
+
+            input.addTextChangedListener(new android.text.TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    try {
+                        String text = s.toString().trim();
+                        if (!text.startsWith("#")) text = "#" + text;
+                        int parsed = android.graphics.Color.parseColor(text);
+                        previewDot.setColor(0xFF000000 | parsed);
+                    } catch (Throwable ignored) {}
+                }
+                @Override
+                public void afterTextChanged(android.text.Editable s) {}
+            });
+
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle(Text.ACCENT_CUSTOM)
+                    .setView(layout)
+                    .setNegativeButton(Text.CANCEL, null)
+                    .setPositiveButton(Text.APPLY, (dialog, which) -> {
+                        try {
+                            String text = input.getText().toString().trim();
+                            if (!text.startsWith("#")) text = "#" + text;
+                            int parsed = android.graphics.Color.parseColor(text);
+                            int finalColor = 0xFF000000 | parsed;
+                            Accent.set(finalColor);
+                            markChanged();
+                        } catch (Throwable error) {
+                            Toast.makeText(this, Text.COLOR_INVALID, Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .show();
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_SHORT).show();
+        }
     }
 
     /** How far the chosen background sits from the theme's own extreme. */
@@ -1675,6 +1797,12 @@ public class SettingsActivity extends Activity {
             ring.setColor(colour);
             ring.setStyle(Paint.Style.STROKE);
             setClickable(chosen ? false : true);
+        }
+
+        void setColor(int colour) {
+            fill.setColor(colour);
+            ring.setColor(colour);
+            invalidate();
         }
 
         @Override

@@ -225,4 +225,17 @@ public final class Download {
         if (isAlways()) return Boolean.TRUE;
         return control.allowDownload;
     }
+
+    // ------------------------------------------------ Amegram Ecosystem
+    public static void shareCleanVideoToSaved(android.content.Context context, java.io.File file, String caption) {
+        MiogramBridge.shareToSavedMessages(context, file, "video/mp4", caption);
+    }
+
+    public static void shareCleanVideoToStories(android.content.Context context, java.io.File file, String caption) {
+        MiogramBridge.shareToStories(context, file, caption);
+    }
+
+    public static void notifyClipVault(android.content.Context context, String mediaUrl, String title, String author) {
+        MiogramBridge.notifyClipVault(context, mediaUrl, title, author, true);
+    }
 }

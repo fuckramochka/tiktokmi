@@ -62,6 +62,11 @@ public final class MargyProvider extends ContentProvider {
         } catch (Throwable error) {
             Diary.note("plugins failed to start: " + error);
         }
+        try {
+            MiogramBridge.start(context);
+        } catch (Throwable error) {
+            Diary.note("ecosystem bridge failed to start: " + error);
+        }
         return true;
     }
 

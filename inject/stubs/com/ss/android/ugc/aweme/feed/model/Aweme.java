@@ -12,4 +12,14 @@ public class Aweme {
     public boolean isPreventDownload() {
         throw new UnsupportedOperationException("stub");
     }
+
+    /** Whether TikTok counts this post as a live stream. */
+    public boolean isLive() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    /** Type of aweme post (101 is LIVE). */
+    public int getAwemeType() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

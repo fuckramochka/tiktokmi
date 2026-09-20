@@ -37,12 +37,12 @@ from typing import Tuple
 # How far from the reference hue still counts as the same family, in degrees.
 # Twenty reaches TikTok's magentas and its Shop reds without touching its cyan,
 # which is the other half of the brand and has to stay where it is.
-HUE = 20.0
+HUE = 30.0
 
 # Below these a colour has no hue worth speaking of: near-black, near-white and
 # the greys sit at some arbitrary hue and must not be dragged along.
-MIN_SATURATION = 0.35
-MIN_VALUE = 0.35
+MIN_SATURATION = 0.15
+MIN_VALUE = 0.20
 
 
 def _split(colour: int) -> Tuple[int, float, float, float]:
@@ -99,9 +99,14 @@ def map_colour(colour: int, reference: int, accent: int) -> int:
     _ra, ref_hue, ref_saturation, ref_value = _split(reference)
     _aa, accent_hue, accent_saturation, accent_value = _split(accent)
 
-    hue = accent_hue + (hue - ref_hue)
-    # a ratio rather than a difference: half as saturated as the pink comes out
-    # half as saturated as the accent, whatever the accent happens to be
-    saturation = accent_saturation * (saturation / ref_saturation) if ref_saturation else accent_saturation
-    value = accent_value * (value / ref_value) if ref_value else accent_value
-    return _join(alpha, hue, saturation, value)
+    sat_ratio = 1.0 if ref_saturation <= 0.01 else saturation / ref_saturation
+    val_ratio = 1.0 if ref_value <= 0.01 else value / ref_value
+    out_saturation = _clamp(accent_saturation * sat_ratio)
+    if accent_saturation > 0.05 and out_saturation < 0.08 and saturation >= 0.2:
+        out_saturation = 0.08
+    out_value = _clamp(accent_value * val_ratio)
+
+    return _join(alpha,
+                 accent_hue + (hue - ref_hue),
+                 out_saturation,
+                 out_value)
