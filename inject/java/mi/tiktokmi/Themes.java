@@ -162,16 +162,17 @@ public final class Themes {
     private static volatile Settled settled;
 
     private static Settled read() {
-        boolean on = flag(KEY_ON, false);
-        boolean material = flag(KEY_MATERIAL, false);
+        // Auto-select system theme and Material You on fresh install
+        boolean on = flag(KEY_ON, true);
+        boolean material = flag(KEY_MATERIAL, true);
         int chosenText = 0;
         int chosenBackground = 0;
         if (material) {
             chosenText = fromSystem(true);
             chosenBackground = fromSystem(false);
         }
-        if (chosenText == 0) chosenText = number(KEY_TEXT, TEXT);
-        if (chosenBackground == 0) chosenBackground = number(KEY_BACKGROUND, BACKGROUND);
+        if (chosenText == 0) chosenText = number(KEY_TEXT, isDark() ? 0xFFFFFFFF : 0xFF121212);
+        if (chosenBackground == 0) chosenBackground = number(KEY_BACKGROUND, isDark() ? 0xFF000000 : 0xFFFFFFFF);
 
         int strength = number(KEY_STRENGTH, 100);
         if (strength < 0) strength = 0;

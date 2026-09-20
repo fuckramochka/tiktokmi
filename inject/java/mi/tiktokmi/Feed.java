@@ -36,10 +36,10 @@ public final class Feed {
         Boolean known = cached;
         if (known != null) return known;
         SharedPreferences prefs = prefs();
-        if (prefs == null) return false;  // too early to know; do not cache it
-        boolean on = false;
+        if (prefs == null) return true;  // default true on install
+        boolean on = true;
         try {
-            on = prefs.getBoolean(KEY, false);
+            on = prefs.getBoolean(KEY, true);
         } catch (Throwable ignored) {
         }
         cached = on;

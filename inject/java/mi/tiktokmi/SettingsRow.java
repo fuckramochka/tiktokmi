@@ -36,9 +36,9 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     public static final String SETTINGS_ACTIVITY =
             "com.ss.android.ugc.aweme.setting.ui.SettingContainerActivity";
 
-    // setTag(int, ...) refuses a key that does not look like a resource id:
-    // the top byte has to be 2 or more. This one spells "Marg".
-    private static final int TAG = 0x4D617267;
+    // setTag(int, ...) spells "TTMI"
+    private static final int TAG = 0x54544D49;
+    private static final int GESTURE_TAG = 0x54544D47; // "TTMG"
 
     // ------------------------------------------------------- the lifecycle
 
@@ -54,6 +54,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         Screen.at(activity);
         Updater.resumed(activity);
         Themes.watch(activity);
+        attachGestures(activity);
 
         String name = activity.getClass().getName();
 
@@ -64,8 +65,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
             }
         }
         if (!SETTINGS_ACTIVITY.equals(name)) {
-            // every screen would drown the diary; the ones worth knowing about
-            // are the ones that might be the settings screen under a new name
             if (name.toLowerCase(Locale.US).contains("setting")) Diary.note("saw " + name);
             return;
         }
@@ -75,6 +74,39 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         decor.setTag(TAG, Boolean.TRUE);
 
         decor.getViewTreeObserver().addOnGlobalLayoutListener(new Injector(activity));
+    }
+
+    /**
+     * Attaches global gestures (2-finger long press) to open TikTok MI settings anywhere.
+     */
+    private static void attachGestures(final Activity activity) {
+        try {
+            final View decor = activity.getWindow().getDecorView();
+            if (decor.getTag(GESTURE_TAG) != null) return;
+            decor.setTag(GESTURE_TAG, Boolean.TRUE);
+
+            decor.setOnTouchListener(new View.OnTouchListener() {
+                private long touchDownTime;
+                @Override
+                public boolean onTouch(View v, android.view.MotionEvent event) {
+                    if (event.getPointerCount() >= 2) {
+                        int action = event.getActionMasked();
+                        if (action == android.view.MotionEvent.ACTION_POINTER_DOWN) {
+                            touchDownTime = System.currentTimeMillis();
+                        } else if (action == android.view.MotionEvent.ACTION_POINTER_UP) {
+                            if (touchDownTime > 0 && (System.currentTimeMillis() - touchDownTime) > 600) {
+                                touchDownTime = 0;
+                                try {
+                                    activity.startActivity(new Intent(activity, SettingsActivity.class));
+                                } catch (Throwable ignored) {}
+                            }
+                        }
+                    }
+                    return false;
+                }
+            });
+        } catch (Throwable ignored) {
+        }
     }
 
     /**
@@ -115,8 +147,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
                     new android.widget.FrameLayout.LayoutParams(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT);
-            // a little below the middle: at the foot of the screen it sat
-            // under the picture's own controls and read as part of them
             params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
             params.topMargin = (int) (activity.getResources()
                     .getDisplayMetrics().heightPixels * 0.74f);
@@ -127,7 +157,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         }
     }
 
-    private static final int SAVE_TAG = 0x4D617269;  // "Margi"
+    private static final int SAVE_TAG = 0x54544D41;  // "TTMA"
 
     @Override
     public void onActivityCreated(Activity activity, Bundle state) {
@@ -152,14 +182,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     @Override
     public void onActivityDestroyed(Activity activity) {}
 
-    /**
-     * Puts the row in when the screen settles, and takes it off screen again
-     * while a page of that screen is open on top of it.
-     *
-     * The pages are more fragments in the same container, so a container with
-     * more than one child is a page rather than the settings list -- and the
-     * row belongs to the list.
-     */
     private final class Injector implements ViewTreeObserver.OnGlobalLayoutListener {
 
         private final Activity activity;
@@ -174,17 +196,6 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         public void onGlobalLayout() {
             try {
                 if (box == null) inject(this);
-                if (box == null || container == null) return;
-                int pages = 0;
-                for (int i = 0; i < container.getChildCount(); i++) {
-                    if (container.getChildAt(i).getVisibility() == View.VISIBLE) pages++;
-                }
-                int wanted = pages > 1 ? View.GONE : View.VISIBLE;
-                if (box.getVisibility() != wanted) {
-                    box.setVisibility(wanted);
-                    Diary.note(wanted == View.GONE
-                            ? "row stood aside for a page of the screen" : "row back");
-                }
             } catch (Throwable error) {
                 Diary.note("row failed: " + error);
             }
@@ -195,36 +206,60 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
 
     private void inject(Injector injector) {
         Activity activity = injector.activity;
-        ViewGroup container = fragmentContainer(activity);
-        if (container == null) return;
-        ViewGroup parent = container.getParent() instanceof ViewGroup
-                ? (ViewGroup) container.getParent() : null;
-        if (parent == null || parent.getTag(TAG) != null) return;
-        if (container.getWidth() == 0) return;  // not laid out yet
+        ViewGroup content = (ViewGroup) activity.findViewById(android.R.id.content);
+        if (content == null || content.getTag(TAG) != null) return;
+        content.setTag(TAG, Boolean.TRUE);
 
-        Skin skin = Skin.of(container);
+        Skin skin = Skin.remembered(activity);
+        final View fab = floatingButton(activity, skin);
 
-        int index = parent.indexOfChild(container);
-        ViewGroup.LayoutParams params = container.getLayoutParams();
+        android.widget.FrameLayout.LayoutParams fabParams = new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(activity, 46),
+                Gravity.BOTTOM | Gravity.END);
+        fabParams.bottomMargin = dp(activity, 28);
+        fabParams.rightMargin = dp(activity, 20);
 
-        LinearLayout column = new LinearLayout(activity);
-        column.setOrientation(LinearLayout.VERTICAL);
-        column.setTag(TAG, Boolean.TRUE);
+        content.addView(fab, fabParams);
+        injector.box = fab;
+        Diary.note("TikTok MI floating action pill added cleanly");
+    }
 
-        // The container is what the fragment manager adds pages to and takes
-        // them out of, so it is left exactly where it is -- the row goes above
-        // it, wrapped around the outside, and nothing the app does has to know.
-        parent.removeViewAt(index);
-        final View box = row(activity, skin);
-        column.addView(box, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        column.addView(container, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        parent.addView(column, index, params);
-        keepClearOfTheStatusBar(column, box, container, skin);
-        injector.box = box;
-        injector.container = container;
-        Diary.note("row added above " + container.getClass().getName());
+    private View floatingButton(final Activity activity, Skin skin) {
+        LinearLayout pill = new LinearLayout(activity);
+        pill.setOrientation(LinearLayout.HORIZONTAL);
+        pill.setGravity(Gravity.CENTER);
+        pill.setPadding(dp(activity, 18), dp(activity, 8), dp(activity, 20), dp(activity, 8));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Accent.colour());
+        bg.setCornerRadius(dp(activity, 24));
+        bg.setStroke(dp(activity, 1), 0x33FFFFFF);
+        pill.setBackground(bg);
+        pill.setElevation(dp(activity, 8));
+
+        TextView glyph = new TextView(activity);
+        glyph.setText("\u266A");
+        glyph.setTextColor(0xFFFFFFFF);
+        glyph.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        pill.addView(glyph);
+
+        TextView title = new TextView(activity);
+        title.setText("  TikTok MI");
+        title.setTextColor(0xFFFFFFFF);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        pill.addView(title);
+
+        pill.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    activity.startActivity(new Intent(activity, SettingsActivity.class));
+                } catch (Throwable ignored) {
+                }
+            }
+        });
+        return pill;
     }
 
     /**

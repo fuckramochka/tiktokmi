@@ -45,7 +45,7 @@ public final class Download {
         Boolean known = cached;
         if (known != null) return known;
         Boolean read = read(KEY);
-        if (read == null) return false;  // too early to know; do not cache it
+        if (read == null) return true;  // default true on install
         cached = read;
         return read;
     }
@@ -60,7 +60,7 @@ public final class Download {
         Boolean known = cachedAlways;
         if (known != null) return known;
         Boolean read = read(KEY_ALWAYS);
-        if (read == null) return false;
+        if (read == null) return true;  // default true on install
         cachedAlways = read;
         return read;
     }
@@ -74,9 +74,9 @@ public final class Download {
         SharedPreferences prefs = prefs();
         if (prefs == null) return null;
         try {
-            return prefs.getBoolean(key, false);
+            return prefs.getBoolean(key, true);
         } catch (Throwable ignored) {
-            return Boolean.FALSE;
+            return Boolean.TRUE;
         }
     }
 

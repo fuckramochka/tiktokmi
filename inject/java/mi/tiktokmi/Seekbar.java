@@ -32,10 +32,10 @@ public final class Seekbar {
         Boolean known = cached;
         if (known != null) return known;
         SharedPreferences prefs = prefs();
-        if (prefs == null) return false;
-        boolean on = false;
+        if (prefs == null) return true;
+        boolean on = true;
         try {
-            on = prefs.getBoolean(KEY, false);
+            on = prefs.getBoolean(KEY, true);
         } catch (Throwable ignored) {
         }
         cached = on;

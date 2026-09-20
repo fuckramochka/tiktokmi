@@ -56,14 +56,21 @@ public final class Accent {
     public static final int[] PALETTE = {
             BUILT_WITH,
             TIKTOK,      // TikTok's own pink, in case the build baked another
-            0xFF8DD1B0,  // Margy mint
-            0xFF25F4EE,  // TikTok's own cyan
+            0xFFFFB7C5,  // Miogram Strawberry Milk
+            0xFFE6E6FA,  // Miogram Lavender Dream
+            0xFFBFFCC6,  // Miogram Minty Angel
+            0xFFA0E7E5,  // Miogram Cyber Fairy
+            0xFFFF1493,  // Miogram Neon Pink
+            0xFF00F0FF,  // Miogram Cyan Cyber
+            0xFFFFD700,  // Miogram Royal Gold
+            0xFF8DD1B0,  // Mint
+            0xFF25F4EE,  // TikTok cyan
             0xFF4C8DFF,
             0xFF9B6BFF,
             0xFFFF8A3D,
             0xFF35C759,
-            0xFFFFD23F,
             0xFFFF4D6D,
+            0xFF1A1423,  // Dark Velvet
             0xFFE8E8E8,
     };
 
@@ -107,12 +114,16 @@ public final class Accent {
         if (known != 0) return known;
         SharedPreferences prefs = prefs();
         if (prefs == null) return BUILT_WITH;  // too early to know; do not cache it
-        int chosen = BUILT_WITH;
+        int chosen = 0;
         try {
-            chosen = prefs.getInt(KEY, BUILT_WITH);
+            chosen = prefs.getInt(KEY, 0);
         } catch (Throwable ignored) {
         }
-        if (chosen == 0) chosen = BUILT_WITH;
+        // Auto-detect Material You from wallpaper on first run if available
+        if (chosen == 0) {
+            int wallpaper = fromWallpaper();
+            chosen = (wallpaper != 0) ? wallpaper : BUILT_WITH;
+        }
         cached = chosen;
         return chosen;
     }
