@@ -36,6 +36,8 @@ public final class Updater {
 
     private static final String SOURCE =
             "https://raw.githubusercontent.com/fuckramochka/tiktokmi/main/version.json";
+    private static final String GITHUB_API =
+            "https://api.github.com/repos/fuckramochka/tiktokmi/releases/latest";
 
     public static final String KEY_REMIND = "update_remind";
 
@@ -73,23 +75,59 @@ public final class Updater {
      * where the automatic check says nothing unless there is news.
      */
     public static void check(final Context context, final boolean byHand) {
+        if (byHand) Screen.say(Text.UPDATE_CHECKING);
         Net.away("update", new Runnable() {
             @Override
             public void run() {
+                boolean found = false;
+                // 1. Check version.json first (fast, CDN cached)
                 String json = Net.text(SOURCE);
-                if (json == null) {
-                    if (byHand) Screen.say(Text.UPDATE_NO_ANSWER);
-                    return;
+                if (json != null) {
+                    try {
+                        JSONObject root = new JSONObject(json);
+                        latest = root.optString("version", "");
+                        where = root.optString("url", "");
+                        notes = localised(root, "notes");
+                        if (newer()) found = true;
+                    } catch (Throwable error) {
+                        Diary.note("update version.json: " + error);
+                    }
                 }
-                try {
-                    JSONObject root = new JSONObject(json);
-                    latest = root.optString("version", "");
-                    where = root.optString("url", "");
-                    notes = localised(root, "notes");
-                } catch (Throwable error) {
-                    Diary.note("update: " + error);
-                    if (byHand) Screen.say(Text.UPDATE_NO_ANSWER);
-                    return;
+
+                // 2. Fallback to GitHub Releases API if version.json has no update
+                if (!found) {
+                    String apiJson = Net.text(GITHUB_API);
+                    if (apiJson != null) {
+                        try {
+                            JSONObject root = new JSONObject(apiJson);
+                            String tag = root.optString("tag_name", "");
+                            String body = root.optString("body", "");
+                            org.json.JSONArray assets = root.optJSONArray("assets");
+                            String apkUrl = "";
+                            if (assets != null) {
+                                for (int i = 0; i < assets.length(); i++) {
+                                    JSONObject asset = assets.optJSONObject(i);
+                                    if (asset != null) {
+                                        String name = asset.optString("name", "");
+                                        if (name.endsWith(".apk")) {
+                                            apkUrl = asset.optString("browser_download_url", "");
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (apkUrl.isEmpty() && !tag.isEmpty()) {
+                                apkUrl = "https://github.com/fuckramochka/tiktokmi/releases/download/"
+                                        + tag + "/tiktokmi.apk";
+                            }
+                            latest = tag;
+                            where = apkUrl;
+                            notes = body;
+                            if (newer()) found = true;
+                        } catch (Throwable error) {
+                            Diary.note("update github api: " + error);
+                        }
+                    }
                 }
 
                 if (!newer()) {
@@ -121,6 +159,10 @@ public final class Updater {
     static int compare(String a, String b) {
         if (a == null) return -1;
         if (b == null) return 1;
+        a = a.trim();
+        b = b.trim();
+        if (a.startsWith("v") || a.startsWith("V")) a = a.substring(1);
+        if (b.startsWith("v") || b.startsWith("V")) b = b.substring(1);
         String[] left = a.split("\\."), right = b.split("\\.");
         int most = Math.max(left.length, right.length);
         for (int i = 0; i < most; i++) {
@@ -267,6 +309,16 @@ public final class Updater {
                     intent.setDataAndType(apk, "application/vnd.android.package-archive");
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                             | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    try {
+                        java.util.List<android.content.pm.ResolveInfo> resolveInfos =
+                                context.getPackageManager().queryIntentActivities(
+                                        intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+                        for (android.content.pm.ResolveInfo info : resolveInfos) {
+                            String packageName = info.activityInfo.packageName;
+                            context.grantUriPermission(packageName, apk, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        }
+                    } catch (Throwable ignored) {
+                    }
                     context.startActivity(intent);
                 } catch (Throwable error) {
                     Diary.note("install: " + error);

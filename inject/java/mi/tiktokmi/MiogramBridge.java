@@ -354,6 +354,7 @@ public final class MiogramBridge {
      * Updates Amegram's digital presence card and TikTok bridge.
      */
     public static void notifyWatching(Context context, String videoUrl, String title, String author, String coverUrl) {
+        if (context == null) context = Margy.context();
         if (context == null || videoUrl == null || videoUrl.isEmpty()) return;
         try {
             Uri providerUri = Uri.parse("content://" + ECOSYSTEM_AUTHORITY + "/watching");

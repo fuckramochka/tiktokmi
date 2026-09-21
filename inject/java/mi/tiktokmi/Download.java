@@ -238,4 +238,8 @@ public final class Download {
     public static void notifyClipVault(android.content.Context context, String mediaUrl, String title, String author) {
         MiogramBridge.notifyClipVault(context, mediaUrl, title, author, true);
     }
+
+    public static void notifyWatching(android.content.Context context, String videoUrl, String title, String author, String coverUrl) {
+        MiogramBridge.notifyWatching(context, videoUrl, title, author, coverUrl);
+    }
 }

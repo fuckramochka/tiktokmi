@@ -406,6 +406,9 @@ final class Text {
     static final String UPDATE_CHECK = pick(
             "Проверить обновления", "Перевірити оновлення", "Check for updates");
 
+    static final String UPDATE_CHECKING = pick(
+            "Проверка обновлений...", "Перевірка оновлень...", "Checking for updates...");
+
     static final String UPDATE_REMIND = pick(
             "Напоминать об обновлениях", "Нагадувати про оновлення",
             "Remind me about updates");

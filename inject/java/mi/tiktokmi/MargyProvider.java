@@ -116,6 +116,12 @@ public final class MargyProvider extends ContentProvider {
 
     @Override
     public String getType(Uri uri) {
+        if (uri != null) {
+            String name = uri.getLastPathSegment();
+            if (name != null && name.endsWith(".apk")) {
+                return "application/vnd.android.package-archive";
+            }
+        }
         return null;
     }
 

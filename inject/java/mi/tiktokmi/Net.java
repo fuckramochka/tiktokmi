@@ -44,12 +44,30 @@ public final class Net {
     public static byte[] bytes(String url) {
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(TIMEOUT);
-            connection.setReadTimeout(TIMEOUT);
-            connection.setInstanceFollowRedirects(true);
-            connection.setRequestProperty("User-Agent", "TikTok MI");
-            if (connection.getResponseCode() / 100 != 2) return null;
+            String current = url;
+            for (int redirect = 0; redirect < 5; redirect++) {
+                connection = (HttpURLConnection) new URL(current).openConnection();
+                connection.setConnectTimeout(TIMEOUT);
+                connection.setReadTimeout(TIMEOUT);
+                connection.setInstanceFollowRedirects(true);
+                connection.setRequestProperty("User-Agent", "TikTok MI");
+                int code = connection.getResponseCode();
+                if (code == HttpURLConnection.HTTP_MOVED_PERM
+                        || code == HttpURLConnection.HTTP_MOVED_TEMP
+                        || code == HttpURLConnection.HTTP_SEE_OTHER
+                        || code == 307
+                        || code == 308) {
+                    String location = connection.getHeaderField("Location");
+                    if (location != null && !location.isEmpty()) {
+                        connection.disconnect();
+                        current = location;
+                        continue;
+                    }
+                }
+                if (code / 100 != 2) return null;
+                break;
+            }
+            if (connection == null || connection.getResponseCode() / 100 != 2) return null;
 
             InputStream in = connection.getInputStream();
             try {
@@ -96,12 +114,30 @@ public final class Net {
     public static boolean download(String url, File into, Along along) {
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(TIMEOUT);
-            connection.setReadTimeout(TIMEOUT);
-            connection.setInstanceFollowRedirects(true);
-            connection.setRequestProperty("User-Agent", "TikTok MI");
-            if (connection.getResponseCode() / 100 != 2) return false;
+            String current = url;
+            for (int redirect = 0; redirect < 5; redirect++) {
+                connection = (HttpURLConnection) new URL(current).openConnection();
+                connection.setConnectTimeout(TIMEOUT);
+                connection.setReadTimeout(TIMEOUT);
+                connection.setInstanceFollowRedirects(true);
+                connection.setRequestProperty("User-Agent", "TikTok MI");
+                int code = connection.getResponseCode();
+                if (code == HttpURLConnection.HTTP_MOVED_PERM
+                        || code == HttpURLConnection.HTTP_MOVED_TEMP
+                        || code == HttpURLConnection.HTTP_SEE_OTHER
+                        || code == 307
+                        || code == 308) {
+                    String location = connection.getHeaderField("Location");
+                    if (location != null && !location.isEmpty()) {
+                        connection.disconnect();
+                        current = location;
+                        continue;
+                    }
+                }
+                if (code / 100 != 2) return false;
+                break;
+            }
+            if (connection == null || connection.getResponseCode() / 100 != 2) return false;
 
             long total = connection.getContentLength();
             File parent = into.getParentFile();
