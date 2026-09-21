@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.3.0",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.0/tiktokmi.apk",
-  "notes": "TikTok MI v0.3.0: Hide live streams, custom HEX accent with live preview, auto-streaks for TikTok 47.0.3, and Amegram ecosystem bridge.",
-  "notes_ru": "TikTok MI v0.3.0: Скрытие прямых эфиров, свой HEX-цвет с превью, автопродление серий для TikTok 47.0.3, мост с экосистемой Amegram.",
-  "notes_uk": "TikTok MI v0.3.0: Приховування ефірів, власний HEX-колір із прев'ю, автопродовження серій для TikTok 47.0.3, міст з екосистемою Amegram."
+  "version": "0.3.1",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.1/tiktokmi.apk",
+  "notes": "TikTok MI v0.3.1: Working auto-updater with GitHub Releases support and watching presence (notifyWatching) for Amegram.",
+  "notes_ru": "TikTok MI v0.3.1: Рабочая система автообновлений с поддержкой GitHub Releases и интеграция статуса просмотра (notifyWatching) для Amegram.",
+  "notes_uk": "TikTok MI v0.3.1: Робоча система автооновлень з підтримкою GitHub Releases та інтеграція статусу перегляду (notifyWatching) для Amegram."
 }
