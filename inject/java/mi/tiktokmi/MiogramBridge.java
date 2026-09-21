@@ -35,6 +35,7 @@ public final class MiogramBridge {
     public static final String ACTION_THEME_CHANGED = "app.amegram.ACTION_THEME_CHANGED";
     public static final String ACTION_POST_STORY = "app.amegram.POST_STORY";
     public static final String ACTION_CLIP_VAULT = "app.amegram.ACTION_CLIP_VAULT";
+    public static final String ACTION_TIKTOK_WATCHING = "app.amegram.ACTION_TIKTOK_WATCHING";
 
     /**
      * Finds the preferred installed package: Amegram -> Miogram (legacy) -> Telegram (official).
@@ -341,6 +342,29 @@ public final class MiogramBridge {
             context.getContentResolver().call(providerUri, "pushClipVault", null, bundle);
 
             Intent broadcast = new Intent(ACTION_CLIP_VAULT);
+            broadcast.setPackage(getPreferredPackage(context));
+            broadcast.putExtras(bundle);
+            context.sendBroadcast(broadcast);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+     * Notifies Amegram of the video currently being watched.
+     * Updates Amegram's digital presence card and TikTok bridge.
+     */
+    public static void notifyWatching(Context context, String videoUrl, String title, String author, String coverUrl) {
+        if (context == null || videoUrl == null || videoUrl.isEmpty()) return;
+        try {
+            Uri providerUri = Uri.parse("content://" + ECOSYSTEM_AUTHORITY + "/watching");
+            Bundle bundle = new Bundle();
+            bundle.putString("url", videoUrl);
+            bundle.putString("title", title != null ? title : "");
+            bundle.putString("author", author != null ? author : "");
+            bundle.putString("coverUrl", coverUrl != null ? coverUrl : "");
+            context.getContentResolver().call(providerUri, "setWatching", null, bundle);
+
+            Intent broadcast = new Intent(ACTION_TIKTOK_WATCHING);
             broadcast.setPackage(getPreferredPackage(context));
             broadcast.putExtras(bundle);
             context.sendBroadcast(broadcast);
