@@ -105,6 +105,9 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        skin = Skin.remembered(this);
+        dressTheWindow();
+        if (page != null) page.setBackgroundColor(skin.page);
         rebuild();
     }
 

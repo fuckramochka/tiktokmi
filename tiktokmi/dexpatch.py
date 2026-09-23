@@ -290,27 +290,27 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
     # listens to the questions instead of the answers: every conversation the
     # app asks about is one the mod can then ask about itself.
     #
-    # The three method names are this release's, not the app's forever. They
-    # are the one version-shaped thing in the streak feature, they live here
-    # rather than in the Java, and the build counts what each of them matched.
-    (STREAK_SERVICE, ("J", "streakOf"), "(%sZ)%s" % (STRING, STREAK_DATA),
+    # The method names are TikTok's own obfuscated names and change across
+    # releases. We support 47.0.3 (LJIIZILJ, LJJIJIIJI, LJJJJI, LJII, LJJJJJL, LJIJJ)
+    # as well as earlier releases (J, a0, h0, w, l0, O).
+    (STREAK_SERVICE, (("LJIIZILJ", "J"), "streakOf"), "(%sZ)%s" % (STRING, STREAK_DATA),
      "(%s%sZ)%s" % (STREAK_SERVICE, STRING, STREAK_DATA), STREAKS),
-    (STREAK_SERVICE, ("a0", "hasStreak"), "(%s)Z" % STRING,
+    (STREAK_SERVICE, (("LJJIJIIJI", "a0"), "hasStreak"), "(%s)Z" % STRING,
      "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
-    (STREAK_SERVICE, ("h0", "showsStreak"), "(%sZ)Z" % STRING,
+    (STREAK_SERVICE, (("LJJJJI", "h0"), "showsStreak"), "(%sZ)Z" % STRING,
      "(%s%sZ)Z" % (STREAK_SERVICE, STRING), STREAKS),
     # every other question the app asks about one conversation, because the
     # first three between them only ever turned up a single conversation and a
     # feature that only knows about one chat is no feature
-    (STREAK_SERVICE, ("w", "streakCount"), "(%s)I" % STRING,
+    (STREAK_SERVICE, (("LJII", "w"), "streakCount"), "(%s)I" % STRING,
      "(%s%s)I" % (STREAK_SERVICE, STRING), STREAKS),
     (STREAK_SERVICE, ("X", "asksAbout"), "(%s)Z" % STRING,
      "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
     (STREAK_SERVICE, ("Y", "asksAboutToo"), "(%s)Z" % STRING,
      "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
-    (STREAK_SERVICE, ("l0", "streakState"), "(%s)Ljava/lang/Integer;" % STRING,
+    (STREAK_SERVICE, (("LJJJJJL", "l0"), "streakState"), "(%s)Ljava/lang/Integer;" % STRING,
      "(%s%s)Ljava/lang/Integer;" % (STREAK_SERVICE, STRING), STREAKS),
-    (STREAK_SERVICE, ("O", "streakText"), "(%s)%s" % (STRING, STRING),
+    (STREAK_SERVICE, (("LJIJJ", "O"), "streakText"), "(%s)%s" % (STRING, STRING),
      "(%s%s)%s" % (STREAK_SERVICE, STRING, STRING), STREAKS),
 
     # a sound pulled for copyright: the video stays and these four mute it
@@ -523,22 +523,26 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
         # a pair when what the mod calls it differs from what TikTok does:
         # the app's obfuscated name on the way in, a readable one on the way out
         theirs, ours = name if isinstance(name, tuple) else (name, name)
-        out.append((
-            "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], theirs),
-            # an interface call is the same 35c instruction under another
-            # mnemonic, and a service reached through one is still a receiver
-            re.compile(r"invoke-(?:virtual|interface)(/range)? (\{[^}]*\}), %s->%s%s"
-                       % (re.escape(owner), theirs, re.escape(original))),
-            r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
-        ))
+        theirs_list = [theirs] if isinstance(theirs, str) else list(theirs)
+        for t in theirs_list:
+            out.append((
+                "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], t),
+                # an interface call is the same 35c instruction under another
+                # mnemonic, and a service reached through one is still a receiver
+                re.compile(r"invoke-(?:virtual|interface)(/range)? (\{[^}]*\}), %s->%s%s"
+                           % (re.escape(owner), re.escape(t), re.escape(original))),
+                r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
+            ))
     for owner, name, original, replacement, target in MODEL_STATICS:
         theirs, ours = name if isinstance(name, tuple) else (name, name)
-        out.append((
-            "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], theirs),
-            re.compile(r"invoke-static(/range)? (\{[^}]*\}), %s->%s%s"
-                       % (re.escape(owner), theirs, re.escape(original))),
-            r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
-        ))
+        theirs_list = [theirs] if isinstance(theirs, str) else list(theirs)
+        for t in theirs_list:
+            out.append((
+                "%s->%s" % (owner.rsplit("/", 1)[-1][:-1], t),
+                re.compile(r"invoke-static(/range)? (\{[^}]*\}), %s->%s%s"
+                           % (re.escape(owner), re.escape(t), re.escape(original))),
+                r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
+            ))
     for label, descriptor, ours, target in DISCOVERED_VIRTUALS:
         found = FOUND.get(label)
         if found is None:
@@ -677,7 +681,8 @@ def touches_a_model(dex: bytes) -> bool:
     """Whether a dex names one of TikTok's models and something we want on it."""
     for owner, name, _original, _replacement, _target in MODEL_SOURCES + MODEL_STATICS:
         theirs = name[0] if isinstance(name, tuple) else name
-        if owner.encode() in dex and theirs.encode() in dex:
+        theirs_list = [theirs] if isinstance(theirs, str) else list(theirs)
+        if owner.encode() in dex and any(t.encode() in dex for t in theirs_list):
             return True
     for owner, field, _kind, _name, _target in FIELD_SOURCES:
         if owner.encode() in dex and field.encode() in dex:

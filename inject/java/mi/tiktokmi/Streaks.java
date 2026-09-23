@@ -169,7 +169,7 @@ public final class Streaks {
 
     /** The app looking a streak up: both halves of the answer are worth having. */
     public static StreakData streakOf(IStreakService from, String conversation, boolean fresh) {
-        StreakData data = from == null ? null : from.J(conversation, fresh);
+        StreakData data = getStreakData(from, conversation, fresh);
         note(from, conversation);
         if (data != null) {
             synchronized (known) {
@@ -182,13 +182,35 @@ public final class Streaks {
     /** The app asking whether a conversation has a streak. */
     public static boolean hasStreak(IStreakService from, String conversation) {
         note(from, conversation);
-        return from != null && from.a0(conversation);
+        if (from == null) return false;
+        try {
+            return from.LJJIJIIJI(conversation);
+        } catch (NoSuchMethodError e1) {
+            try {
+                return from.a0(conversation);
+            } catch (Throwable ignored) {
+                return false;
+            }
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     /** The app asking whether to show one. */
     public static boolean showsStreak(IStreakService from, String conversation, boolean flag) {
         note(from, conversation);
-        return from != null && from.h0(conversation, flag);
+        if (from == null) return false;
+        try {
+            return from.LJJJJI(conversation, flag);
+        } catch (NoSuchMethodError e1) {
+            try {
+                return from.h0(conversation, flag);
+            } catch (Throwable ignored) {
+                return false;
+            }
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     // The rest are the same thing: questions the app asks about one
@@ -197,27 +219,113 @@ public final class Streaks {
 
     public static int streakCount(IStreakService from, String conversation) {
         note(from, conversation);
-        return from == null ? 0 : from.w(conversation);
+        if (from == null) return 0;
+        try {
+            return from.LJII(conversation);
+        } catch (NoSuchMethodError e1) {
+            try {
+                return from.w(conversation);
+            } catch (Throwable ignored) {
+                return 0;
+            }
+        } catch (Throwable ignored) {
+            return 0;
+        }
     }
 
     public static boolean asksAbout(IStreakService from, String conversation) {
         note(from, conversation);
-        return from != null && from.X(conversation);
+        if (from == null) return false;
+        try {
+            return from.X(conversation);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     public static boolean asksAboutToo(IStreakService from, String conversation) {
         note(from, conversation);
-        return from != null && from.Y(conversation);
+        if (from == null) return false;
+        try {
+            return from.Y(conversation);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     public static Integer streakState(IStreakService from, String conversation) {
         note(from, conversation);
-        return from == null ? null : from.l0(conversation);
+        if (from == null) return null;
+        try {
+            return from.LJJJJJL(conversation);
+        } catch (NoSuchMethodError e1) {
+            try {
+                return from.l0(conversation);
+            } catch (Throwable ignored) {
+                return null;
+            }
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     public static String streakText(IStreakService from, String conversation) {
         note(from, conversation);
-        return from == null ? null : from.O(conversation);
+        if (from == null) return null;
+        try {
+            return from.LJIJJ(conversation);
+        } catch (NoSuchMethodError e1) {
+            try {
+                return from.O(conversation);
+            } catch (Throwable ignored) {
+                return null;
+            }
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static StreakData getStreakData(IStreakService from, String conversation, boolean fresh) {
+        if (from == null) return null;
+        try {
+            return from.LJIIZILJ(conversation, fresh);
+        } catch (NoSuchMethodError e1) {
+            try {
+                return from.J(conversation, fresh);
+            } catch (NoSuchMethodError e2) {
+                return reflectStreakData(from, conversation, fresh);
+            } catch (Throwable ignored) {
+                return null;
+            }
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static volatile Method reflectiveStreakDataMethod;
+
+    private static StreakData reflectStreakData(IStreakService from, String conversation, boolean fresh) {
+        try {
+            Method m = reflectiveStreakDataMethod;
+            if (m == null) {
+                for (Method candidate : from.getClass().getMethods()) {
+                    Class<?>[] p = candidate.getParameterTypes();
+                    if (p.length == 2 && p[0] == String.class
+                            && (p[1] == boolean.class || p[1] == Boolean.class)
+                            && StreakData.class.isAssignableFrom(candidate.getReturnType())) {
+                        candidate.setAccessible(true);
+                        m = candidate;
+                        reflectiveStreakDataMethod = m;
+                        break;
+                    }
+                }
+            }
+            if (m != null) {
+                return (StreakData) m.invoke(from, conversation, Boolean.valueOf(fresh));
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
     }
 
     private static void note(IStreakService from, String conversation) {
@@ -535,7 +643,7 @@ public final class Streaks {
         IStreakService from = service;
         if (from != null) {
             try {
-                StreakData fresh = from.J(conversation, false);
+                StreakData fresh = getStreakData(from, conversation, false);
                 if (fresh != null) {
                     synchronized (known) {
                         known.put(conversation, fresh);

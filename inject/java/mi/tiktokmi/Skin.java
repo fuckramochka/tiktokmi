@@ -60,18 +60,34 @@ final class Skin {
      */
     static Skin remembered(Context context) {
         try {
+            boolean dark = Themes.isDark();
+            String prefix = dark ? "skin_dark_" : "skin_light_";
             SharedPreferences prefs =
                     context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE);
-            if (prefs.contains("skin_card")) {
+            if (prefs.contains(prefix + "card")) {
                 return new Skin(
-                        prefs.getInt("skin_page", 0xFF000000),
-                        prefs.getInt("skin_card", 0xFF1C1C1E),
-                        prefs.getInt("skin_text", 0xFFFFFFFF),
+                        prefs.getInt(prefix + "page", dark ? 0xFF000000 : 0xFFFFFFFF),
+                        prefs.getInt(prefix + "card", dark ? 0xFF1C1C1E : 0xFFF5F5F5),
+                        prefs.getInt(prefix + "text", dark ? 0xFFFFFFFF : 0xFF161823),
+                        prefs.getInt(prefix + "margin", Math.round(
+                                16 * context.getResources().getDisplayMetrics().density)),
+                        prefs.getInt(prefix + "radius", Math.round(
+                                12 * context.getResources().getDisplayMetrics().density)),
+                        true);
+            }
+            if (prefs.contains("skin_card")) {
+                Skin legacy = new Skin(
+                        prefs.getInt("skin_page", dark ? 0xFF000000 : 0xFFFFFFFF),
+                        prefs.getInt("skin_card", dark ? 0xFF1C1C1E : 0xFFF5F5F5),
+                        prefs.getInt("skin_text", dark ? 0xFFFFFFFF : 0xFF161823),
                         prefs.getInt("skin_margin", Math.round(
                                 16 * context.getResources().getDisplayMetrics().density)),
                         prefs.getInt("skin_radius", Math.round(
                                 12 * context.getResources().getDisplayMetrics().density)),
                         true);
+                if (legacy.dark() == dark) {
+                    return legacy;
+                }
             }
         } catch (Throwable ignored) {
         }
@@ -81,12 +97,13 @@ final class Skin {
     void remember(Context context) {
         if (!measured) return;
         try {
+            String prefix = dark() ? "skin_dark_" : "skin_light_";
             context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE).edit()
-                    .putInt("skin_page", page)
-                    .putInt("skin_card", card)
-                    .putInt("skin_text", text)
-                    .putInt("skin_margin", margin)
-                    .putInt("skin_radius", radius)
+                    .putInt(prefix + "page", page)
+                    .putInt(prefix + "card", card)
+                    .putInt(prefix + "text", text)
+                    .putInt(prefix + "margin", margin)
+                    .putInt(prefix + "radius", radius)
                     .apply();
         } catch (Throwable ignored) {
         }
@@ -110,8 +127,7 @@ final class Skin {
     }
 
     private static Skin fallback(Context context) {
-        boolean dark = (context.getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        boolean dark = Themes.isDark();
         float density = context.getResources().getDisplayMetrics().density;
         return new Skin(
                 dark ? 0xFF000000 : 0xFFFFFFFF,

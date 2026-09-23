@@ -169,7 +169,7 @@ public final class Themes {
 
     private static Settled read() {
         // Auto-select system theme and Material You on fresh install
-        boolean on = flag(KEY_ON, true);
+        boolean on = flag(KEY_ON, false);
         boolean material = flag(KEY_MATERIAL, true);
         int chosenText = 0;
         int chosenBackground = 0;
@@ -449,7 +449,8 @@ public final class Themes {
         if (mode != 0 && now - asked < 1000) return mode == 1;
         boolean dark = true;
         try {
-            Context context = Margy.context();
+            android.app.Activity activity = Screen.now();
+            Context context = activity != null ? activity : Margy.context();
             if (context != null) {
                 Configuration config = context.getResources().getConfiguration();
                 dark = (config.uiMode & Configuration.UI_MODE_NIGHT_MASK)

@@ -14,24 +14,21 @@ package com.ss.android.ugc.aweme.im.streak.api;
  */
 public interface IStreakService {
 
-    /** The streak on a conversation, or null when there is none. */
+    /** TikTok 47.0.3 signatures */
+    StreakData LJIIZILJ(String conversation, boolean fresh);
+    boolean LJJIJIIJI(String conversation);
+    boolean LJJJJI(String conversation, boolean flag);
+    int LJII(String conversation);
+    Integer LJJJJJL(String conversation);
+    String LJIJJ(String conversation);
+
+    /** Earlier release signatures */
     StreakData J(String conversation, boolean fresh);
-
-    /** Whether that conversation has a streak at all. */
     boolean a0(String conversation);
-
-    /** Whether the streak should be shown on it. */
     boolean h0(String conversation, boolean flag);
-
-    /** The rest are other questions about one conversation, listened to only
-     *  so that the conversation is known about at all. */
     int w(String conversation);
-
     boolean X(String conversation);
-
     boolean Y(String conversation);
-
     Integer l0(String conversation);
-
     String O(String conversation);
 }

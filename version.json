@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.3.1",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.1/tiktokmi.apk",
-  "notes": "TikTok MI v0.3.1: Working auto-updater with GitHub Releases support and watching presence (notifyWatching) for Amegram.",
-  "notes_ru": "TikTok MI v0.3.1: Рабочая система автообновлений с поддержкой GitHub Releases и интеграция статуса просмотра (notifyWatching) для Amegram.",
-  "notes_uk": "TikTok MI v0.3.1: Робоча система автооновлень з підтримкою GitHub Releases та інтеграція статусу перегляду (notifyWatching) для Amegram."
+  "version": "0.3.2",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.2/tiktokmi.apk",
+  "notes": "TikTok MI v0.3.2: Fixed auto-updater loop, fixed theme color inconsistencies across menus and popups, restored auto-streaks for TikTok 47.0.3.",
+  "notes_ru": "TikTok MI v0.3.2: Исправлен цикл автообновлений, исправлены цвета тем и несоответствия тем в меню/попапах, восстановлены авто-огоньки для TikTok 47.0.3.",
+  "notes_uk": "TikTok MI v0.3.2: Виправлено цикл автооновлень, усунуто невідповідність тем у меню та вікнах, відновлено роботу авто-вогників для TikTok 47.0.3."
 }
