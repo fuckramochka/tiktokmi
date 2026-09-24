@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.3.5",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.5/tiktokmi.apk",
-  "notes": "TikTok MI v0.3.5: Ghost Mode (stealth profile views, deleted message recovery in DMs, stealth chat), completely rewritten modern plugin architecture (MiPlugin API 2.0), resumable & instant-install auto-updater.",
-  "notes_ru": "TikTok MI v0.3.5: Режим призрака (скрытый просмотр профилей, сохранение удалённых сообщений в ЛС, стелс-чат), полностью переписанная система плагинов (MiPlugin API 2.0), докачка и мгновенная установка обновлений без повторного скачивания.",
-  "notes_uk": "TikTok MI v0.3.5: Режим привида (стелс-перегляд профілів без сповіщень, збереження видалених повідомлень в ЛС, стелс-чат), повністю переписана система плагінів (MiPlugin API 2.0), докачування та миттєве встановлення оновлення без повторного завантаження."
+  "version": "0.3.6",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.6/tiktokmi.apk",
+  "notes": "TikTok MI v0.3.6: Resumable resilient auto-updater with OEM installer fixes, anti-burnout OLED protection, feed filters (hide photo carousels & stories), full stability improvements.",
+  "notes_ru": "TikTok MI v0.3.6: Безотказный автоапдейтер с докачкой и поддержкой всех установщиков (MIUI/HyperOS/OneUI), защита от выгорания OLED, скрытие фото-каруселей и историй в ленте.",
+  "notes_uk": "TikTok MI v0.3.6: Безвідмовний автоапдейтер із докачуванням та підтримкою всіх установників (MIUI/HyperOS/OneUI), захист від вигорання OLED, приховування фото-каруселей та історій у стрічці."
 }

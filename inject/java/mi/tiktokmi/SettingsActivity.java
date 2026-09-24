@@ -218,7 +218,14 @@ public class SettingsActivity extends Activity {
         feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
         feed.addView(line());
         feed.addView(toggleRow("visibility_off", Text.HIDE_LIVES, Feed.isHideLivesEnabled(), Feed::setHideLivesEnabled));
+        feed.addView(line());
+        feed.addView(toggleRow("image", Text.HIDE_PHOTOS, Feed.isHidePhotosEnabled(), Feed::setHidePhotosEnabled));
+        feed.addView(line());
+        feed.addView(toggleRow("visibility_off", Text.HIDE_STORIES, Feed.isHideStoriesEnabled(), Feed::setHideStoriesEnabled));
+        feed.addView(line());
+        feed.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
         column.addView(wrap(feed));
+        column.addView(caption(Text.OLED_NOTE));
 
         column.addView(section(Text.VIDEO));
         LinearLayout video = card();

@@ -20,8 +20,11 @@ public final class Net {
 
     private Net() {}
 
-    private static final int TIMEOUT = 15000;
+    private static final int CONNECT_TIMEOUT = 30000;
+    private static final int READ_TIMEOUT = 60000;
     private static final int LIMIT = 4 * 1024 * 1024;
+    private static final String USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
 
     /** Run something on a thread of the mod's own, named so it is findable. */
     public static void away(final String what, final Runnable work) {
@@ -35,7 +38,7 @@ public final class Net {
                 }
             }
         }, "tiktokmi-" + what);
-        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.setPriority(Thread.NORM_PRIORITY);
         thread.setDaemon(true);
         thread.start();
     }
@@ -47,10 +50,10 @@ public final class Net {
             String current = url;
             for (int redirect = 0; redirect < 5; redirect++) {
                 connection = (HttpURLConnection) new URL(current).openConnection();
-                connection.setConnectTimeout(TIMEOUT);
-                connection.setReadTimeout(TIMEOUT);
+                connection.setConnectTimeout(CONNECT_TIMEOUT);
+                connection.setReadTimeout(READ_TIMEOUT);
                 connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "TikTok MI");
+                connection.setRequestProperty("User-Agent", USER_AGENT);
                 int code = connection.getResponseCode();
                 if (code == HttpURLConnection.HTTP_MOVED_PERM
                         || code == HttpURLConnection.HTTP_MOVED_TEMP
@@ -107,11 +110,23 @@ public final class Net {
 
     /**
      * Fetch straight to a file, saying how it is going.
-     *
-     * An apk is tens of megabytes, which is the one thing here worth watching
-     * and the one thing not to hold in memory.
+     * Retries up to 3 times with chunk resumption if interrupted.
      */
     public static boolean download(String url, File into, Along along) {
+        if (url == null || url.isEmpty() || into == null) return false;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            boolean success = downloadAttempt(url, into, along);
+            if (success) return true;
+            Diary.note("download attempt " + attempt + " failed, retrying in 1.5s...");
+            try {
+                Thread.sleep(1500);
+            } catch (Throwable ignored) {
+            }
+        }
+        return false;
+    }
+
+    private static boolean downloadAttempt(String url, File into, Along along) {
         HttpURLConnection connection = null;
         File part = new File(into.getAbsolutePath() + ".part");
         try {
@@ -124,10 +139,10 @@ public final class Net {
 
             for (int redirect = 0; redirect < 5; redirect++) {
                 connection = (HttpURLConnection) new URL(current).openConnection();
-                connection.setConnectTimeout(TIMEOUT);
-                connection.setReadTimeout(TIMEOUT);
+                connection.setConnectTimeout(CONNECT_TIMEOUT);
+                connection.setReadTimeout(READ_TIMEOUT);
                 connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "TikTok MI");
+                connection.setRequestProperty("User-Agent", USER_AGENT);
                 if (existingBytes > 0) {
                     connection.setRequestProperty("Range", "bytes=" + existingBytes + "-");
                 }
@@ -144,6 +159,14 @@ public final class Net {
                         continue;
                     }
                 }
+                if (code == 416) {
+                    Diary.note("download: server returned 416, resetting .part and restarting from 0");
+                    connection.disconnect();
+                    if (part.exists()) part.delete();
+                    existingBytes = 0;
+                    current = url;
+                    continue;
+                }
                 if (code == 206) {
                     resumed = true;
                     break;
@@ -152,6 +175,7 @@ public final class Net {
                     existingBytes = 0;
                     break;
                 } else if (code / 100 != 2) {
+                    Diary.note("download: http error " + code + " for " + current);
                     return false;
                 }
                 break;
@@ -160,7 +184,12 @@ public final class Net {
             int responseCode = connection.getResponseCode();
             if (responseCode != 200 && responseCode != 206) return false;
 
-            long contentLength = connection.getContentLength();
+            long contentLength;
+            if (android.os.Build.VERSION.SDK_INT >= 24) {
+                contentLength = connection.getContentLengthLong();
+            } else {
+                contentLength = connection.getContentLength();
+            }
             long total = resumed ? (existingBytes + contentLength) : contentLength;
 
             InputStream in = connection.getInputStream();
@@ -184,12 +213,36 @@ public final class Net {
             }
 
             if (into.exists()) into.delete();
-            return part.renameTo(into);
+            boolean renamed = part.renameTo(into);
+            if (!renamed) {
+                copyFile(part, into);
+                part.delete();
+            }
+            return into.isFile() && into.length() > 0;
         } catch (Throwable error) {
             Diary.note("download: " + error);
             return false;
         } finally {
             if (connection != null) connection.disconnect();
+        }
+    }
+
+    private static void copyFile(File src, File dst) {
+        try {
+            InputStream in = new java.io.FileInputStream(src);
+            try {
+                OutputStream out = new FileOutputStream(dst);
+                try {
+                    byte[] buf = new byte[65536];
+                    int r;
+                    while ((r = in.read(buf)) != -1) out.write(buf, 0, r);
+                } finally {
+                    out.close();
+                }
+            } finally {
+                in.close();
+            }
+        } catch (Throwable ignored) {
         }
     }
 

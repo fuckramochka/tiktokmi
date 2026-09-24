@@ -406,6 +406,7 @@ public final class Themes {
             if (Boolean.TRUE.equals(root.getTag(WATCHING))) {
                 repaint(root);
                 Badge.rewrite(root);
+                Feed.applyOled(root);
                 return;
             }
             root.setTag(WATCHING, Boolean.TRUE);
@@ -418,10 +419,12 @@ public final class Themes {
                             last = now;
                             repaint(root);
                             Badge.rewrite(root);
+                            Feed.applyOled(root);
                         }
                     });
             repaint(root);
             Badge.rewrite(root);
+            Feed.applyOled(root);
         } catch (Throwable error) {
             Diary.note("theme: " + error);
         }

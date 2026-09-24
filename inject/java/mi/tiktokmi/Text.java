@@ -319,6 +319,20 @@ final class Text {
     static final String HIDE_LIVES = pick(
             "Скрыть прямые эфиры", "Приховати прямі ефіри", "Hide live streams");
 
+    static final String HIDE_PHOTOS = pick(
+            "Скрыть фото-карусели", "Приховати фото-каруселі", "Hide photo slideshows");
+
+    static final String HIDE_STORIES = pick(
+            "Скрыть истории", "Приховати історії", "Hide stories");
+
+    static final String OLED_MODE = pick(
+            "Антивыгорание (OLED)", "Антивигорання (OLED)", "Anti-burnout (OLED)");
+
+    static final String OLED_NOTE = pick(
+            "Делает элементы управления полупрозрачными для защиты AMOLED/OLED матриц от выгорания пикселей.",
+            "Робить елементи керування напівпрозорими для захисту AMOLED/OLED матриць від вигорання пікселів.",
+            "Makes video interface elements semi-transparent to protect AMOLED/OLED screens from burn-in.");
+
     // --------------------------------------------------------- the plugins
 
     static final String PLUGINS = pick("Плагины", "Плагіни", "Plugins");

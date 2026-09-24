@@ -111,7 +111,47 @@ public final class MargyProvider extends ContentProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {
-        return null;
+        try {
+            Context context = getContext();
+            if (context == null) return null;
+            String name = uri.getLastPathSegment();
+            if (name == null || name.contains("/") || name.contains("..")) return null;
+            File file = new File(new File(context.getFilesDir(), "tiktokmi"), name);
+            if (!file.isFile()) return null;
+
+            if (projection == null) {
+                projection = new String[] {
+                        android.provider.OpenableColumns.DISPLAY_NAME,
+                        android.provider.OpenableColumns.SIZE
+                };
+            }
+            String[] cols = new String[projection.length];
+            Object[] values = new Object[projection.length];
+            int i = 0;
+            for (String col : projection) {
+                if (android.provider.OpenableColumns.DISPLAY_NAME.equals(col) || "_display_name".equals(col)) {
+                    cols[i] = col;
+                    values[i++] = file.getName();
+                } else if (android.provider.OpenableColumns.SIZE.equals(col) || "_size".equals(col)) {
+                    cols[i] = col;
+                    values[i++] = file.length();
+                }
+            }
+            if (i == 0) {
+                cols = new String[] { android.provider.OpenableColumns.DISPLAY_NAME, android.provider.OpenableColumns.SIZE };
+                values = new Object[] { file.getName(), file.length() };
+                i = 2;
+            } else {
+                cols = java.util.Arrays.copyOf(cols, i);
+                values = java.util.Arrays.copyOf(values, i);
+            }
+            android.database.MatrixCursor cursor = new android.database.MatrixCursor(cols, 1);
+            cursor.addRow(values);
+            return cursor;
+        } catch (Throwable error) {
+            Diary.note("share query: " + error);
+            return null;
+        }
     }
 
     @Override

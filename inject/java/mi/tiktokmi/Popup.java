@@ -335,6 +335,12 @@ public final class Popup {
      */
     public static void ask(Context context, String title, String message,
                            String yes, final Runnable onYes,
+                           String no, final Runnable onNo) {
+        ask(context, title, message, yes, onYes, no, onNo, null, null);
+    }
+
+    public static void ask(Context context, String title, String message,
+                           String yes, final Runnable onYes,
                            String no, final Runnable onNo,
                            String tick, final Ticked onTick) {
         try {

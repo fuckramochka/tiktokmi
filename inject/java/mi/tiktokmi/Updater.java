@@ -1,5 +1,6 @@
 package mi.tiktokmi;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -287,6 +288,15 @@ public final class Updater {
             return;
         }
 
+        if (where == null || where.isEmpty()) {
+            if (latest != null && !latest.isEmpty()) {
+                where = "https://github.com/fuckramochka/tiktokmi/releases/download/"
+                        + (latest.startsWith("v") ? latest : "v" + latest) + "/tiktokmi.apk";
+            } else {
+                where = "https://github.com/fuckramochka/tiktokmi/releases/download/v" + Version.MOD + "/tiktokmi.apk";
+            }
+        }
+
         final File apk = file(context);
         Net.away("update apk", new Runnable() {
             @Override
@@ -300,7 +310,32 @@ public final class Updater {
                 });
                 Screen.progressGone();
                 if (!done) {
-                    Screen.say(Text.UPDATE_FAILED);
+                    final File part = partFile(context);
+                    if (part.isFile() && part.length() > 0) {
+                        final int mb = (int) (part.length() / (1024 * 1024));
+                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Activity activity = Screen.now();
+                                if (activity != null && !activity.isFinishing()) {
+                                    Popup.ask(activity,
+                                            "Завантаження призупинено",
+                                            "Збережено " + mb + " МБ. Натисніть «Продовжити», щоб продовжити з цього місця.",
+                                            "Продовжити", new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    fetch(context);
+                                                }
+                                            },
+                                            Text.CANCEL, null);
+                                } else {
+                                    Screen.say(Text.UPDATE_FAILED);
+                                }
+                            }
+                        });
+                    } else {
+                        Screen.say(Text.UPDATE_FAILED);
+                    }
                     return;
                 }
                 install(context);
@@ -323,12 +358,6 @@ public final class Updater {
                 try {
                     if (Build.VERSION.SDK_INT >= 26
                             && !context.getPackageManager().canRequestPackageInstalls()) {
-                        // Asking for the permission means leaving the app, and
-                        // what used to happen is that coming back forgot the
-                        // whole thing: the apk sat on disk, downloaded, and
-                        // nothing ever offered to put it on again. So this
-                        // remembers that an install was underway, and the
-                        // first screen that comes up afterwards picks it up.
                         waitingOnPermission = true;
                         Screen.say(Text.UPDATE_ALLOW);
                         Intent allow = new Intent(
@@ -348,7 +377,25 @@ public final class Updater {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(apk, "application/vnd.android.package-archive");
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                            | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            | Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+                    String[] installers = new String[] {
+                            "com.google.android.packageinstaller",
+                            "com.android.packageinstaller",
+                            "com.miui.packageinstaller",
+                            "com.samsung.android.packageinstaller",
+                            "com.coloros.packageinstaller",
+                            "com.oppo.packageinstaller",
+                            "com.vivo.abe"
+                    };
+                    for (String pkg : installers) {
+                        try {
+                            context.grantUriPermission(pkg, apk, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+
                     try {
                         java.util.List<android.content.pm.ResolveInfo> resolveInfos =
                                 context.getPackageManager().queryIntentActivities(
