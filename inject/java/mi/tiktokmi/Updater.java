@@ -76,7 +76,23 @@ public final class Updater {
         try {
             SharedPreferences p = prefs(context);
             String downloaded = p.getString(KEY_DOWNLOADED_VER, null);
-            if (downloaded != null && !isStrictlyNewer(downloaded)) {
+            if (downloaded == null) {
+                // No record of what this file is. It may be a stale apk from a
+                // build that never wrote the version down -- and such a file
+                // was once offered as the current update over and over, because
+                // the apk's own versionName is TikTok's (47.0.3), not the mod's,
+                // so there is no way to tell which mod it holds. Drop it once
+                // and download the right one afresh.
+                File apk = file(context);
+                File part = partFile(context);
+                if (apk.exists() || part.exists()) {
+                    if (apk.exists()) apk.delete();
+                    if (part.exists()) part.delete();
+                    Diary.note("updater: dropped unverifiable apk without a recorded version");
+                }
+                return;
+            }
+            if (!isStrictlyNewer(downloaded)) {
                 File apk = file(context);
                 if (apk.exists()) apk.delete();
                 File part = partFile(context);
@@ -340,18 +356,28 @@ public final class Updater {
         return new File(context.getFilesDir(), "tiktokmi/update.apk.part");
     }
 
+    /**
+     * Whether a downloaded apk is waiting and is still worth installing.
+     *
+     * What counts is the mod version written down when the download finished
+     * (KEY_DOWNLOADED_VER), not the apk's own versionName: that is TikTok's
+     * (47.0.3), and comparing it against mod versions once offered a stale
+     * file as the current update forever. The package manager is only asked
+     * whether the file parses at all.
+     */
     public static boolean isReadyToInstall(Context context) {
         try {
             File apk = file(context);
             if (!apk.isFile() || apk.length() < 1000000) return false;
+            String recorded = prefs(context).getString(KEY_DOWNLOADED_VER, null);
+            if (recorded != null && !recorded.isEmpty()) {
+                if (!isStrictlyNewer(recorded)) return false;
+            } else if (!newer()) {
+                return false;
+            }
             android.content.pm.PackageInfo info = context.getPackageManager()
                     .getPackageArchiveInfo(apk.getAbsolutePath(), 0);
-            if (info != null) {
-                if (latest != null && latest.length() > 0) {
-                    return compare(info.versionName, latest) >= 0;
-                }
-                return compare(info.versionName, Version.MOD) > 0;
-            }
+            return info != null;
         } catch (Throwable ignored) {
         }
         return false;
@@ -386,8 +412,7 @@ public final class Updater {
                 });
                 Screen.progressGone();
                 if (!done) {
-                    final File part = partFile(context);
-                    if (part.isFile() && part.length() > 0) {
+                    final File part = partFile(context);                    if (part.isFile() && part.length() > 0) {
                         final int mb = (int) (part.length() / (1024 * 1024));
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                             @Override
@@ -413,6 +438,16 @@ public final class Updater {
                         Screen.say(Text.UPDATE_FAILED);
                     }
                     return;
+                }
+                // Remember which mod version this file holds, so the install
+                // check and the startup cleanup compare mod against mod --
+                // never the apk's own versionName, which is TikTok's.
+                try {
+                    String got = latest;
+                    if (got != null && !got.isEmpty()) {
+                        prefs(context).edit().putString(KEY_DOWNLOADED_VER, got).apply();
+                    }
+                } catch (Throwable ignored) {
                 }
                 install(context);
             }
