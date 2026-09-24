@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.3.6",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.6/tiktokmi.apk",
-  "notes": "TikTok MI v0.3.6: Resumable resilient auto-updater with OEM installer fixes, anti-burnout OLED protection, feed filters (hide photo carousels & stories), full stability improvements.",
-  "notes_ru": "TikTok MI v0.3.6: Безотказный автоапдейтер с докачкой и поддержкой всех установщиков (MIUI/HyperOS/OneUI), защита от выгорания OLED, скрытие фото-каруселей и историй в ленте.",
-  "notes_uk": "TikTok MI v0.3.6: Безвідмовний автоапдейтер із докачуванням та підтримкою всіх установників (MIUI/HyperOS/OneUI), захист від вигорання OLED, приховування фото-каруселей та історій у стрічці."
+  "version": "0.3.6.1",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.6.1/tiktokmi.apk",
+  "notes": "TikTok MI v0.3.6.1: Micro-fix for the update check — no prompt if remote is lower or equal, only if strictly higher (supports 4-part versions like 0.3.6.1).",
+  "notes_ru": "TikTok MI v0.3.6.1: Микрофикс проверки обновлений — не предлагает, если версия ниже или равна текущей, только если строго выше (включая версии вида 0.3.6.1).",
+  "notes_uk": "TikTok MI v0.3.6.1: Мікрофікс перевірки оновлень — не сповіщає, якщо версія нижча або така сама, лише якщо строго вища (включно з версіями виду 0.3.6.1)."
 }

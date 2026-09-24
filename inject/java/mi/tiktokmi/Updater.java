@@ -54,9 +54,12 @@ public final class Updater {
 
     // -------------------------------------------------------------- knowing
 
+    public static final String KEY_DOWNLOADED_VER = "update_downloaded_version";
+
     public static synchronized void start(final Context context) {
         if (started) return;
         started = true;
+        cleanupOldApk(context);
 
         final Handler handler = new Handler(Looper.getMainLooper());
         final Context application = context.getApplicationContext();
@@ -67,6 +70,22 @@ public final class Updater {
                 handler.postDelayed(this, EVERY);
             }
         });
+    }
+
+    private static void cleanupOldApk(Context context) {
+        try {
+            SharedPreferences p = prefs(context);
+            String downloaded = p.getString(KEY_DOWNLOADED_VER, null);
+            if (downloaded != null && !isStrictlyNewer(downloaded)) {
+                File apk = file(context);
+                if (apk.exists()) apk.delete();
+                File part = partFile(context);
+                if (part.exists()) part.delete();
+                p.edit().remove(KEY_DOWNLOADED_VER).apply();
+                Diary.note("updater: cleaned up older or already installed apk (" + downloaded + ")");
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     /**
@@ -81,21 +100,29 @@ public final class Updater {
             @Override
             public void run() {
                 boolean found = false;
+                String candidateVer = null;
+                String candidateUrl = null;
+                String candidateNotes = null;
+
                 // 1. Check version.json first (fast, CDN cached)
                 String json = Net.text(SOURCE);
                 if (json != null) {
                     try {
                         JSONObject root = new JSONObject(json);
-                        latest = root.optString("version", "");
-                        where = root.optString("url", "");
-                        notes = localised(root, "notes");
-                        if (newer()) found = true;
+                        String ver = root.optString("version", "");
+                        String url = root.optString("url", "");
+                        if (isStrictlyNewer(ver)) {
+                            candidateVer = ver;
+                            candidateUrl = url;
+                            candidateNotes = localised(root, "notes");
+                            found = true;
+                        }
                     } catch (Throwable error) {
                         Diary.note("update version.json: " + error);
                     }
                 }
 
-                // 2. Fallback to GitHub Releases API if version.json has no update
+                // 2. Fallback to GitHub Releases API if version.json has no strictly newer update
                 if (!found) {
                     String apiJson = Net.text(GITHUB_API);
                     if (apiJson != null) {
@@ -103,71 +130,120 @@ public final class Updater {
                             JSONObject root = new JSONObject(apiJson);
                             String tag = root.optString("tag_name", "");
                             String body = root.optString("body", "");
-                            org.json.JSONArray assets = root.optJSONArray("assets");
-                            String apkUrl = "";
-                            if (assets != null) {
-                                for (int i = 0; i < assets.length(); i++) {
-                                    JSONObject asset = assets.optJSONObject(i);
-                                    if (asset != null) {
-                                        String name = asset.optString("name", "");
-                                        if (name.endsWith(".apk")) {
-                                            apkUrl = asset.optString("browser_download_url", "");
-                                            break;
+                            if (isStrictlyNewer(tag)) {
+                                org.json.JSONArray assets = root.optJSONArray("assets");
+                                String apkUrl = "";
+                                if (assets != null) {
+                                    for (int i = 0; i < assets.length(); i++) {
+                                        JSONObject asset = assets.optJSONObject(i);
+                                        if (asset != null) {
+                                            String name = asset.optString("name", "");
+                                            if (name.endsWith(".apk")) {
+                                                apkUrl = asset.optString("browser_download_url", "");
+                                                break;
+                                            }
                                         }
                                     }
                                 }
+                                if (apkUrl.isEmpty() && !tag.isEmpty()) {
+                                    apkUrl = "https://github.com/fuckramochka/tiktokmi/releases/download/"
+                                            + tag + "/tiktokmi.apk";
+                                }
+                                candidateVer = tag;
+                                candidateUrl = apkUrl;
+                                candidateNotes = body;
+                                found = true;
                             }
-                            if (apkUrl.isEmpty() && !tag.isEmpty()) {
-                                apkUrl = "https://github.com/fuckramochka/tiktokmi/releases/download/"
-                                        + tag + "/tiktokmi.apk";
-                            }
-                            latest = tag;
-                            where = apkUrl;
-                            notes = body;
-                            if (newer()) found = true;
                         } catch (Throwable error) {
                             Diary.note("update github api: " + error);
                         }
                     }
                 }
 
-                if (!newer()) {
-                    if (byHand) Screen.say(Text.UPDATE_NONE);
+                if (!found || !isStrictlyNewer(candidateVer)) {
+                    latest = null;
+                    where = null;
+                    notes = null;
+                    if (byHand) {
+                        Screen.say(Text.UPDATE_NONE);
+                    }
                     return;
                 }
+
+                latest = candidateVer;
+                where = candidateUrl;
+                notes = candidateNotes;
+
                 if (!byHand && (refused || !remind(context))) return;
                 offer(context);
             }
         });
     }
 
-    /** Whether what the repository has is ahead of what is installed. */
+    /**
+     * Whether what the repository has is strictly ahead of what is installed.
+     * Lower -&gt; false (no update), equal -&gt; false (no update), only higher -&gt; true.
+     * Handles 3-part and 4-part versions (e.g. 0.3.6 vs 0.3.6.1).
+     */
+    public static boolean isStrictlyNewer(String remote) {
+        if (remote == null || remote.trim().isEmpty()) return false;
+        return compare(remote, Version.MOD) > 0;
+    }
+
     public static boolean newer() {
-        return compare(latest, Version.MOD) > 0 && where != null && where.length() > 0;
+        return isStrictlyNewer(latest) && where != null && where.length() > 0;
     }
 
     public static String latest() {
         return latest;
     }
 
+    public static String cleanVersion(String s) {
+        if (s == null) return "";
+        s = s.trim();
+        if (s.startsWith("v") || s.startsWith("V")) s = s.substring(1).trim();
+        if (!s.matches("^\\d+(\\.\\d+)+.*$")) return "";
+        int end = 0;
+        while (end < s.length()) {
+            char c = s.charAt(end);
+            if (Character.isDigit(c) || c == '.') {
+                end++;
+            } else {
+                break;
+            }
+        }
+        String cleaned = s.substring(0, end);
+        try {
+            int firstDot = cleaned.indexOf('.');
+            if (firstDot > 0) {
+                int major = Integer.parseInt(cleaned.substring(0, firstDot));
+                if (major >= 10) return "";
+            }
+        } catch (Throwable ignored) {
+        }
+        return cleaned;
+    }
+
     /**
      * Compare two dotted versions by their numbers.
-     *
-     * "0.9" is behind "0.15", which a string comparison gets backwards, and
-     * getting that backwards means either never offering an update or offering
-     * one forever.
+     * Returns:
+     *   -1 if a < b
+     *    0 if a == b
+     *    1 if a > b
      */
     static int compare(String a, String b) {
-        if (a == null) return -1;
-        if (b == null) return 1;
-        a = a.trim();
-        b = b.trim();
-        if (a.startsWith("v") || a.startsWith("V")) a = a.substring(1);
-        if (b.startsWith("v") || b.startsWith("V")) b = b.substring(1);
-        String[] left = a.split("\\."), right = b.split("\\.");
+        String cleanA = cleanVersion(a);
+        String cleanB = cleanVersion(b);
+        if (cleanA.isEmpty() && cleanB.isEmpty()) return 0;
+        if (cleanA.isEmpty()) return -1;
+        if (cleanB.isEmpty()) return 1;
+
+        String[] left = cleanA.split("\\.");
+        String[] right = cleanB.split("\\.");
         int most = Math.max(left.length, right.length);
         for (int i = 0; i < most; i++) {
-            int one = number(left, i), two = number(right, i);
+            int one = number(left, i);
+            int two = number(right, i);
             if (one != two) return one < two ? -1 : 1;
         }
         return 0;
