@@ -1,4 +1,5 @@
-name: Deploy Site to GitHub Pages
+# Deploy Site to GitHub Pages workflow
+# This workflow uploads the site directory as a GitHub Pages artifact and deploys it
 
 on:
   push:
