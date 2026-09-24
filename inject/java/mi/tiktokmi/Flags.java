@@ -104,6 +104,10 @@ public final class Flags {
 
     /** The override for a flag, or null when the mod has nothing to say. */
     private static Object of(String key) {
+        Boolean ghost = Ghost.overrideFlag(key);
+        if (ghost != null) return ghost;
+        Boolean plugin = Plugins.flag(key);
+        if (plugin != null) return plugin;
         Override override = OVERRIDES.get(key);
         if (override == null) return null;
         return isOn(override.group) ? override.value : null;

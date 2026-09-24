@@ -156,6 +156,31 @@ final class Text {
     static final String ACCENT_WALLPAPER = pick(
             "Взять цвет с обоев", "Взяти колір зі шпалер", "Take the colour from the wallpaper");
 
+    // ----------------------------------------------------------- ghost mode
+
+    static final String GHOST_TITLE = pick(
+            "Режим призрака", "Режим привида", "Ghost Mode");
+
+    static final String GHOST_MODE = pick(
+            "Включить режим призрака", "Увімкнути режим привида", "Enable Ghost Mode");
+
+    static final String GHOST_PROFILE = pick(
+            "Стелс-просмотр профилей", "Стелс-перегляд профілів", "Stealth profile visits");
+
+    static final String GHOST_DELETED = pick(
+            "Показ удалённых сообщений", "Показ видалених повідомлень", "Show deleted messages");
+
+    static final String GHOST_CHAT = pick(
+            "Стелс-чат (без прочтений и набора)", "Стелс-чат (без прочитань і набору)", "Stealth chat (no read/typing)");
+
+    static final String GHOST_NOTE = pick(
+            "Просматривайте чужие профили без отображения в истории просмотров. "
+                    + "В личных сообщениях сохраняются удалённые и отозванные сообщения, а собеседник не видит статус прочтения.",
+            "Переглядайте чужі профілі без відображення в історії переглядів. "
+                    + "В особистих повідомленнях зберігаються видалені та відкликані повідомлення, а співрозмовник не бачить статус прочитання.",
+            "Visit user profiles without leaving a trace in visitor history. "
+                    + "Preserves deleted and recalled direct messages, and hides read receipts and typing status.");
+
     // --------------------------------------------------------------- fonts
 
     static final String FONT = pick("Шрифт", "Шрифт", "Typeface");

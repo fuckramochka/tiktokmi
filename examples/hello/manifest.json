@@ -1,10 +1,12 @@
 {
   "id": "tiktokmi.hello",
   "name": "Hello",
+  "name_uk": "Привіт",
   "name_ru": "Привет",
   "version": "1.0",
   "author": "narezany",
   "description": "Writes a line in the mod's diary every time TikTok starts.",
+  "description_uk": "Пише рядок у журнал мода при кожному запуску TikTok.",
   "description_ru": "Пишет строку в журнал мода при каждом запуске TikTok.",
   "entry": "mi.tiktokmi.hello.Hello",
   "min_api": 1

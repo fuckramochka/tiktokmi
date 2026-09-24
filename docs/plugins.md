@@ -21,12 +21,12 @@ says who wrote it; nothing checks that this is true.
 Install only what you have read yourself, or what comes from someone you trust.
 This is written the same way in the settings screen, so nobody finds out later.
 
-## The .mtp format
+## The .mip / .mtp format
 
-An ordinary zip renamed to `.mtp`:
+An ordinary zip named `.mip` (or `.mtp`):
 
 ```
-tiktokmi.hello.mtp
+tiktokmi.hello.mip
 ├── manifest.json   required
 ├── classes.dex     required
 └── icon.png        optional
@@ -42,13 +42,15 @@ Without one the list draws a dot in the accent colour.
 {
   "id": "tiktokmi.hello",
   "name": "Hello",
+  "name_uk": "Привіт",
   "name_ru": "Привет",
   "version": "1.0",
   "author": "narezany",
   "description": "Writes a line in the mod's diary every time TikTok starts.",
+  "description_uk": "Пише рядок у журнал мода при кожному запуску TikTok.",
   "description_ru": "Пишет строку в журнал мода при каждом запуске TikTok.",
   "entry": "mi.tiktokmi.hello.Hello",
-  "min_api": 1
+  "min_api": 2
 }
 ```
 
@@ -58,14 +60,14 @@ Without one the list draws a dot in the accent colour.
 | `name` | The name in the list. Required. |
 | `version` | A string, shown next to the name. Required. |
 | `author` | Who wrote it. Required. |
-| `entry` | The class that extends `MargyPlugin`, in full. Required. |
+| `entry` | The class that extends `MiPlugin`, in full. Required. |
 | `description` | A line or two: what it does. |
 | `min_api` | The oldest plugin api the plugin works with. The loader refuses a plugin that wants a newer one, with a reason rather than a crash. Defaults to 1. |
-| `name_ru`, `description_uk`, … | The same field in another language. The app takes the one matching the phone's language and falls back to the plain field. |
+| `name_uk`, `name_ru`, `description_uk`, … | The same field in another language. The app takes the one matching the phone's language and falls back to the plain field. |
 
 ## The plugin itself
 
-Extend `MargyPlugin` and override what you care about. Everything has a body
+Extend `MiPlugin` and override what you care about. Everything has a body
 that does nothing, so a plugin that only wants one hook writes one method, and
 hooks added in later versions of the mod do not break it.
 
@@ -73,12 +75,12 @@ hooks added in later versions of the mod do not break it.
 package mi.tiktokmi.hello;
 
 import android.content.Context;
-import mi.tiktokmi.plugin.MargyPlugin;
+import mi.tiktokmi.plugin.MiPlugin;
 
-public final class Hello extends MargyPlugin {
+public final class Hello extends MiPlugin {
     @Override
     public void onStart(Context context) {
-        tiktokmi().log("hello");
+        context().log("hello");
     }
 }
 ```
@@ -96,6 +98,9 @@ and it must be `public`, because the loader reaches it by name.
 | `onActivityPaused(Activity)` | An activity went away. |
 | `int onColour(int)` | A colour is on its way to the screen — the constants the build redirected, and whatever came back from the framework, after the accent has had its say. Return the argument to leave it alone. **This is in the drawing path of half the app**: no allocation, no lookups, no logging. |
 | `String onRegion(String key, String value)` | An answer about where the phone is, on its way back to TikTok. `key` is one of `sim_country`, `network_country`, `sim_operator`, `network_operator`, `sim_operator_name`, `network_operator_name`; `value` is what the mod was about to answer. Return it to leave it alone. |
+| `Boolean onFlag(String key, Boolean current)` | Intercept TikTok AB feature flags and experiments. Return `Boolean.TRUE` or `Boolean.FALSE` to override, or `current` to leave as is. |
+| `CharSequence onText(TextView view, CharSequence text)` | Intercept text before it appears in any `TextView`. |
+| `CharSequence onDirectMessage(TextView view, CharSequence text)` | Intercept direct message chat bubbles. |
 | `onStop()` | The plugin was switched off. |
 
 Hooks are called on whatever thread the app is on — the activity ones on the

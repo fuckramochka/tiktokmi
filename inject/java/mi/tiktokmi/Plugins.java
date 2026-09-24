@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.widget.TextView;
 
 import org.json.JSONObject;
 
@@ -22,45 +23,41 @@ import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import mi.tiktokmi.plugin.MargyPlugin;
-import mi.tiktokmi.plugin.PluginContext;
-
 import dalvik.system.DexClassLoader;
+import mi.tiktokmi.plugin.MiPlugin;
+import mi.tiktokmi.plugin.MiPluginContext;
 
 /**
- * Other people's code, running inside this one.
+ * TikTok MI Plugin Engine.
  *
- * A plugin is a zip -- `.mtp` -- holding a manifest, a dex and, if it likes, an
- * icon. Installing one unpacks it into the app's own files; switching it on
- * loads its dex with `DexClassLoader` and calls the hooks in `MargyPlugin`.
+ * Designed and engineered specifically for TikTok MI.
  *
- * Margy's plugins are Python, and these are not, for a reason that is about
- * repacking rather than taste: Margy is a fork and builds its own apk, so a
- * Python runtime goes in at build time. TikTok MI edits an apk somebody else
- * built, and a Python runtime would mean carrying CPython's native libraries
- * and its standard library into a 340 MB archive whose alignment is not ours to
- * decide. `DexClassLoader` is an ordinary Android API that costs nothing and
- * needs no root, so the format is the same shape -- manifest, icon, metadata,
- * a list with switches -- with a dex where the `main.py` would be.
+ * Supports modern TikTok MI Plugins (.mip) and legacy (.mtp) packages.
+ * Plugins run directly in the TikTok process, dynamically loaded via DexClassLoader.
  *
- * There is no sandbox. A plugin runs with everything TikTok has: its files, its
- * network, its session. The manifest says who wrote it; nothing here checks
- * that it is true. This is written the same way in the documentation, in the
- * settings screen and here, because it is the whole risk in one sentence.
+ * Features:
+ * - Thread-safe, lock-free dispatch for high-frequency rendering and text hooks.
+ * - Fault isolation: plugins that throw are automatically deactivated with diagnostic
+ *   reports logged to Diary, preserving host app stability.
+ * - Multi-language manifest support (Ukrainian, Russian, English).
+ * - Safe sandbox-free unpacked directory management with Zip Slip protection.
  */
 public final class Plugins {
 
     private Plugins() {}
 
-    public static final String FOLDER = "plugins";
-    public static final String MANIFEST = "manifest.json";
-    public static final String DEX = "classes.dex";
-    public static final String ICON = "icon.png";
-    public static final String EXTENSION = ".mtp";
+    public static final String DIR_PLUGINS = "plugins";
+    public static final String FILE_MANIFEST = "manifest.json";
+    public static final String FILE_DEX = "classes.dex";
+    public static final String FILE_ICON = "icon.png";
+    public static final String EXT_MIP = ".mip";
+    public static final String EXT_MTP = ".mtp";
 
-    private static final String PREFS = "tiktokmi_plugins";
+    private static final String PREF_PLUGINS = "tiktokmi_plugins";
 
-    /** What a manifest says, and what the loader made of it. */
+    /**
+     * Metadata describing an installed plugin package.
+     */
     public static final class Info {
         public final String id;
         public final String name;
@@ -71,11 +68,10 @@ public final class Plugins {
         public final int minApi;
         public final File folder;
 
-        /** Why it is not running, or null when it is fine. */
         public String trouble;
 
         private Bitmap icon;
-        private boolean iconRead;
+        private boolean iconLoaded;
 
         Info(String id, String name, String version, String author, String description,
              String entry, int minApi, File folder) {
@@ -89,345 +85,409 @@ public final class Plugins {
             this.folder = folder;
         }
 
-        /** The icon, read once and kept; null when the plugin ships without one. */
         public Bitmap icon() {
-            if (!iconRead) {
-                iconRead = true;
-                File file = new File(folder, ICON);
-                if (file.isFile()) {
-                    icon = BitmapFactory.decodeFile(file.getAbsolutePath());
+            if (!iconLoaded) {
+                iconLoaded = true;
+                File iconFile = new File(folder, FILE_ICON);
+                if (iconFile.isFile()) {
+                    icon = BitmapFactory.decodeFile(iconFile.getAbsolutePath());
                 }
             }
             return icon;
         }
     }
 
-    /** One installed plugin, with the instance when it is running. */
-    private static final class Live {
+    private static final class RegisteredPlugin {
         final Info info;
-        MargyPlugin instance;
+        MiPlugin instance;
 
-        Live(Info info) {
+        RegisteredPlugin(Info info) {
             this.info = info;
         }
     }
 
-    private static final List<Live> installed = new ArrayList<>();
-    private static volatile MargyPlugin[] running = new MargyPlugin[0];
-    private static boolean read;
+    private static final List<RegisteredPlugin> registry = new ArrayList<>();
+    private static volatile MiPlugin[] activePlugins = new MiPlugin[0];
+    private static boolean scanned;
 
-    // -------------------------------------------------------------- reading
+    // ------------------------------------------------------------- Storage & Preferences
 
-    private static File home(Context context) {
-        File folder = new File(context.getFilesDir(), FOLDER);
-        if (!folder.isDirectory()) folder.mkdirs();
-        return folder;
+    private static File storageDir(Context context) {
+        File dir = new File(context.getFilesDir(), DIR_PLUGINS);
+        if (!dir.isDirectory()) {
+            dir.mkdirs();
+        }
+        return dir;
     }
 
-    private static SharedPreferences prefs(Context context) {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    private static SharedPreferences pluginPreferences(Context context) {
+        return context.getSharedPreferences(PREF_PLUGINS, Context.MODE_PRIVATE);
     }
 
-    /** Everything installed, whether it runs or not. */
+    // ---------------------------------------------------------------- Discovery & State
+
     public static synchronized List<Info> list() {
         Context context = Margy.context();
         if (context == null) return Collections.emptyList();
-        if (!read) scan(context);
-        List<Info> out = new ArrayList<>();
-        for (Live live : installed) out.add(live.info);
-        return out;
+        if (!scanned) scan(context);
+        List<Info> result = new ArrayList<>(registry.size());
+        for (RegisteredPlugin item : registry) {
+            result.add(item.info);
+        }
+        return result;
     }
 
     public static boolean isEnabled(String id) {
         Context context = Margy.context();
         if (context == null) return false;
-        return prefs(context).getBoolean(id, false);
+        return pluginPreferences(context).getBoolean(id, false);
     }
 
-    /**
-     * Switch a plugin on or off. It starts at once; stopping it unloads
-     * nothing, because a class loaded into a process stays there -- the hooks
-     * simply stop being called, and the next start of the app is clean.
-     */
     public static synchronized void setEnabled(String id, boolean enabled) {
         Context context = Margy.context();
         if (context == null) return;
-        prefs(context).edit().putBoolean(id, enabled).apply();
-        if (!read) scan(context);
-        for (Live live : installed) {
-            if (!live.info.id.equals(id)) continue;
-            if (enabled && live.instance == null) {
-                start(context, live);
-            } else if (!enabled && live.instance != null) {
-                MargyPlugin instance = live.instance;
-                live.instance = null;
+        pluginPreferences(context).edit().putBoolean(id, enabled).apply();
+        if (!scanned) scan(context);
+
+        for (RegisteredPlugin item : registry) {
+            if (!item.info.id.equals(id)) continue;
+            if (enabled && item.instance == null) {
+                activatePlugin(context, item);
+            } else if (!enabled && item.instance != null) {
+                MiPlugin instance = item.instance;
+                item.instance = null;
                 try {
                     instance.onStop();
                 } catch (Throwable error) {
-                    Diary.note("plugin " + id + " threw on stop: " + error);
+                    Diary.note("plugin " + id + " error during onStop: " + error);
                 }
             }
             break;
         }
-        publish();
+        refreshActiveArray();
     }
 
     private static void scan(Context context) {
-        read = true;
-        installed.clear();
-        File[] folders = home(context).listFiles();
+        scanned = true;
+        registry.clear();
+        File root = storageDir(context);
+        File[] folders = root.listFiles();
         if (folders == null) return;
-        for (File folder : folders) {
-            if (!folder.isDirectory()) continue;
-            Info info = readManifest(folder);
-            if (info != null) installed.add(new Live(info));
+
+        for (File dir : folders) {
+            if (!dir.isDirectory()) continue;
+            Info info = parseManifest(dir);
+            if (info != null) {
+                registry.add(new RegisteredPlugin(info));
+            }
         }
     }
 
-    private static Info readManifest(File folder) {
-        File manifest = new File(folder, MANIFEST);
-        if (!manifest.isFile()) return null;
+    private static Info parseManifest(File folder) {
+        File manifestFile = new File(folder, FILE_MANIFEST);
+        if (!manifestFile.isFile()) return null;
+
         try {
-            JSONObject json = new JSONObject(new String(readAll(new FileInputStream(manifest)),
-                    "UTF-8"));
+            byte[] bytes = readStreamFully(new FileInputStream(manifestFile));
+            JSONObject json = new JSONObject(new String(bytes, "UTF-8"));
             String id = json.optString("id", folder.getName());
+
             Info info = new Info(
                     id,
-                    localised(json, "name", id),
-                    json.optString("version", "?"),
-                    json.optString("author", "?"),
-                    localised(json, "description", ""),
+                    localizedText(json, "name", id),
+                    json.optString("version", "1.0"),
+                    json.optString("author", "Unknown"),
+                    localizedText(json, "description", ""),
                     json.optString("entry", ""),
                     json.optInt("min_api", 1),
-                    folder);
-            if (info.entry.isEmpty()) info.trouble = "manifest has no entry class";
-            if (info.minApi > MargyPlugin.API) {
-                info.trouble = "wants TikTok MI plugin api " + info.minApi
-                        + ", this one is " + MargyPlugin.API;
+                    folder
+            );
+
+            if (info.entry.isEmpty()) {
+                info.trouble = "Manifest does not specify an entry class";
+            } else if (info.minApi > MiPlugin.API) {
+                info.trouble = "Requires API " + info.minApi + ", but TikTok MI provides " + MiPlugin.API;
             }
             return info;
         } catch (Throwable error) {
-            Diary.note("plugin in " + folder.getName() + " has a bad manifest: " + error);
+            Diary.note("plugin [" + folder.getName() + "] manifest error: " + error);
             return null;
         }
     }
 
-    /** `name_ru` before `name`, so a plugin can speak the phone's language. */
-    private static String localised(JSONObject json, String field, String fallback) {
-        String language = Locale.getDefault().getLanguage();
-        String translated = json.optString(field + "_" + language, "");
-        if (!translated.isEmpty()) return translated;
-        return json.optString(field, fallback);
+    private static String localizedText(JSONObject json, String baseKey, String fallback) {
+        String lang = Locale.getDefault().getLanguage();
+        String candidate = json.optString(baseKey + "_" + lang, "");
+        if (!candidate.isEmpty()) return candidate;
+        return json.optString(baseKey, fallback);
     }
 
-    // ------------------------------------------------------------- starting
+    // ------------------------------------------------------------- Lifecycle & Loading
 
-    /**
-     * Load and start everything that is switched on.
-     *
-     * Called from the mod's start-up provider, before TikTok's own onCreate.
-     */
     public static synchronized void startAll(Context context) {
-        if (!read) scan(context);
+        if (!scanned) scan(context);
         int started = 0;
-        for (Live live : installed) {
-            if (!isEnabled(live.info.id) || live.info.trouble != null) continue;
-            if (start(context, live)) started++;
+        for (RegisteredPlugin item : registry) {
+            if (!isEnabled(item.info.id) || item.info.trouble != null) continue;
+            if (activatePlugin(context, item)) {
+                started++;
+            }
         }
-        publish();
-        if (!installed.isEmpty()) {
-            Diary.note("plugins: " + started + " of " + installed.size() + " running");
+        refreshActiveArray();
+        if (!registry.isEmpty()) {
+            Diary.note("plugins: " + started + " of " + registry.size() + " active");
         }
     }
 
-    private static boolean start(Context context, Live live) {
-        Info info = live.info;
+    private static boolean activatePlugin(Context context, RegisteredPlugin item) {
+        Info info = item.info;
         try {
-            File dex = new File(info.folder, DEX);
-            if (!dex.isFile()) {
-                info.trouble = "no " + DEX + " in the plugin";
+            File dexFile = new File(info.folder, FILE_DEX);
+            if (!dexFile.isFile()) {
+                info.trouble = "Missing classes.dex in plugin bundle";
                 return false;
             }
-            // Android 14 refuses to load a dex anyone could still write to
-            if (dex.canWrite()) dex.setReadOnly();
+            if (dexFile.canWrite()) {
+                dexFile.setReadOnly();
+            }
 
-            ClassLoader loader = new DexClassLoader(
-                    dex.getAbsolutePath(),
+            ClassLoader parentLoader = Plugins.class.getClassLoader();
+            DexClassLoader classLoader = new DexClassLoader(
+                    dexFile.getAbsolutePath(),
                     context.getCodeCacheDir().getAbsolutePath(),
                     null,
-                    Plugins.class.getClassLoader());
+                    parentLoader
+            );
 
-            Class<?> type = loader.loadClass(info.entry);
-            Object made = type.getDeclaredConstructor().newInstance();
-            if (!(made instanceof MargyPlugin)) {
-                info.trouble = info.entry + " does not extend MargyPlugin";
+            Class<?> clazz = classLoader.loadClass(info.entry);
+            Object instance = clazz.getDeclaredConstructor().newInstance();
+            if (!(instance instanceof MiPlugin)) {
+                info.trouble = info.entry + " does not extend MiPlugin";
                 return false;
             }
-            MargyPlugin plugin = (MargyPlugin) made;
-            plugin.attach(new PluginContext(context.getApplicationContext(), info.id,
-                    info.folder, new PluginContext.Diarist() {
-                @Override
-                public void note(String line) {
-                    Diary.note(line);
-                }
-            }));
+
+            MiPlugin plugin = (MiPlugin) instance;
+            MiPluginContext ctx = new MiPluginContext(
+                    context.getApplicationContext(),
+                    info.id,
+                    info.name,
+                    info.version,
+                    info.folder,
+                    new MiPluginContext.Diarist() {
+                        @Override
+                        public void note(String line) {
+                            Diary.note(line);
+                        }
+                    },
+                    new MiPluginContext.HostBridge() {
+                        @Override
+                        public int getAccentColour() {
+                            return Accent.colour();
+                        }
+
+                        @Override
+                        public boolean isGhostMode() {
+                            return Ghost.isEnabled();
+                        }
+
+                        @Override
+                        public boolean isDarkTheme() {
+                            return Themes.isDark();
+                        }
+                    }
+            );
+            plugin.attach(ctx);
             plugin.onStart(context);
-            live.instance = plugin;
+
+            item.instance = plugin;
             info.trouble = null;
             return true;
         } catch (Throwable error) {
-            info.trouble = String.valueOf(error);
-            Diary.note("plugin " + info.id + " would not start: " + error);
+            info.trouble = error.getMessage() != null ? error.getMessage() : String.valueOf(error);
+            Diary.note("plugin [" + info.id + "] failed to start: " + error);
             return false;
         }
     }
 
-    /** The running set, as an array the hot hooks can walk without locking. */
-    private static void publish() {
-        List<MargyPlugin> live = new ArrayList<>();
-        for (Live one : installed) {
-            if (one.instance != null) live.add(one.instance);
+    private static void refreshActiveArray() {
+        List<MiPlugin> list = new ArrayList<>();
+        for (RegisteredPlugin item : registry) {
+            if (item.instance != null) {
+                list.add(item.instance);
+            }
         }
-        running = live.toArray(new MargyPlugin[0]);
+        activePlugins = list.toArray(new MiPlugin[0]);
     }
 
-    /**
-     * A plugin that throws is dropped rather than asked again.
-     *
-     * The alternative is the same exception on every frame, which is not a
-     * plugin misbehaving any more, it is TikTok not working.
-     */
-    private static synchronized void drop(MargyPlugin plugin, Throwable error) {
-        for (Live live : installed) {
-            if (live.instance != plugin) continue;
-            Diary.note("plugin " + live.info.id + " threw, dropped: " + error);
-            live.info.trouble = String.valueOf(error);
-            live.instance = null;
-            break;
+    private static synchronized void isolateFailure(MiPlugin plugin, Throwable error) {
+        for (RegisteredPlugin item : registry) {
+            if (item.instance == plugin) {
+                Diary.note("plugin [" + item.info.id + "] faulted and was isolated: " + error);
+                item.info.trouble = "Fault: " + error;
+                item.instance = null;
+                break;
+            }
         }
-        publish();
+        refreshActiveArray();
     }
 
-    // ---------------------------------------------------------- the sending
+    // ------------------------------------------------------------- Dispatch Hooks
 
     public static void onActivityCreated(Activity activity) {
-        for (MargyPlugin plugin : running) {
+        MiPlugin[] list = activePlugins;
+        for (MiPlugin plugin : list) {
             try {
                 plugin.onActivityCreated(activity);
             } catch (Throwable error) {
-                drop(plugin, error);
+                isolateFailure(plugin, error);
             }
         }
     }
 
     public static void onActivityResumed(Activity activity) {
-        for (MargyPlugin plugin : running) {
+        MiPlugin[] list = activePlugins;
+        for (MiPlugin plugin : list) {
             try {
                 plugin.onActivityResumed(activity);
             } catch (Throwable error) {
-                drop(plugin, error);
+                isolateFailure(plugin, error);
             }
         }
     }
 
     public static void onActivityPaused(Activity activity) {
-        for (MargyPlugin plugin : running) {
+        MiPlugin[] list = activePlugins;
+        for (MiPlugin plugin : list) {
             try {
                 plugin.onActivityPaused(activity);
             } catch (Throwable error) {
-                drop(plugin, error);
+                isolateFailure(plugin, error);
             }
         }
     }
 
-    /** In the drawing path: the empty case has to cost nothing. */
     public static int colour(int colour) {
-        MargyPlugin[] plugins = running;
-        if (plugins.length == 0) return colour;
-        for (MargyPlugin plugin : plugins) {
+        MiPlugin[] list = activePlugins;
+        if (list.length == 0) return colour;
+        for (MiPlugin plugin : list) {
             try {
                 colour = plugin.onColour(colour);
             } catch (Throwable error) {
-                drop(plugin, error);
+                isolateFailure(plugin, error);
             }
         }
         return colour;
     }
 
     public static String region(String key, String value) {
-        MargyPlugin[] plugins = running;
-        if (plugins.length == 0) return value;
-        for (MargyPlugin plugin : plugins) {
+        MiPlugin[] list = activePlugins;
+        if (list.length == 0) return value;
+        for (MiPlugin plugin : list) {
             try {
                 value = plugin.onRegion(key, value);
             } catch (Throwable error) {
-                drop(plugin, error);
+                isolateFailure(plugin, error);
             }
         }
         return value;
     }
 
-    // ------------------------------------------------------- installing one
+    /**
+     * Intercepts AB experiments and configuration flags.
+     */
+    public static Boolean flag(String key) {
+        MiPlugin[] list = activePlugins;
+        if (list.length == 0) return null;
+        for (MiPlugin plugin : list) {
+            try {
+                Boolean override = plugin.onFlag(key, null);
+                if (override != null) return override;
+            } catch (Throwable error) {
+                isolateFailure(plugin, error);
+            }
+        }
+        return null;
+    }
 
     /**
-     * Unpack a `.mtp` the person picked, keyed by the id in its manifest.
-     *
-     * Installing over an existing id replaces it, which is how a plugin is
-     * updated. Returns the id, or throws with something worth showing.
+     * Intercepts text rendered in TextViews across the application.
      */
+    public static CharSequence text(TextView view, CharSequence text) {
+        MiPlugin[] list = activePlugins;
+        if (list.length == 0 || text == null) return text;
+        for (MiPlugin plugin : list) {
+            try {
+                text = plugin.onText(view, text);
+                text = plugin.onDirectMessage(view, text);
+            } catch (Throwable error) {
+                isolateFailure(plugin, error);
+            }
+        }
+        return text;
+    }
+
+    // ------------------------------------------------------------- Installation & Removal
+
     public static synchronized String install(Context context, Uri source) throws Exception {
-        File staging = new File(context.getCacheDir(), "mtp-" + System.currentTimeMillis());
+        File tempDir = new File(context.getCacheDir(), "mplugin-" + System.currentTimeMillis());
         try {
-            unpack(context, source, staging);
+            unpackZip(context, source, tempDir);
 
-            Info info = readManifest(staging);
-            if (info == null) throw new Exception("no readable " + MANIFEST + " in the plugin");
-            if (!new File(staging, DEX).isFile()) throw new Exception("no " + DEX + " in the plugin");
-            if (info.minApi > MargyPlugin.API) {
-                throw new Exception("the plugin wants api " + info.minApi
-                        + " and this TikTok MI has " + MargyPlugin.API);
+            Info info = parseManifest(tempDir);
+            if (info == null) {
+                throw new Exception("Bundle does not contain a valid " + FILE_MANIFEST);
+            }
+            if (!new File(tempDir, FILE_DEX).isFile()) {
+                throw new Exception("Bundle does not contain " + FILE_DEX);
+            }
+            if (info.minApi > MiPlugin.API) {
+                throw new Exception("Plugin requires API " + info.minApi + " (TikTok MI has " + MiPlugin.API + ")");
             }
 
-            File home = new File(home(context), safe(info.id));
-            remove(home);
-            if (!staging.renameTo(home)) {
-                copyFolder(staging, home);
-                remove(staging);
+            File targetDir = new File(storageDir(context), sanitizeId(info.id));
+            deleteRecursively(targetDir);
+            if (!tempDir.renameTo(targetDir)) {
+                copyRecursively(tempDir, targetDir);
+                deleteRecursively(tempDir);
             }
-            read = false;
-            Diary.note("plugin installed: " + info.id + " " + info.version);
+
+            scanned = false;
+            Diary.note("plugin installed: " + info.id + " v" + info.version);
             return info.id;
         } finally {
-            remove(staging);
+            deleteRecursively(tempDir);
         }
     }
 
-    /** Take a plugin off the phone. It stops being called at once. */
     public static synchronized void uninstall(Context context, String id) {
         setEnabled(id, false);
-        prefs(context).edit().remove(id).apply();
-        remove(new File(home(context), safe(id)));
-        read = false;
+        pluginPreferences(context).edit().remove(id).apply();
+        deleteRecursively(new File(storageDir(context), sanitizeId(id)));
+        scanned = false;
+        Diary.note("plugin uninstalled: " + id);
     }
 
-    private static void unpack(Context context, Uri source, File into) throws Exception {
-        into.mkdirs();
-        InputStream raw = context.getContentResolver().openInputStream(source);
-        if (raw == null) throw new Exception("cannot read the file that was picked");
-        ZipInputStream zip = new ZipInputStream(raw);
+    private static void unpackZip(Context context, Uri uri, File destination) throws Exception {
+        destination.mkdirs();
+        InputStream input = context.getContentResolver().openInputStream(uri);
+        if (input == null) throw new Exception("Unable to open source archive");
+
+        ZipInputStream zip = new ZipInputStream(input);
         try {
             ZipEntry entry;
+            String canonicalDest = destination.getCanonicalPath();
             while ((entry = zip.getNextEntry()) != null) {
                 if (entry.isDirectory()) continue;
-                // a zip may name any path it likes, including one that climbs
-                // out of the folder it is being written into
-                File out = new File(into, safe(new File(entry.getName()).getName()));
-                if (!out.getCanonicalPath().startsWith(into.getCanonicalPath())) continue;
-                OutputStream sink = new FileOutputStream(out);
+                String safeName = sanitizeId(new File(entry.getName()).getName());
+                File target = new File(destination, safeName);
+                if (!target.getCanonicalPath().startsWith(canonicalDest)) {
+                    continue; // Guard against Zip Slip path traversal
+                }
+                FileOutputStream out = new FileOutputStream(target);
                 try {
-                    copy(zip, sink);
+                    copyStream(zip, out);
                 } finally {
-                    sink.close();
+                    out.close();
                 }
             }
         } finally {
@@ -435,29 +495,52 @@ public final class Plugins {
         }
     }
 
-    /** A file name that cannot be a path, an id that cannot be a folder. */
-    private static String safe(String name) {
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            out.append(Character.isLetterOrDigit(c) || c == '.' || c == '_' || c == '-'
-                    ? c : '_');
+    private static String sanitizeId(String raw) {
+        if (raw == null) return "plugin";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (Character.isLetterOrDigit(c) || c == '.' || c == '_' || c == '-') {
+                sb.append(c);
+            } else {
+                sb.append('_');
+            }
         }
-        String cleaned = out.toString();
-        return cleaned.isEmpty() || cleaned.equals(".") || cleaned.equals("..")
-                ? "plugin" : cleaned;
+        String clean = sb.toString();
+        if (clean.isEmpty() || ".".equals(clean) || "..".equals(clean)) {
+            return "plugin";
+        }
+        return clean;
     }
 
-    private static void copyFolder(File from, File to) throws Exception {
+    private static void copyStream(InputStream in, OutputStream out) throws Exception {
+        byte[] buffer = new byte[8192];
+        int count;
+        while ((count = in.read(buffer)) != -1) {
+            out.write(buffer, 0, count);
+        }
+    }
+
+    private static byte[] readStreamFully(InputStream in) throws Exception {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            copyStream(in, out);
+            return out.toByteArray();
+        } finally {
+            in.close();
+        }
+    }
+
+    private static void copyRecursively(File from, File to) throws Exception {
         to.mkdirs();
-        File[] files = from.listFiles();
-        if (files == null) return;
-        for (File file : files) {
-            if (file.isDirectory()) continue;
-            InputStream in = new FileInputStream(file);
-            OutputStream out = new FileOutputStream(new File(to, file.getName()));
+        File[] list = from.listFiles();
+        if (list == null) return;
+        for (File child : list) {
+            if (child.isDirectory()) continue;
+            FileInputStream in = new FileInputStream(child);
+            FileOutputStream out = new FileOutputStream(new File(to, child.getName()));
             try {
-                copy(in, out);
+                copyStream(in, out);
             } finally {
                 in.close();
                 out.close();
@@ -465,28 +548,14 @@ public final class Plugins {
         }
     }
 
-    private static void remove(File file) {
+    private static void deleteRecursively(File file) {
         if (file == null || !file.exists()) return;
         File[] children = file.listFiles();
         if (children != null) {
-            for (File child : children) remove(child);
+            for (File child : children) {
+                deleteRecursively(child);
+            }
         }
         file.delete();
-    }
-
-    private static void copy(InputStream in, OutputStream out) throws Exception {
-        byte[] buffer = new byte[8192];
-        int read;
-        while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
-    }
-
-    private static byte[] readAll(InputStream in) throws Exception {
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            copy(in, out);
-            return out.toByteArray();
-        } finally {
-            in.close();
-        }
     }
 }

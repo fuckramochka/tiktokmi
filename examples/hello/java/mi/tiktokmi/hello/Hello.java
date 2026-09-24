@@ -2,7 +2,7 @@ package mi.tiktokmi.hello;
 
 import android.content.Context;
 
-import mi.tiktokmi.plugin.MargyPlugin;
+import mi.tiktokmi.plugin.MiPlugin;
 
 /**
  * The smallest plugin that does something you can see.
@@ -15,9 +15,9 @@ import mi.tiktokmi.plugin.MargyPlugin;
  *
  *     python3 -m tiktokmi.plugin examples/hello
  *
- * and install the .mtp through Settings and privacy -> TikTok MI -> Plugins.
+ * and install the .mip through Settings and privacy -> TikTok MI -> Plugins.
  */
-public final class Hello extends MargyPlugin {
+public final class Hello extends MiPlugin {
 
     private static final String STARTS = "starts";
 

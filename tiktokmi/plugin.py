@@ -38,10 +38,10 @@ REQUIRED = ("id", "name", "version", "author", "entry")
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="tiktokmi.plugin",
-        description="Pack a folder into an .mtp TikTok MI plugin.",
+        description="Pack a folder into an .mip or .mtp TikTok MI plugin.",
     )
     parser.add_argument("folder", help="the plugin's folder: manifest.json, java/, icon.png")
-    parser.add_argument("-o", "--out", help="where the .mtp goes")
+    parser.add_argument("-o", "--out", help="where the .mip goes")
     parser.add_argument("--tools", default=os.path.join(ROOT, "tools"))
     args = parser.parse_args(argv)
 
@@ -60,7 +60,7 @@ def main(argv=None) -> int:
     if not os.path.isdir(sources):
         parser.error("no java/ in %s" % folder)
 
-    out = args.out or os.path.join(folder, "%s.mtp" % manifest["id"])
+    out = args.out or os.path.join(folder, "%s.mip" % manifest["id"])
     tools = Toolchain(args.tools)
 
     room = tempfile.mkdtemp(prefix="mtp-")

@@ -113,14 +113,24 @@ public final class Net {
      */
     public static boolean download(String url, File into, Along along) {
         HttpURLConnection connection = null;
+        File part = new File(into.getAbsolutePath() + ".part");
         try {
+            File parent = into.getParentFile();
+            if (parent != null && !parent.isDirectory()) parent.mkdirs();
+
+            long existingBytes = part.exists() ? part.length() : 0;
             String current = url;
+            boolean resumed = false;
+
             for (int redirect = 0; redirect < 5; redirect++) {
                 connection = (HttpURLConnection) new URL(current).openConnection();
                 connection.setConnectTimeout(TIMEOUT);
                 connection.setReadTimeout(TIMEOUT);
                 connection.setInstanceFollowRedirects(true);
                 connection.setRequestProperty("User-Agent", "TikTok MI");
+                if (existingBytes > 0) {
+                    connection.setRequestProperty("Range", "bytes=" + existingBytes + "-");
+                }
                 int code = connection.getResponseCode();
                 if (code == HttpURLConnection.HTTP_MOVED_PERM
                         || code == HttpURLConnection.HTTP_MOVED_TEMP
@@ -134,20 +144,30 @@ public final class Net {
                         continue;
                     }
                 }
-                if (code / 100 != 2) return false;
+                if (code == 206) {
+                    resumed = true;
+                    break;
+                } else if (code == 200) {
+                    resumed = false;
+                    existingBytes = 0;
+                    break;
+                } else if (code / 100 != 2) {
+                    return false;
+                }
                 break;
             }
-            if (connection == null || connection.getResponseCode() / 100 != 2) return false;
+            if (connection == null) return false;
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200 && responseCode != 206) return false;
 
-            long total = connection.getContentLength();
-            File parent = into.getParentFile();
-            if (parent != null && !parent.isDirectory()) parent.mkdirs();
+            long contentLength = connection.getContentLength();
+            long total = resumed ? (existingBytes + contentLength) : contentLength;
 
             InputStream in = connection.getInputStream();
-            OutputStream out = new FileOutputStream(into);
+            OutputStream out = new FileOutputStream(part, resumed);
             try {
                 byte[] buffer = new byte[65536];
-                long got = 0;
+                long got = existingBytes;
                 int read, told = -1;
                 while ((read = in.read(buffer)) != -1) {
                     out.write(buffer, 0, read);
@@ -162,7 +182,9 @@ public final class Net {
                 in.close();
                 out.close();
             }
-            return true;
+
+            if (into.exists()) into.delete();
+            return part.renameTo(into);
         } catch (Throwable error) {
             Diary.note("download: " + error);
             return false;

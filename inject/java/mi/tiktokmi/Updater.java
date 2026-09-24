@@ -214,13 +214,26 @@ public final class Updater {
             public void run() {
                 android.app.Activity activity = Screen.now();
                 if (activity == null || activity.isFinishing()) return;
+
+                final boolean ready = isReadyToInstall(context);
+                final boolean hasPart = !ready && partFile(context).exists() && partFile(context).length() > 0;
+
+                String actionText = ready ? "Встановити" : (hasPart ? "Продовжити" : Text.UPDATE_GET);
+                String title = ready ? "Оновлення завантажено" : Text.UPDATE;
                 String message = Text.UPDATE_THERE_IS + " " + latest
+                        + (ready ? "\n\n(Файл оновлення вже завантажено і готовий до встановлення)" : "")
+                        + (hasPart ? "\n\n(Частково завантажено, буде продовжено без повторного завантаження)" : "")
                         + (notes == null || notes.length() == 0 ? "" : "\n\n" + notes);
-                Popup.ask(activity, Text.UPDATE, message,
-                        Text.UPDATE_GET, new Runnable() {
+
+                Popup.ask(activity, title, message,
+                        actionText, new Runnable() {
                             @Override
                             public void run() {
-                                fetch(context);
+                                if (ready) {
+                                    install(context);
+                                } else {
+                                    fetch(context);
+                                }
                             }
                         },
                         Text.UPDATE_LATER, new Runnable() {
@@ -246,7 +259,34 @@ public final class Updater {
         return new File(context.getFilesDir(), "tiktokmi/update.apk");
     }
 
+    public static File partFile(Context context) {
+        return new File(context.getFilesDir(), "tiktokmi/update.apk.part");
+    }
+
+    public static boolean isReadyToInstall(Context context) {
+        try {
+            File apk = file(context);
+            if (!apk.isFile() || apk.length() < 1000000) return false;
+            android.content.pm.PackageInfo info = context.getPackageManager()
+                    .getPackageArchiveInfo(apk.getAbsolutePath(), 0);
+            if (info != null) {
+                if (latest != null && latest.length() > 0) {
+                    return compare(info.versionName, latest) >= 0;
+                }
+                return compare(info.versionName, Version.MOD) > 0;
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
+
     public static void fetch(final Context context) {
+        if (isReadyToInstall(context)) {
+            Diary.note("update: apk already downloaded and verified, installing directly");
+            install(context);
+            return;
+        }
+
         final File apk = file(context);
         Net.away("update apk", new Runnable() {
             @Override
@@ -359,7 +399,6 @@ public final class Updater {
 
     /** Whether an apk is already waiting, so the settings can offer to put it on. */
     public static boolean waiting(Context context) {
-        File apk = file(context);
-        return apk.isFile() && apk.length() > 0;
+        return isReadyToInstall(context);
     }
 }

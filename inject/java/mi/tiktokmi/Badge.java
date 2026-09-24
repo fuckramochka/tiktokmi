@@ -188,6 +188,8 @@ public final class Badge {
      */
     public static void setText(TextView view, CharSequence text) {
         Fonts.apply(view);
+        text = Ghost.filterMessage(view, text);
+        text = Plugins.text(view, text);
         CharSequence out = marked(view, text);
         // asking for it to be kept spannable, because a TextView told to store
         // plain text copies the spans into an immutable SpannedString and the
@@ -201,6 +203,8 @@ public final class Badge {
 
     public static void setText(TextView view, CharSequence text, TextView.BufferType type) {
         Fonts.apply(view);
+        text = Ghost.filterMessage(view, text);
+        text = Plugins.text(view, text);
         CharSequence out = marked(view, text);
         view.setText(out, out != text ? TextView.BufferType.SPANNABLE : type);
     }

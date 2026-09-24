@@ -228,6 +228,27 @@ public class SettingsActivity extends Activity {
                 Seekbar::setEnabled));
         column.addView(wrap(video));
 
+        column.addView(section(Text.GHOST_TITLE));
+        LinearLayout ghost = card();
+        ghost.addView(toggleRow("visibility_off", Text.GHOST_MODE, Ghost.isEnabled(), on -> {
+            Ghost.setEnabled(on);
+            rebuild();
+        }));
+        if (Ghost.isEnabled()) {
+            ghost.addView(line());
+            ghost.addView(toggleRow("fingerprint", Text.GHOST_PROFILE,
+                    Ghost.isStealthProfileEnabled(), Ghost::setStealthProfileEnabled));
+            ghost.addView(line());
+            ghost.addView(toggleRow("article", Text.GHOST_DELETED,
+                    Ghost.isDeletedMessagesEnabled(), Ghost::setDeletedMessagesEnabled));
+            ghost.addView(line());
+            ghost.addView(toggleRow("tune", Text.GHOST_CHAT,
+                    Ghost.isStealthChatEnabled(), Ghost::setStealthChatEnabled));
+            ghost.addView(line());
+            ghost.addView(quiet(Text.GHOST_NOTE));
+        }
+        column.addView(wrap(ghost));
+
         column.addView(section(Text.HIDDEN));
         LinearLayout hidden = card();
         hidden.addView(toggleRow("mic", Text.VOICE, Flags.isOn(Flags.KEY_VOICE),
@@ -364,10 +385,14 @@ public class SettingsActivity extends Activity {
         updates.addView(line());
         updates.addView(toggleRow("info", Text.UPDATE_REMIND, Updater.remind(this),
                 on -> Updater.setRemind(this, on)));
-        if (Updater.waiting(this)) {
+        if (Updater.isReadyToInstall(this)) {
             updates.addView(line());
             updates.addView(actionRow("extension", Text.UPDATE_INSTALL, null,
                     () -> Updater.install(this)));
+        } else if (Updater.partFile(this).exists() && Updater.partFile(this).length() > 0) {
+            updates.addView(line());
+            updates.addView(actionRow("download", "Продовжити завантаження", null,
+                    () -> Updater.fetch(this)));
         }
         column.addView(wrap(updates));
 
