@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikTok MI — TikTok, yours.</title>
+  <meta name="description" content="TikTok MI is a minimal, premium TikTok mod for Android: your region, your accent, your theme, a clean feed. No root.">
+  <link rel="icon" type="image/png" href="../icon_out/mipmap-xxhdpi/ic_launcher_foreground.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-void: #08080c;
+      --color-panel: #101016;
+      --color-panel2: #16161e;
+      --color-mist: #9a9aad;
+      --color-mipink: #fe2c55;
+      --color-micyan: #25f4ee;
+      --color-mimint: #8dd1b0;
+      --font-display: "Unbounded", sans-serif;
+      --font-body: "Inter", sans-serif;
+    }
+  </style>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-void text-white font-body antialiased overflow-x-hidden">
+
+  <!-- grain -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- custom cursor -->
+  <div class="cursor" aria-hidden="true"></div>
+  <div class="cursor-ring" aria-hidden="true"></div>
+
+  <!-- preloader -->
+  <div id="loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-void">
+    <div class="loader-mark"></div>
+    <p class="loader-word">TikTok&nbsp;MI</p>
+  </div>
+
+  <!-- ============================ NAV ============================ -->
+  <header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-void/70 border-b border-white/8">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-8">
+      <a href="#top" class="flex items-center gap-2.5 font-extrabold text-lg tracking-tight mr-auto magnetic">
+        <span class="brand-mark"></span><span>TikTok&nbsp;MI</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-7 text-[15px] font-medium text-mist">
+        <a class="navlink" href="#features">Features</a>
+        <a class="navlink" href="#ecosystem">Ecosystem</a>
+        <a class="navlink" href="#install">Install</a>
+        <a class="navlink" href="#faq">FAQ</a>
+      </nav>
+      <a href="https://github.com/fuckramochka/tiktokmi/releases/latest" data-download class="btn-small magnetic">Download</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ============================ HERO ============================ -->
+    <section class="relative min-h-screen flex items-center pt-28 pb-16 overflow-hidden">
+      <div class="orb orb-pink" aria-hidden="true"></div>
+      <div class="orb orb-cyan" aria-hidden="true"></div>
+      <div class="max-w-6xl mx-auto px-6 grid lg:grid-cols-[1.15fr_.85fr] gap-14 items-center relative">
+        <div>
+          <p class="hero-pill" data-hero><span class="livedot"></span><span id="version">v0.3.6.1</span><span class="opacity-40">·</span>on TikTok 47.0.3</p>
+          <h1 class="font-display font-extrabold leading-[1.02] tracking-tight text-[clamp(2.6rem,7vw,5.2rem)]" data-hero>
+            TikTok,<br><span class="grad-word">yours.</span>
+          </h1>
+          <p class="mt-6 text-lg text-mist max-w-xl" data-hero>A minimal, premium mod for Android. Your region, your accent, your theme — and a feed with nothing you didn&rsquo;t ask for. No root. No second icon. One settings row.</p>
+          <div class="mt-9 flex flex-wrap gap-4" data-hero>
+            <a href="https://github.com/fuckramochka/tiktokmi/releases/latest" data-download class="btn-primary magnetic">Download APK</a>
+            <a href="https://t.me/fuckramochka" class="btn-ghost magnetic">Telegram channel</a>
+          </div>
+          <dl class="mt-12 grid grid-cols-3 max-w-md gap-6" data-hero>
+            <div><dt class="stat-num font-display" data-count="24">0</dt><dd class="stat-label">countries</dd></div>
+            <div><dt class="stat-num font-display" data-count="0">0</dt><dd class="stat-label">ads in feed</dd></div>
+            <div><dt class="stat-num font-display" data-count="100">0</dt><dd class="stat-label">% yours</dd></div>
+          </dl>
+        </div>
+        <div class="flex justify-center" data-hero>
+          <div class="phone" id="phone" aria-hidden="true">
+            <div class="phone-screen">
+              <div class="mock-tabs"><i></i><i class="on"></i><i></i></div>
+              <div class="mock-video"><span class="mock-heart"></span><span class="mock-play"></span></div>
+              <div class="mock-side"><i></i><i></i><i></i></div>
+              <div class="mock-caption"><i></i><i class="short"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <a href="#features" class="scroll-hint" aria-label="Scroll to features"><span></span></a>
+    </section>
+
+    <!-- =========================== MARQUEE =========================== -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>No ads</span><i>·</i><span>No watermark</span><i>·</i><span>No root</span><i>·</i><span>Your accent</span><i>·</i><span>Your theme</span><i>·</i><span>Ghost mode</span><i>·</i>
+        <span>No ads</span><i>·</i><span>No watermark</span><i>·</i><span>No root</span><i>·</i><span>Your accent</span><i>·</i><span>Your theme</span><i>·</i><span>Ghost mode</span><i>·</i>
+      </div>
+    </div>
+
+    <!-- =========================== FEATURES =========================== -->
+    <section id="features" class="max-w-6xl mx-auto px-6 pt-28 pb-10">
+      <p class="kicker" data-reveal>What it adds</p>
+      <h2 class="font-display font-bold tracking-tight text-[clamp(1.8rem,4vw,2.9rem)] leading-tight max-w-3xl" data-reveal>Everything you&rsquo;d change. Nothing you wouldn&rsquo;t notice.</h2>
+      <div class="mt-12 grid md:grid-cols-3 gap-4">
+        <article class="bento bento-wide" data-reveal>
+          <div class="bento-glow"></div>
+          <h3>A clean feed</h3>
+          <p>Ads, LIVEs, photo carousels and stories drop out where the page is read — not hidden on screen, gone from the list itself.</p>
+          <p class="bento-foot">FeedItemList.getItems() → yours</p>
+        </article>
+        <article class="bento" data-reveal>
+          <h3>Your accent</h3>
+          <p>TikTok&rsquo;s whole pink family — likes, buttons, tabs, gradients — moved onto any colour, live.</p>
+        </article>
+        <article class="bento" data-reveal>
+          <h3>Your theme</h3>
+          <p>Two colours over light or dark — or the palette straight off your wallpaper.</p>
+        </article>
+        <article class="bento" data-reveal>
+          <h3>Save anything</h3>
+          <p>Videos without the watermark. Avatars, stickers, comment shots. One tap.</p>
+        </article>
+        <article class="bento" data-reveal>
+          <h3>Ghost mode</h3>
+          <p>Stealth visits, kept deletes, no reads, no typing. Invisible by design.</p>
+        </article>
+        <article class="bento bento-wide" data-reveal>
+          <div class="bento-glow"></div>
+          <h3>One row, total honesty</h3>
+          <p>Everything lives in Settings → TikTok&nbsp;MI. Every switch says what it does, the diary says what the mod saw, updates arrive on their own — and Android always asks before anything installs.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ========================== SHOWCASE ========================== -->
+    <section class="max-w-6xl mx-auto px-6 py-24">
+      <div class="showcase" data-reveal>
+        <p class="kicker">Under the hood</p>
+        <p class="font-display text-[clamp(1.6rem,3.6vw,2.6rem)] font-semibold leading-snug tracking-tight">The apk is never taken apart. The zip is copied entry by entry, the resource table is patched where it lies — <span class="grad-word">surgery, not demolition.</span></p>
+        <div class="mt-10 grid sm:grid-cols-3 gap-8">
+          <div><p class="stat-num font-display" data-count="52">0</p><p class="stat-label">dex files, most untouched</p></div>
+          <div><p class="stat-num font-display" data-count="25">0</p><p class="stat-label">MB table rewritten in place</p></div>
+          <div><p class="stat-num font-display" data-count="1">0</p><p class="stat-label">settings row. That&rsquo;s the whole UI.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== ECOSYSTEM ========================== -->
+    <section id="ecosystem" class="max-w-6xl mx-auto px-6 pb-10">
+      <p class="kicker" data-reveal>One author, one ecosystem</p>
+      <h2 class="font-display font-bold tracking-tight text-[clamp(1.8rem,4vw,2.9rem)]" data-reveal>Beyond TikTok&nbsp;MI</h2>
+      <div class="mt-12 grid md:grid-cols-2 gap-4">
+        <article class="bento" data-reveal>
+          <p class="product-tag">Telegram mod · Android</p>
+          <h3 class="font-display">Amegram</h3>
+          <p>The sibling app. Same obsession over themes — and the two talk: accent and dark mode sync in one tap, videos fly to Saved or Stories, audio lands in its player, VIP badges carry over.</p>
+          <a class="link mt-5 inline-block" href="https://t.me/dkamegram">Get Amegram →</a>
+        </article>
+        <article class="bento" data-reveal>
+          <p class="product-tag">News · builds · support</p>
+          <h3 class="font-display">Channel &amp; source</h3>
+          <p>Release notes, icon contests, donor badges and help — in the channel. The mod, the build and the docs — on GitHub, MIT licensed, every line readable.</p>
+          <p class="mt-5 flex flex-wrap gap-6">
+            <a class="link" href="https://t.me/fuckramochka">Channel →</a>
+            <a class="link" href="https://github.com/fuckramochka/tiktokmi">Source →</a>
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- =========================== INSTALL =========================== -->
+    <section id="install" class="max-w-6xl mx-auto px-6 py-24">
+      <p class="kicker" data-reveal>Install</p>
+      <h2 class="font-display font-bold tracking-tight text-[clamp(1.8rem,4vw,2.9rem)]" data-reveal>Three steps, two minutes.</h2>
+      <ol class="mt-12 grid gap-4">
+        <li class="step" data-reveal><span class="step-n font-display">01</span><div><h3>Uninstall stock TikTok</h3><p>The mod keeps TikTok&rsquo;s own package — it replaces the official app instead of sitting beside it. arm64, no root.</p></div></li>
+        <li class="step" data-reveal><span class="step-n font-display">02</span><div><h3>Download the APK</h3><p>One file from GitHub releases. Free, no account, no tracker-laden installer.</p></div></li>
+        <li class="step" data-reveal><span class="step-n font-display">03</span><div><h3>Install &amp; allow once</h3><p>Android asks to allow installs from this source a single time. After that, updates offer themselves.</p></div></li>
+      </ol>
+      <div class="mt-10" data-reveal>
+        <a href="https://github.com/fuckramochka/tiktokmi/releases/latest" data-download class="btn-primary magnetic">Download TikTok&nbsp;MI</a>
+      </div>
+    </section>
+
+    <!-- ============================= FAQ ============================= -->
+    <section id="faq" class="max-w-6xl mx-auto px-6 pb-10">
+      <p class="kicker" data-reveal>FAQ</p>
+      <h2 class="font-display font-bold tracking-tight text-[clamp(1.8rem,4vw,2.9rem)]" data-reveal>Asked, answered.</h2>
+      <div class="mt-10 grid gap-3">
+        <details data-reveal><summary>Do I need root?</summary><p>No. If your phone runs the official TikTok, it runs TikTok&nbsp;MI.</p></details>
+        <details data-reveal><summary>Can it sit beside the official app?</summary><p>No — same package name, so uninstall stock first. Account, drafts and data live on TikTok&rsquo;s servers and survive the switch.</p></details>
+        <details data-reveal><summary>How do updates work?</summary><p>The mod checks releases itself and offers the APK. Nothing installs silently — Android always asks first.</p></details>
+        <details data-reveal><summary>Is there an iPhone version?</summary><p>No, Android only.</p></details>
+        <details data-reveal><summary>Something looks off — how do I report it?</summary><p>Settings → TikTok&nbsp;MI → diary at the bottom: what the mod saw, copyable in one tap. Send it with your account ID to <a class="link" href="https://t.me/dkramochka">@dkramochka</a>.</p></details>
+      </div>
+    </section>
+
+    <!-- ============================ BIG CTA ============================ -->
+    <section class="max-w-6xl mx-auto px-6 py-24 text-center">
+      <h2 class="font-display font-extrabold tracking-tight leading-none text-[clamp(2.4rem,8vw,6rem)]" data-reveal>Take TikTok<br><span class="grad-word">back.</span></h2>
+      <div class="mt-10" data-reveal>
+        <a href="https://github.com/fuckramochka/tiktokmi/releases/latest" data-download class="btn-primary magnetic text-lg">Download APK</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-white/8">
+    <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
+      <p class="font-extrabold text-lg mr-auto">TikTok&nbsp;MI <span class="text-mist font-medium">— TikTok, yours.</span></p>
+      <nav class="flex flex-wrap gap-6 text-[15px] font-medium text-mist">
+        <a class="navlink" href="https://github.com/fuckramochka/tiktokmi/releases/latest" data-download>Download</a>
+        <a class="navlink" href="https://t.me/fuckramochka">Channel</a>
+        <a class="navlink" href="https://t.me/dkamegram">Amegram</a>
+        <a class="navlink" href="https://github.com/fuckramochka/tiktokmi">Source</a>
+        <a class="navlink" href="https://t.me/dkramochka">Contact</a>
+      </nav>
+    </div>
+    <p class="max-w-6xl mx-auto px-6 pb-10 text-[13px] text-mist/70">Not affiliated with TikTok. MIT licensed. <span id="year"></span></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
