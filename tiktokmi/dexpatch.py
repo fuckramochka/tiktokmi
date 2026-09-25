@@ -115,7 +115,7 @@ WILD_SOURCES += [
 ]
 
 # TikTok's A/B facade. The class name is real; the method names are what the
-# obfuscator made of them in 46.9.42, one per type, each taking the flag's name
+# obfuscator made of them in 47.0.3, one per type, each taking the flag's name
 # and what to answer when the server said nothing. A release that renames them
 # leaves the rules matching nothing, which turns the overrides off and breaks
 # no part of the app.
@@ -137,7 +137,7 @@ CANVAS = "Landroid/graphics/Canvas;"
 # drawn into a bitmap of their own -- and then put on the picture with a single
 # Canvas.drawBitmap. Redirecting every drawBitmap in the apk would be absurd;
 # redirecting the one in the class that builds the label is a rewrite of a
-# single instruction. The class is X.0Hnc in 46.9.42 and will be something else
+# single instruction. The class is X.0Hnc in 47.0.3 and will be something else
 # in 46.10, but the marker in its template stays.
 #
 # anchor, owner, method, its descriptor, ours, the class ours lives in

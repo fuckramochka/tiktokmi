@@ -89,7 +89,7 @@ touched. `tiktokmi/palette.py` decides what belongs to the family; the hue windo
 is deliberately narrow enough to leave TikTok's other brand colour, the cyan
 `#25F4EE`, exactly where it is.
 
-In 46.9.42 that is 76 values in the resource table and 315 in 217 compiled xml
+In 47.0.3 that is 76 values in the resource table and 315 in 217 compiled xml
 files — 104 distinct shades — plus the 72 places the bytecode spells a colour
 out as a constant.
 
@@ -407,7 +407,7 @@ invoke-static {v0}, Lmi/tiktokmi/Region;->getSimCountryIso(Landroid/telephony/Te
 
 The instruction format (35c), the register count and the return type all match,
 so nothing has to be renumbered. The receiver moves to the first argument and is
-handed back the real answer whenever the mod is off. In 46.9.42 telephony alone
+handed back the real answer whenever the mod is off. In 47.0.3 telephony alone
 is 26 call sites.
 
 Everything else the mod does is the same rewrite pointed at something else:

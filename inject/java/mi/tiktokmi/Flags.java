@@ -25,7 +25,7 @@ import java.util.Map;
  * Each override belongs to a group with a switch of its own, so this is a
  * menu rather than a patch: nothing here is forced on anybody.
  *
- * Every flag name below was checked against 46.9.42 rather than copied from a
+ * Every flag name below was checked against 47.0.3 rather than copied from a
  * list. One that a later release drops is simply never asked for.
  */
 public final class Flags {

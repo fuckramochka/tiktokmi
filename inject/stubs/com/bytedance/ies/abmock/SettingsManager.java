@@ -5,7 +5,7 @@ package com.bytedance.ies.abmock;
  * value of each is whatever the server decided for this account.
  *
  * The class name is real. The method names are not -- they are what the
- * obfuscator produced for 46.9.42, and a later release will spell them
+ * obfuscator produced for 47.0.3, and a later release will spell them
  * differently. That costs nothing: the rewrite matches them by name, so a
  * renamed method simply is not found, no call site changes, and the overrides
  * quietly do nothing. Nothing here is called unless its call site was rewritten
