@@ -35,6 +35,9 @@ public final class Feed {
     public static final String KEY_HIDE_PHOTOS = "hide_photos";
     public static final String KEY_HIDE_STORIES = "hide_stories";
     public static final String KEY_OLED_CLEAN = "oled_clean_mode";
+    public static final String KEY_KEYWORDS = "feed_keywords";
+    public static final String KEY_MAX_CAPTION = "feed_caption_max";
+    public static final String KEY_REGION_MATCH = "feed_region_match";
 
     private static volatile Boolean cached;
     private static volatile Boolean cachedLives;
@@ -142,6 +145,159 @@ public final class Feed {
         if (prefs != null) prefs.edit().putBoolean(KEY_OLED_CLEAN, enabled).apply();
     }
 
+    // ------------------------------------------------- the word filter
+
+    private static volatile String cachedKeywords;
+    private static volatile boolean keywordsLoaded;
+
+    /** The raw blocklist, comma- or newline-separated. Empty means off. */
+    public static String keywordsRaw() {
+        String known = cachedKeywords;
+        if (keywordsLoaded) return known == null ? "" : known;
+        String raw = "";
+        try {
+            SharedPreferences prefs = prefs();
+            if (prefs != null) raw = prefs.getString(KEY_KEYWORDS, "");
+        } catch (Throwable ignored) {
+        }
+        if (raw == null) raw = "";
+        cachedKeywords = raw;
+        keywordsLoaded = true;
+        return raw;
+    }
+
+    public static void setKeywords(String raw) {
+        if (raw == null) raw = "";
+        cachedKeywords = raw;
+        keywordsLoaded = true;
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putString(KEY_KEYWORDS, raw).apply();
+    }
+
+    // ------------------------------------------------- the long posts
+
+    /** Caption lengths to cycle through, in characters. Zero is off. */
+    public static final int[] CAPTION_STEPS = {0, 150, 280, 500};
+
+    private static volatile Integer cachedMax;
+
+    public static int maxCaption() {
+        Integer known = cachedMax;
+        if (known != null) return known.intValue();
+        int max = 0;
+        try {
+            SharedPreferences prefs = prefs();
+            if (prefs != null) max = prefs.getInt(KEY_MAX_CAPTION, 0);
+        } catch (Throwable ignored) {
+        }
+        cachedMax = Integer.valueOf(max);
+        return max;
+    }
+
+    public static void cycleMaxCaption() {
+        int current = maxCaption();
+        int next = CAPTION_STEPS[0];
+        for (int i = 0; i < CAPTION_STEPS.length; i++) {
+            if (CAPTION_STEPS[i] == current) {
+                next = CAPTION_STEPS[(i + 1) % CAPTION_STEPS.length];
+                break;
+            }
+        }
+        cachedMax = Integer.valueOf(next);
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putInt(KEY_MAX_CAPTION, next).apply();
+    }
+
+    // ------------------------------------------------- the region match
+
+    private static volatile Boolean cachedRegionMatch;
+
+    public static boolean isRegionMatchEnabled() {
+        Boolean known = cachedRegionMatch;
+        if (known != null) return known.booleanValue();
+        boolean on = false;
+        try {
+            SharedPreferences prefs = prefs();
+            if (prefs != null) on = prefs.getBoolean(KEY_REGION_MATCH, false);
+        } catch (Throwable ignored) {
+        }
+        cachedRegionMatch = Boolean.valueOf(on);
+        return on;
+    }
+
+    public static void setRegionMatchEnabled(boolean enabled) {
+        cachedRegionMatch = Boolean.valueOf(enabled);
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putBoolean(KEY_REGION_MATCH, enabled).apply();
+    }
+
+    /**
+     * Whether this build's posts carry their region to compare.
+     *
+     * The region the device claims is the mod's oldest trick, but a post's
+     * own region is a second model getter that no build has promised to keep.
+     * It is probed once by name: found, the switch appears and works; not
+     * found, there is no switch rather than a switch that does nothing.
+     */
+    private static volatile Boolean regionProbe;
+    private static volatile java.lang.reflect.Method regionMethod;
+
+    public static boolean isRegionMatchAvailable() {
+        Boolean known = regionProbe;
+        if (known != null) return known.booleanValue();
+        boolean found = false;
+        try {
+            Class<?> aweme = Class.forName("com.ss.android.ugc.aweme.feed.model.Aweme");
+            java.lang.reflect.Method getter = aweme.getMethod("getRegion");
+            if (getter.getReturnType() == String.class) {
+                regionMethod = getter;
+                found = true;
+            }
+        } catch (Throwable ignored) {
+            regionMethod = null;
+        }
+        regionProbe = Boolean.valueOf(found);
+        Diary.note("feed: post regions " + (found ? "readable" : "not on this build"));
+        return found;
+    }
+
+    private static String regionOf(Aweme aweme) {
+        try {
+            if (!isRegionMatchAvailable() || regionMethod == null) return null;
+            Object value = regionMethod.invoke(aweme);
+            return value instanceof String ? (String) value : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    // ------------------------------------------------- reading a caption
+
+    /**
+     * A caption, or null when there is nothing to judge by.
+     *
+     * `getDesc` is the model's own getter, but it is one the build never had
+     * to anchor on, so a release that renamed it must not take the ad filter
+     * down with it: the absence is remembered after the first miss, and from
+     * then on there is simply no caption to match.
+     */
+    private static volatile Boolean descKnown;
+
+    private static String captionOf(Aweme aweme) {
+        if (Boolean.FALSE.equals(descKnown)) return null;
+        try {
+            String desc = aweme.getDesc();
+            if (descKnown == null) descKnown = Boolean.TRUE;
+            return desc;
+        } catch (LinkageError error) {
+            descKnown = Boolean.FALSE;
+            Diary.note("feed: captions not readable on this build");
+            return null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
     private static final int OLED_TAG = 0x4D61726A;
     private static final int OLED_BUDGET = 2000;
     private static int oledSeen;
@@ -240,34 +396,35 @@ public final class Feed {
         boolean dropLives = isHideLivesEnabled();
         boolean dropPhotos = isHidePhotosEnabled();
         boolean dropStories = isHideStoriesEnabled();
-        if (!dropAds && !dropLives && !dropPhotos && !dropStories) return items;
+        String[] words = words();
+        int captionMax = maxCaption();
+        String mine = null;
+        if (isRegionMatchEnabled() && isRegionMatchAvailable()) {
+            try {
+                if (Margy.active()) mine = Margy.current()[Margy.ISO];
+            } catch (Throwable ignored) {
+            }
+        }
+        if (!dropAds && !dropLives && !dropPhotos && !dropStories
+                && words.length == 0 && captionMax <= 0 && mine == null) return items;
 
         try {
             int toDrop = 0;
             for (Object item : items) {
-                if (item instanceof Aweme) {
-                    Aweme aweme = (Aweme) item;
-                    if (dropAds && aweme.isAd()) {
-                        toDrop++;
-                    } else if (dropLives && isLiveAweme(aweme)) {
-                        toDrop++;
-                    } else if (dropPhotos && aweme.getAwemeType() == 68) {
-                        toDrop++;
-                    } else if (dropStories && aweme.getAwemeType() == 40) {
-                        toDrop++;
-                    }
+                if (item instanceof Aweme
+                        && drop((Aweme) item, dropAds, dropLives, dropPhotos,
+                                dropStories, words, captionMax, mine)) {
+                    toDrop++;
                 }
             }
             if (toDrop == 0) return items;
 
             List kept = new ArrayList(items.size() - toDrop);
             for (Object item : items) {
-                if (item instanceof Aweme) {
-                    Aweme aweme = (Aweme) item;
-                    if (dropAds && aweme.isAd()) continue;
-                    if (dropLives && isLiveAweme(aweme)) continue;
-                    if (dropPhotos && aweme.getAwemeType() == 68) continue;
-                    if (dropStories && aweme.getAwemeType() == 40) continue;
+                if (item instanceof Aweme
+                        && drop((Aweme) item, dropAds, dropLives, dropPhotos,
+                                dropStories, words, captionMax, mine)) {
+                    continue;
                 }
                 kept.add(item);
             }
@@ -278,5 +435,59 @@ public final class Feed {
             Diary.note("feed: leaving the page alone, " + error);
             return items;
         }
+    }
+
+    /** The blocklist, lowercased and split. Parsed per page; it is short. */
+    private static String[] words() {
+        try {
+            String raw = keywordsRaw();
+            if (raw == null || raw.trim().length() == 0) return new String[0];
+            String[] parts = raw.toLowerCase(java.util.Locale.US).split("[,\n]");
+            java.util.ArrayList<String> out = new java.util.ArrayList<String>();
+            for (String part : parts) {
+                String word = part.trim();
+                if (word.length() > 0) out.add(word);
+            }
+            return out.toArray(new String[out.size()]);
+        } catch (Throwable ignored) {
+            return new String[0];
+        }
+    }
+
+    /**
+     * Whether this post stays out of the page.
+     *
+     * A post that cannot be judged -- no caption to match, no region to
+     * compare -- is kept. A filter that cannot see is a filter that does
+     * nothing, never one that empties the feed.
+     */
+    private static boolean drop(Aweme aweme, boolean dropAds, boolean dropLives,
+            boolean dropPhotos, boolean dropStories, String[] words,
+            int captionMax, String mine) {
+        if (dropAds && aweme.isAd()) return true;
+        if (dropLives && isLiveAweme(aweme)) return true;
+        try {
+            if (dropPhotos && aweme.getAwemeType() == 68) return true;
+            if (dropStories && aweme.getAwemeType() == 40) return true;
+        } catch (Throwable ignored) {
+        }
+        if (words.length > 0 || captionMax > 0) {
+            String caption = captionOf(aweme);
+            if (caption != null) {
+                if (captionMax > 0 && caption.length() > captionMax) return true;
+                if (words.length > 0) {
+                    String lower = caption.toLowerCase(java.util.Locale.US);
+                    for (String word : words) {
+                        if (lower.contains(word)) return true;
+                    }
+                }
+            }
+        }
+        if (mine != null) {
+            String region = regionOf(aweme);
+            if (region != null && region.length() > 0
+                    && !region.equalsIgnoreCase(mine)) return true;
+        }
+        return false;
     }
 }

@@ -25,6 +25,61 @@ public final class Gallery {
     private Gallery() {}
 
     public static final String FOLDER = "TikTok MI";
+    public static final String KEY_FOLDER = "save_folder";
+
+    private static volatile String cachedFolder;
+
+    /**
+     * Where the mod's own saves go, inside Pictures. Renaming it does not
+     * move what is already saved; it only decides where the next file lands.
+     */
+    public static String folder() {
+        String known = cachedFolder;
+        if (known != null) return known;
+        String folder = FOLDER;
+        try {
+            android.content.Context context = Margy.context();
+            if (context != null) {
+                String read = context.getSharedPreferences(
+                        Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                        .getString(KEY_FOLDER, FOLDER);
+                folder = cleanName(read);
+            }
+        } catch (Throwable ignored) {
+        }
+        cachedFolder = folder;
+        return folder;
+    }
+
+    public static void setFolder(String name) {
+        String folder = cleanName(name);
+        cachedFolder = folder;
+        try {
+            android.content.Context context = Margy.context();
+            if (context != null) {
+                context.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                        .edit().putString(KEY_FOLDER, folder).apply();
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** Letters, digits, spaces and a few marks; anything else never happened. */
+    static String cleanName(String name) {
+        if (name == null) return FOLDER;
+        String trimmed = name.trim();
+        if (trimmed.length() == 0) return FOLDER;
+        StringBuilder kept = new StringBuilder();
+        for (int i = 0; i < trimmed.length() && kept.length() < 40; i++) {
+            char c = trimmed.charAt(i);
+            if (Character.isLetterOrDigit(c) || c == ' ' || c == '_' || c == '-'
+                    || c == '(' || c == ')') {
+                kept.append(c);
+            }
+        }
+        String folder = kept.toString().trim();
+        return folder.length() == 0 ? FOLDER : folder;
+    }
 
     /** Returns where it landed, or null. Never throws. */
     public static String save(Context context, byte[] data, String name, String mime) {
@@ -46,7 +101,7 @@ public final class Gallery {
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
         values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
         values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES + File.separator + FOLDER);
+                Environment.DIRECTORY_PICTURES + File.separator + folder());
         values.put(MediaStore.MediaColumns.IS_PENDING, 1);
 
         Uri collection = mime.startsWith("video")
@@ -66,12 +121,12 @@ public final class Gallery {
         values.clear();
         values.put(MediaStore.MediaColumns.IS_PENDING, 0);
         resolver.update(item, values, null, null);
-        return Environment.DIRECTORY_PICTURES + "/" + FOLDER + "/" + name;
+        return Environment.DIRECTORY_PICTURES + "/" + folder() + "/" + name;
     }
 
     private static String older(byte[] data, String name) throws Exception {
         File folder = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), FOLDER);
+                Environment.DIRECTORY_PICTURES), folder());
         if (!folder.isDirectory()) folder.mkdirs();
         File file = new File(folder, name);
         if (!Net.save(file, data)) return null;

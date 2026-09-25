@@ -574,10 +574,17 @@ public final class Streaks {
         describe();
         if (all.isEmpty()) {
             Diary.note("streak test: no conversations known (open messages in TikTok first)");
+            Screen.say(Text.STREAK_TEST_NONE);
             return;
         }
         if (!byText && sticker == null) {
             Diary.note("streak test: no sticker chosen (open stickers in messages first)");
+            Screen.say(Text.STREAK_NEED_STICKER);
+            return;
+        }
+        if (byText) {
+            Diary.note("streak test: text mode is a stub in this build, nothing was sent");
+            Screen.say(Text.STREAK_TEXT_UNAVAILABLE);
             return;
         }
 
@@ -585,12 +592,18 @@ public final class Streaks {
         Net.away("streak test", new Runnable() {
             @Override
             public void run() {
+                int sent = 0, failed = 0;
                 for (String conversation : all) {
                     String state = statusOf(ask(conversation));
-                    boolean sent = deliver(context, toSend, conversation);
+                    boolean ok = deliver(context, toSend, conversation);
+                    if (ok) sent++;
+                    else failed++;
                     Diary.note("streak test: " + conversation + " (" + state + ") -> "
-                            + (sent ? "sent" : "not sent"));
+                            + (ok ? "sent" : "not sent"));
                 }
+                Screen.say(Text.STREAK_TEST_DONE_A + sent
+                        + Text.STREAK_TEST_DONE_B + failed
+                        + Text.STREAK_TEST_DONE_C);
             }
         });
     }

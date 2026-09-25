@@ -110,7 +110,27 @@ public final class Flags {
         if (plugin != null) return plugin;
         Override override = OVERRIDES.get(key);
         if (override == null) return null;
-        return isOn(override.group) ? override.value : null;
+        if (!isOn(override.group)) return null;
+        prove(key, override.value);
+        return override.value;
+    }
+
+    /**
+     * Proof, in the diary, that an override fired on this build: the flag's
+     * name and the answer it got, once each. A switch whose flag never fires
+     * leaves no line, which is how its owner finds out it does nothing here.
+     */
+    private static final java.util.Set<String> proven =
+            new java.util.HashSet<String>();
+
+    private static void prove(String key, Object value) {
+        try {
+            synchronized (proven) {
+                if (!proven.add(key)) return;
+            }
+            Diary.note("flag: " + key + " answered " + value);
+        } catch (Throwable ignored) {
+        }
     }
 
     // ------------------------------------------------- where the reads land

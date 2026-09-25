@@ -1,6 +1,7 @@
 package mi.tiktokmi;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -16,6 +17,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -223,9 +225,29 @@ public class SettingsActivity extends Activity {
         feed.addView(line());
         feed.addView(toggleRow("visibility_off", Text.HIDE_STORIES, Feed.isHideStoriesEnabled(), Feed::setHideStoriesEnabled));
         feed.addView(line());
+        feed.addView(actionRow("text_fields", Text.FEED_KEYWORDS, keywordDetail(),
+                () -> askText(Text.FEED_KEYWORDS, Feed.keywordsRaw(), Text.FEED_KEYWORDS_HINT, value -> {
+                    Feed.setKeywords(value);
+                    rebuild();
+                })));
+        feed.addView(line());
+        feed.addView(actionRow("article", Text.FEED_LONG, longDetail(),
+                () -> {
+                    Feed.cycleMaxCaption();
+                    rebuild();
+                }));
+        if (Feed.isRegionMatchAvailable()) {
+            feed.addView(line());
+            feed.addView(toggleRow("place", Text.FEED_REGION, Feed.isRegionMatchEnabled(),
+                    Feed::setRegionMatchEnabled));
+        }
+        feed.addView(line());
+        feed.addView(toggleRow("block", Text.UI_CLEAN, Ui.isEnabled(), Ui::setEnabled));
+        feed.addView(line());
         feed.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
         column.addView(wrap(feed));
         column.addView(caption(Text.OLED_NOTE));
+        column.addView(caption(Text.UI_CLEAN_NOTE));
 
         column.addView(section(Text.VIDEO));
         LinearLayout video = card();
@@ -276,6 +298,12 @@ public class SettingsActivity extends Activity {
         downloads.addView(line());
         downloads.addView(toggleRow("star", Text.SAVE_STICKERS_ON, Stickers.isEnabled(),
                 Stickers::setEnabled));
+        downloads.addView(line());
+        downloads.addView(actionRow("download", Text.SAVE_FOLDER, Gallery.folder(),
+                () -> askText(Text.SAVE_FOLDER, Gallery.folder(), Text.SAVE_FOLDER_HINT, value -> {
+                    Gallery.setFolder(value);
+                    rebuild();
+                })));
         column.addView(wrap(downloads));
 
         column.addView(section(Text.ECOSYSTEM));
@@ -1029,6 +1057,35 @@ public class SettingsActivity extends Activity {
         void set(boolean on);
     }
 
+    /** What a typed answer comes back to. */
+    private interface TextDone {
+        void done(String value);
+    }
+
+    /**
+     * A line of typed text, asked in a dialog of the mod's own.
+     *
+     * No layout and no style: building either would mean adding resources,
+     * and adding resources means rewriting the 25 MB table this build
+     * refuses to touch.
+     */
+    private void askText(String title, String current, String hint, final TextDone done) {
+        final EditText input = new EditText(this);
+        input.setText(current == null ? "" : current);
+        input.setHint(hint);
+        input.setSingleLine();
+        int pad = dp(4);
+        input.setPadding(pad, pad, pad, pad);
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setView(input)
+                .setPositiveButton(Text.SAVE, (dialog, which) -> {
+                    done.done(input.getText().toString());
+                })
+                .setNegativeButton(Text.CANCEL, null)
+                .show();
+    }
+
     private View toggleRow(String picture, String title, boolean on, final Setting setting) {
         LinearLayout row = row();
         row.addView(icon(picture));
@@ -1163,12 +1220,52 @@ public class SettingsActivity extends Activity {
             view.setBackground(ring);
         }
         Bitmap picture = Streaks.thumbnail(this, id);
-        if (picture != null) view.setImageBitmap(picture);
+        if (picture != null) {
+            view.setImageBitmap(picture);
+        } else if (!chosen) {
+            // the fetch runs in the background and the tile would otherwise
+            // stay an invisible 52dp box: a visible slot, refreshed once it lands
+            GradientDrawable slot = new GradientDrawable();
+            slot.setColor(0x00000000);
+            try {
+                slot.setStroke(dp(1), skin.muted());
+            } catch (Throwable ignored) {
+            }
+            slot.setCornerRadius(dp(10));
+            view.setBackground(slot);
+            scheduleStickerRefresh(view);
+        } else {
+            scheduleStickerRefresh(view);
+        }
         view.setOnClickListener(v -> {
             Streaks.choose(id);
             rebuild();
         });
         return view;
+    }
+
+    /** One delayed repaint for thumbnails still on their way, not one per tile. */
+    private boolean stickerRefreshPending;
+
+    private void scheduleStickerRefresh(View view) {
+        if (stickerRefreshPending) return;
+        stickerRefreshPending = true;
+        view.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                stickerRefreshPending = false;
+                try {
+                    if (isFinishing() || !streakOpen) return;
+                    for (String other : Streaks.offered()) {
+                        if (Streaks.thumbnail(SettingsActivity.this, other) != null) {
+                            rebuild();
+                            return;
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        }, 3000);
     }
 
     /** A row that does something at once, rather than setting anything. */
@@ -1184,6 +1281,20 @@ public class SettingsActivity extends Activity {
 
         row.setOnClickListener(v -> action.run());
         return sized(row, detail == null ? 56 : 64);
+    }
+
+    /** The blocklist, shortened to fit one line -- or off. */
+    private String keywordDetail() {
+        String raw = Feed.keywordsRaw();
+        if (raw == null || raw.trim().length() == 0) return Text.OFF;
+        String flat = raw.replace('\n', ',').replaceAll("  +", " ").trim();
+        return flat.length() > 32 ? flat.substring(0, 32) + "…" : flat;
+    }
+
+    /** The caption length the page keeps -- or off. */
+    private String longDetail() {
+        int max = Feed.maxCaption();
+        return max <= 0 ? Text.OFF : String.valueOf(max);
     }
 
     /**

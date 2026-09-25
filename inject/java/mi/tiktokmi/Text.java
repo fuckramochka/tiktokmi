@@ -311,6 +311,14 @@ final class Text {
     static final String DOWNLOAD_ALWAYS = pick(
             "Сохранять можно всё", "Зберігати можна все", "Save anything");
 
+    static final String SAVE_FOLDER = pick(
+            "Папка сохранений", "Папка збережень", "Save folder");
+
+    static final String SAVE_FOLDER_HINT = pick(
+            "Буквы, цифры, пробелы и дефисы",
+            "Літери, цифри, пробіли й дефіси",
+            "Letters, digits, spaces and dashes");
+
     static final String FEED = pick("Лента", "Стрічка", "Feed");
 
     static final String HIDE_ADS = pick(
@@ -325,6 +333,20 @@ final class Text {
     static final String HIDE_STORIES = pick(
             "Скрыть истории", "Приховати історії", "Hide stories");
 
+    static final String FEED_KEYWORDS = pick(
+            "Фильтр слов", "Фільтр слів", "Word filter");
+
+    static final String FEED_KEYWORDS_HINT = pick(
+            "Слова через запятую",
+            "Слова через кому",
+            "Words, comma separated");
+
+    static final String FEED_LONG = pick(
+            "Скрывать длинные посты", "Приховувати довгі пости", "Hide long posts");
+
+    static final String FEED_REGION = pick(
+            "Только свой регион", "Тільки свій регіон", "Only my region");
+
     static final String OLED_MODE = pick(
             "Антивыгорание (OLED)", "Антивигорання (OLED)", "Anti-burnout (OLED)");
 
@@ -332,6 +354,16 @@ final class Text {
             "Делает элементы управления полупрозрачными для защиты AMOLED/OLED матриц от выгорания пикселей.",
             "Робить елементи керування напівпрозорими для захисту AMOLED/OLED матриць від вигорання пікселів.",
             "Makes video interface elements semi-transparent to protect AMOLED/OLED screens from burn-in.");
+
+    static final String UI_CLEAN = pick(
+            "Чистый интерфейс", "Чистий інтерфейс", "Clean interface");
+
+    static final String UI_CLEAN_NOTE = pick(
+            "Убирает вкладку Shop, sponsored-блоки и торговые баннеры. Выключенное возвращается само.",
+            "Прибирає вкладку Shop, sponsored-блоки та торгові банери. Вимкнене повертається само.",
+            "Removes the Shop tab, sponsored blocks and commerce banners. Everything comes back when switched off.");
+
+    static final String OFF = pick("Выкл.", "Вимк.", "Off");
 
     // --------------------------------------------------------- the plugins
 
@@ -411,6 +443,31 @@ final class Text {
             "Сначала откройте стикеры в любом чате TikTok!",
             "Спершу відкрийте стікери у будь-якому чаті TikTok!",
             "First open stickers in any TikTok chat!");
+
+    static final String STREAK_TEST_NONE = pick(
+            "Некому отправлять — сначала откройте сообщения в TikTok, потом вернитесь сюда",
+            "Нікому надсилати — спершу відкрийте повідомлення в TikTok, потім поверніться сюди",
+            "Nobody to send to yet -- open your messages in TikTok first, then come back");
+
+    static final String STREAK_TEXT_UNAVAILABLE = pick(
+            "Отправка текстом в этой сборке недоступна — выберите стикер",
+            "Надсилання текстом у цій збірці недоступне — виберіть стікер",
+            "Sending as text is not available in this build -- pick a sticker");
+
+    static final String STREAK_TEST_DONE_A = pick(
+            "Тест закончен: отправлено ",
+            "Тест завершено: надіслано ",
+            "Test done: sent ");
+
+    static final String STREAK_TEST_DONE_B = pick(
+            ", не получилось ",
+            ", не вдалося ",
+            ", failed ");
+
+    static final String STREAK_TEST_DONE_C = pick(
+            ". Подробности — в дневнике внизу.",
+            ". Деталі — у щоденнику внизу.",
+            ". Details are in the diary below.");
 
     // ------------------------------------------------------- the updates
 

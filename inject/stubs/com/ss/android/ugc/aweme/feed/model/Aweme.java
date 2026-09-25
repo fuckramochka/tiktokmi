@@ -22,4 +22,13 @@ public class Aweme {
     public int getAwemeType() {
         throw new UnsupportedOperationException("stub");
     }
+
+    /**
+     * The caption the author wrote. The standard model getter, beside the
+     * ones above; read only where a missing method cannot take the rest of
+     * the filtering down with it (see Feed.captionOf).
+     */
+    public String getDesc() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

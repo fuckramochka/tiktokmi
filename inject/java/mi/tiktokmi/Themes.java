@@ -377,16 +377,133 @@ public final class Themes {
 
         paint(view.getBackground(), view, 0);
 
-        // Backgrounds only. Text colours are already answered where the app
-        // sets them, in their thousands, and repainting them here as well
-        // collapsed two colours that were close into one: the labels under the
-        // last row of the share sheet came out the colour of the sheet.
+        // Backgrounds are repainted above. Text is rescued below rather than
+        // repainted wholesale: repainting every text colour collapsed ones
+        // that were close into one (the labels under the last row of the
+        // share sheet came out the colour of the sheet). Only a text that is
+        // effectively invisible on what is behind it is touched.
+        if (view instanceof android.widget.TextView) {
+            Settled now = settled;
+            if (now == null) now = read();
+            if (now.on) rescueText((android.widget.TextView) view, now);
+        }
 
         if (view instanceof android.view.ViewGroup) {
             android.view.ViewGroup group = (android.view.ViewGroup) view;
             int many = group.getChildCount();
             for (int i = 0; i < many; i++) walk(group.getChildAt(i), depth + 1);
         }
+    }
+
+    /**
+     * A text nobody can read, made readable.
+     *
+     * Some colours never pass through the theme: hardcoded by TikTok, drawn
+     * before the theme was switched on, or simply not on the list -- black
+     * writing on a custom dark background, white writing on a custom light
+     * one. Mid-tones are left alone (repainting them all collapsed neighbours
+     * into each other); only an extreme text sitting on a background it has
+     * no contrast against is moved, to the theme's own text colour -- or to
+     * plain black or white if even that does not read there.
+     *
+     * Transparent all the way up means hands off: a caption over a video has
+     * no background colour to measure against, and its white is the design.
+     */
+    private static void rescueText(android.widget.TextView view, Settled now) {
+        int was;
+        try {
+            was = view.getCurrentTextColor();
+        } catch (Throwable ignored) {
+            return;
+        }
+        float tone = brightness(was);
+        if (tone > 0.2f && tone < 0.8f) return;
+
+        int behind = solidBehind(view);
+        if (behind == 0) return;
+        if (contrast(was, behind) >= 3.0f) return;
+
+        int fixed = now.text;
+        if (contrast(fixed, behind) < 3.0f) {
+            fixed = contrast(0xFF000000, behind) >= contrast(0xFFFFFFFF, behind)
+                    ? 0xFF000000 : 0xFFFFFFFF;
+        }
+        if (fixed != was) {
+            try {
+                view.setTextColor((was & 0xFF000000) | (fixed & 0xFFFFFF));
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    /** The first solid background under a view, walking up; 0 if none. */
+    private static int solidBehind(View view) {
+        View at = view;
+        int steps = 0;
+        while (at != null && steps++ < 12) {
+            android.graphics.drawable.Drawable background = null;
+            try {
+                background = at.getBackground();
+            } catch (Throwable ignored) {
+            }
+            int solid = solidColor(background);
+            if (solid != 0) return solid;
+            Object parent = null;
+            try {
+                parent = at.getParent();
+            } catch (Throwable ignored) {
+            }
+            at = parent instanceof View ? (View) parent : null;
+        }
+        return 0;
+    }
+
+    /** A drawable's flat colour, or 0 if it is not a solid one. */
+    private static int solidColor(android.graphics.drawable.Drawable drawable) {
+        if (drawable == null) return 0;
+        try {
+            if (drawable instanceof android.graphics.drawable.ColorDrawable) {
+                android.graphics.drawable.ColorDrawable flat =
+                        (android.graphics.drawable.ColorDrawable) drawable;
+                if (flat.getAlpha() != 255) return 0;
+                return flat.getColor();
+            }
+            if (drawable instanceof android.graphics.drawable.GradientDrawable
+                    && Build.VERSION.SDK_INT >= 24) {
+                android.content.res.ColorStateList held =
+                        ((android.graphics.drawable.GradientDrawable) drawable).getColor();
+                if (held == null) return 0;
+                int colour = held.getDefaultColor();
+                return ((colour >>> 24) == 255) ? colour : 0;
+            }
+        } catch (Throwable ignored) {
+        }
+        return 0;
+    }
+
+    /** WCAG contrast ratio of two opaque colours, 1 for identical. */
+    private static float contrast(int one, int two) {
+        float first = luminance(one);
+        float second = luminance(two);
+        if (first < second) {
+            float swap = first;
+            first = second;
+            second = swap;
+        }
+        return (first + 0.05f) / (second + 0.05f);
+    }
+
+    private static float luminance(int colour) {
+        float red = ((colour >> 16) & 0xFF) / 255.0f;
+        float green = ((colour >> 8) & 0xFF) / 255.0f;
+        float blue = (colour & 0xFF) / 255.0f;
+        return 0.2126f * linear(red) + 0.7152f * linear(green) + 0.0722f * linear(blue);
+    }
+
+    private static float linear(float channel) {
+        return channel <= 0.03928f
+                ? channel / 12.92f
+                : (float) Math.pow((channel + 0.055f) / 1.055f, 2.4f);
     }
 
     /**
@@ -407,6 +524,7 @@ public final class Themes {
                 repaint(root);
                 Badge.rewrite(root);
                 Feed.applyOled(root);
+                Ui.applyClean(root);
                 return;
             }
             root.setTag(WATCHING, Boolean.TRUE);
@@ -420,11 +538,13 @@ public final class Themes {
                             repaint(root);
                             Badge.rewrite(root);
                             Feed.applyOled(root);
+                            Ui.applyClean(root);
                         }
                     });
             repaint(root);
             Badge.rewrite(root);
             Feed.applyOled(root);
+            Ui.applyClean(root);
         } catch (Throwable error) {
             Diary.note("theme: " + error);
         }

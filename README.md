@@ -116,6 +116,35 @@ still be there, just no longer labelled.
 </details>
 
 <details>
+<summary><b>The feed, filtered further</b></summary>
+
+Three more ways through the same `getItems()` door, each with a switch of its
+own. A comma-separated list of words drops the posts whose caption carries
+one; a length — off, 150, 280 or 500 characters — drops the long ones; and
+where this build's posts carry their region, only the chosen country's posts
+stay.
+
+A post that cannot be judged is kept: no caption to match, no region to
+compare against, no filtering. And the region switch only exists where the
+method exists — probed once, by name. No method, no switch, rather than a
+switch that does nothing.
+</details>
+
+<details>
+<summary><b>The shop, taken out of the furniture</b></summary>
+
+The Shop tab, the sponsored blocks and the commerce banners are not posts, so
+the feed never sees them. They are views, drawn from resources whose names —
+unlike the code around them — the obfuscator leaves alone. The mod walks the
+tree, matches whole name segments rather than substrings, and sets the match
+aside instead of drawing it.
+
+Everything remembers what it was, and switching it off puts it back. A build
+that renamed its resources is a build where nothing matches: a switch that
+does nothing, not a screen with holes in it.
+</details>
+
+<details>
 <summary><b>Saving what TikTok will not save</b></summary>
 
 **A video without the stamp.** TikTok's own model carries two addresses for the
@@ -152,6 +181,10 @@ Everything saved goes into the gallery two ways, because Android changed its
 mind halfway: a MediaStore row on anything recent, which needs no permission
 for an app writing its own entry, and a file in Pictures plus a word to the
 scanner on older ones.
+
+The folder inside Pictures is the mod's own setting — `TikTok MI` unless
+renamed. Renaming it does not move what is already saved; videos TikTok
+downloads itself were never the mod's to place, and still are not.
 </details>
 
 <details>
@@ -180,6 +213,10 @@ paid for the phone.
 
 Four more used to be on this list. They are gone because TikTok now ships them
 to everybody, and a switch that does nothing is worse than no switch.
+
+Every override that fires writes one line to the diary — the flag's name and
+the answer it got. A switch whose flag never fires leaves no line, which is
+how its owner finds out it does nothing on this build.
 </details>
 
 <details>
