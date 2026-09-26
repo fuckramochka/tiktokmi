@@ -171,10 +171,19 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     public void onActivityPaused(Activity activity) {
         Plugins.onActivityPaused(activity);
         Screen.gone(activity);
+        try {
+            WatchHistory.flush();
+            ChatSearch.flush();
+        } catch (Throwable ignored) {}
     }
 
     @Override
-    public void onActivityStopped(Activity activity) {}
+    public void onActivityStopped(Activity activity) {
+        try {
+            WatchHistory.flush();
+            ChatSearch.flush();
+        } catch (Throwable ignored) {}
+    }
 
     @Override
     public void onActivitySaveInstanceState(Activity activity, Bundle state) {}

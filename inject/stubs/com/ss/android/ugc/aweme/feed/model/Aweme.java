@@ -31,4 +31,32 @@ public class Aweme {
     public String getDesc() {
         throw new UnsupportedOperationException("stub");
     }
+
+    public String getAid() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public com.ss.android.ugc.aweme.profile.model.User getAuthor() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public Video getVideo() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public String getPartN() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public int getCollectStatus() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public String getShareUrl() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public long getCreateTime() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

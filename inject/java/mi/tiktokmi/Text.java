@@ -602,6 +602,47 @@ final class Text {
             "Ділиться скопійованими відео та звуками з Amegram без нав'язливих вікон",
             "Silently shares copied video links and audio with Amegram without popups");
 
+    // ------------------------------------------------ History & Continuation
+    static final String WATCH_HISTORY_SECTION = pick("История и продолжение", "Історія та продовження", "History & Continuation");
+    static final String WATCH_HISTORY_TITLE = pick("История просмотров", "Історія переглядів", "Watch History");
+    static final String WATCH_HISTORY_SUB = pick("Все просмотренные видео без потерь", "Всі переглянуті відео без втрат", "Lossless watched videos history");
+    static final String AUTO_PRODA_TITLE = pick("Автопоиск проды", "Автопошук проди", "Auto-find Next Part");
+    static final String AUTO_PRODA_SUB = pick("Быстрый поиск частей (часть 2, прода)", "Швидкий пошук частин (частина 2, прода)", "Quick search for sequels and parts");
+
+    // ------------------------------------------------ Localizer & Vault
+    static final String LOCALIZER_SECTION = pick("Локалайзер и Амэоблако", "Локалайзер та Амэоблако", "Localizer & Ameocloud");
+    static final String LOCALIZER_AUTO_FAVORITES = pick("Авто-бэкап избранного", "Авто-бекап обраного", "Auto-backup favorites");
+    static final String LOCALIZER_AUTO_CHATS = pick("Авто-бэкап переписок", "Авто-бекап листування", "Auto-backup DM chats");
+    static final String LOCALIZER_SYNC_CLOUD = pick("Выгрузить архив в Амэоблако", "Вивантажити архів в Амэоблако", "Export archive to Ameocloud");
+    static final String LOCALIZER_OPEN_DIR = pick("Открыть папку архива", "Відкрити папку архіву", "Open archive folder");
+    static final String LOCALIZER_NOTE = pick(
+            "Сохраняет чистые видео, метаданные (лайки, описание) и удалённые чаты на устройство и в Амэоблако на случай бана.",
+            "Зберігає чисті відео, метадані (лайки, опис) та видалені чати на пристрій і в Амэоблако на випадок бану.",
+            "Safeguards clean videos, metadata (likes, description) and chats to device & Ameocloud against account bans.");
+
+    // ------------------------------------------------ DM Search
+    static final String CHAT_SEARCH_TITLE = pick("Поиск по сообщениям", "Пошук по повідомленнях", "Search in Messages");
+    static final String CHAT_SEARCH_SUB = pick("Полнотекстовый поиск по всем чатам и удалённым соо", "Повнотекстовий пошук по всіх чатах та видалених соо", "Full-text search across all DM chats");
+
+    // ------------------------------------------------ Offline Actions
+    static final String OFFLINE_SECTION = pick("Офлайн режим", "Офлайн режим", "Offline Mode");
+    static final String OFFLINE_COPY_LINK = pick("Копировать ссылку без интернета", "Копіювати посилання без інтернету", "Offline copy link");
+    static final String OFFLINE_EXTRACT_CACHE = pick("Скачать видео из кэша (офлайн)", "Завантажити відео з кешу (офлайн)", "Extract cached video (offline)");
+    static final String OFFLINE_LIKES_QUEUE = pick("Очередь офлайн-лайков", "Черга офлайн-лайків", "Offline likes queue");
+    static final String OFFLINE_NOTE = pick(
+            "Позволяет ставить лайки, копировать канонические ссылки и извлекать видео без подключения к сети.",
+            "Дозволяє ставити лайки, копіювати канонічні посилання та вилучати відео без підключення до мережі.",
+            "Enables liking, canonical link copying, and video extraction completely offline.");
+
+    // ------------------------------------------------ Passport & Email Fix
+    static final String ACCOUNT_FIX_SECTION = pick("Безопасность и аккаунт", "Безпека та акаунт", "Security & Account");
+    static final String PASSPORT_SAFE_TITLE = pick("Безопасный режим Passport", "Безпечний режим Passport", "Passport Safe Mode");
+    static final String PASSPORT_SAFE_SUB = pick("Отключает подмену оператора при смене почты", "Вимикає підміну оператора при зміні пошти", "Disables carrier spoofing on email change");
+    static final String RESET_AUTH_CACHE = pick("Сбросить кэш авторизации", "Скинути кеш авторизації", "Reset auth credentials cache");
+    static final String RESET_AUTH_SUB = pick("Чистит старые токены и базы Passport", "Чистить старі токени та бази Passport", "Clears stale passport tokens and user cache");
+    static final String WEB_PASSPORT_PORTAL = pick("Сменить почту (веб-портал)", "Змінити пошту (веб-портал)", "Change email (official web portal)");
+    static final String EMAIL_FIX_GUIDE = pick("Как войти и починить смену почты", "Як увійти та полагодити зміну пошти", "How to fix email change and login");
+
     private static String language() {
         try {
             return Locale.getDefault().getLanguage();

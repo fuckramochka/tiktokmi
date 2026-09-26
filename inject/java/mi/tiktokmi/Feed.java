@@ -298,6 +298,27 @@ public final class Feed {
         }
     }
 
+    /**
+     * Where rewritten calls to Aweme.getDesc() land.
+     * Records watched video in local history, tracks continuation, and feeds the localizer.
+     */
+    public static String getDesc(Aweme aweme) {
+        if (aweme == null) return null;
+        try {
+            WatchHistory.onVideoWatched(aweme);
+        } catch (Throwable ignored) {}
+        try {
+            Continuation.onVideoSeen(aweme);
+        } catch (Throwable ignored) {}
+        try {
+            Localizer.onVideoSeen(aweme);
+        } catch (Throwable ignored) {}
+        try {
+            OfflineActions.onVideoSeen(aweme);
+        } catch (Throwable ignored) {}
+        return aweme.getDesc();
+    }
+
     private static final int OLED_TAG = 0x4D61726A;
     private static final int OLED_BUDGET = 2000;
     private static int oledSeen;

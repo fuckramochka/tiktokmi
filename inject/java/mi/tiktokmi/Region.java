@@ -24,8 +24,14 @@ public final class Region {
 
     private Region() {}
 
+    public static boolean shouldSpoof() {
+        if (!shouldSpoof()) return false;
+        if (AccountFix.isAuthInProgress()) return false;
+        return true;
+    }
+
     public static String getSimCountryIso(TelephonyManager tm) {
-        String answer = !Margy.active()
+        String answer = !shouldSpoof()
                 ? (tm == null ? "" : tm.getSimCountryIso())
                 : Margy.current()[Margy.ISO];
         return Plugins.region("sim_country", answer);
@@ -168,7 +174,7 @@ public final class Region {
      * Unknown is what a phone says when the list has no answer either.
      */
     public static int getSimCarrierId(TelephonyManager tm) {
-        if (!Margy.active()) return tm == null ? -1 : tm.getSimCarrierId();
+        if (!shouldSpoof()) return tm == null ? -1 : tm.getSimCarrierId();
         return TelephonyManager.UNKNOWN_CARRIER_ID;
     }
 }

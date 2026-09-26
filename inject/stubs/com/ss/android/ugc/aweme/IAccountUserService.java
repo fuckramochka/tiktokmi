@@ -8,4 +8,10 @@ public interface IAccountUserService {
 
     /** The long opaque id, the one a profile link is built from. */
     String getCurSecUserId();
+
+    /** The full current user model. */
+    com.ss.android.ugc.aweme.profile.model.User getCurUser();
+
+    /** Whether the user is signed in. */
+    boolean isLogin();
 }

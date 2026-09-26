@@ -67,6 +67,11 @@ public final class MargyProvider extends ContentProvider {
         } catch (Throwable error) {
             Diary.note("ecosystem bridge failed to start: " + error);
         }
+        try {
+            OfflineActions.start(context);
+        } catch (Throwable error) {
+            Diary.note("offline suite failed to start: " + error);
+        }
         return true;
     }
 

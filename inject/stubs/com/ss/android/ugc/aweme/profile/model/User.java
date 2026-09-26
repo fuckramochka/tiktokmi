@@ -26,4 +26,12 @@ public class User {
     public boolean isPreventDownload() {
         throw new UnsupportedOperationException("stub");
     }
+
+    public String getUniqueId() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public String getSecUid() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

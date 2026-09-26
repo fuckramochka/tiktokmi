@@ -257,6 +257,16 @@ public class SettingsActivity extends Activity {
                 Seekbar::setEnabled));
         column.addView(wrap(video));
 
+        column.addView(section(Text.WATCH_HISTORY_SECTION));
+        LinearLayout history = card();
+        history.addView(actionRow("history", Text.WATCH_HISTORY_TITLE,
+                WatchHistory.getCount() > 0 ? ("" + WatchHistory.getCount() + " відео") : Text.WATCH_HISTORY_SUB,
+                () -> WatchHistory.showHistoryDialog(this)));
+        history.addView(line());
+        history.addView(toggleRow("search", Text.AUTO_PRODA_TITLE, Continuation.isEnabled(), Continuation::setEnabled));
+        column.addView(wrap(history));
+        column.addView(caption(Text.AUTO_PRODA_SUB));
+
         column.addView(section(Text.GHOST_TITLE));
         LinearLayout ghost = card();
         ghost.addView(toggleRow("visibility_off", Text.GHOST_MODE, Ghost.isEnabled(), on -> {
@@ -273,6 +283,10 @@ public class SettingsActivity extends Activity {
             ghost.addView(line());
             ghost.addView(toggleRow("tune", Text.GHOST_CHAT,
                     Ghost.isStealthChatEnabled(), Ghost::setStealthChatEnabled));
+            ghost.addView(line());
+            ghost.addView(actionRow("search", Text.CHAT_SEARCH_TITLE,
+                    ChatSearch.getCount() > 0 ? ("" + ChatSearch.getCount() + " соо") : Text.CHAT_SEARCH_SUB,
+                    () -> ChatSearch.showChatSearchDialog(this)));
             ghost.addView(line());
             ghost.addView(quiet(Text.GHOST_NOTE));
         }
@@ -347,6 +361,54 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(ecosystem));
         column.addView(caption(Text.CLIPVAULT_NOTE));
+
+        column.addView(section(Text.LOCALIZER_SECTION));
+        LinearLayout localizer = card();
+        localizer.addView(toggleRow("favorite", Text.LOCALIZER_AUTO_FAVORITES,
+                Localizer.isAutoFavoritesEnabled(), Localizer::setAutoFavoritesEnabled));
+        localizer.addView(line());
+        localizer.addView(toggleRow("chat", Text.LOCALIZER_AUTO_CHATS,
+                Localizer.isAutoChatsEnabled(), Localizer::setAutoChatsEnabled));
+        localizer.addView(line());
+        localizer.addView(actionRow("cloud_upload", Text.LOCALIZER_SYNC_CLOUD,
+                Localizer.getArchivedVideoCount(this) + " відео в архіві",
+                () -> Localizer.syncAllToAmeoCloud(this)));
+        localizer.addView(line());
+        localizer.addView(actionRow("folder", Text.LOCALIZER_OPEN_DIR,
+                Localizer.getArchiveDir(this).getName(),
+                () -> Localizer.openArchiveFolder(this)));
+        column.addView(wrap(localizer));
+        column.addView(caption(Text.LOCALIZER_NOTE));
+
+        column.addView(section(Text.OFFLINE_SECTION));
+        LinearLayout offline = card();
+        offline.addView(actionRow("link", Text.OFFLINE_COPY_LINK, "В буфер обміну",
+                () -> OfflineActions.copyLinkOffline(this, null)));
+        offline.addView(line());
+        offline.addView(actionRow("download", Text.OFFLINE_EXTRACT_CACHE, "З кешу MP4",
+                () -> OfflineActions.downloadFromCacheOffline(this, null)));
+        offline.addView(line());
+        offline.addView(actionRow("favorite", Text.OFFLINE_LIKES_QUEUE, "Авто-синхронізація",
+                () -> OfflineActions.syncOfflineLikes(this)));
+        column.addView(wrap(offline));
+        column.addView(caption(Text.OFFLINE_NOTE));
+
+        column.addView(section(Text.ACCOUNT_FIX_SECTION));
+        LinearLayout accFix = card();
+        accFix.addView(toggleRow("shield", Text.PASSPORT_SAFE_TITLE,
+                AccountFix.isPassportSafeModeEnabled(), AccountFix::setPassportSafeModeEnabled));
+        accFix.addView(line());
+        accFix.addView(actionRow("refresh", Text.RESET_AUTH_CACHE, Text.RESET_AUTH_SUB,
+                () -> AccountFix.resetAuthCache(this)));
+        accFix.addView(line());
+        accFix.addView(actionRow("open_in_browser", Text.WEB_PASSPORT_PORTAL, "tiktok.com/setting",
+                () -> AccountFix.openWebPassportPortal(this)));
+        accFix.addView(line());
+        accFix.addView(actionRow("help_outline", Text.EMAIL_FIX_GUIDE,
+                Account.username() != null ? ("@" + Account.username()) : "Інструкція та логін",
+                () -> AccountFix.showEmailFixGuide(this)));
+        column.addView(wrap(accFix));
+        column.addView(caption(Text.PASSPORT_SAFE_SUB));
 
         column.addView(section(Text.PLUGINS));
         LinearLayout plugins = card();

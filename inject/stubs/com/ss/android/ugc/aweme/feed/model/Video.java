@@ -27,4 +27,20 @@ public class Video {
     public VideoUrlModel getPlayAddr() {
         throw new UnsupportedOperationException("stub");
     }
+
+    public UrlModel getCover() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public UrlModel getOriginCover() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public int getDuration() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public String getSourceId() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

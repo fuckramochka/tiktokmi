@@ -130,6 +130,7 @@ public final class Ghost {
                 saved = messageCache.get(viewKey);
             }
             if (saved != null && !isRecallNotice(saved)) {
+                ChatSearch.indexMessage("dm", "Співрозмовник", saved, true, System.currentTimeMillis());
                 SpannableStringBuilder builder = new SpannableStringBuilder();
                 builder.append("👻 [Видалено]: ");
                 int start = builder.length();
@@ -145,6 +146,7 @@ public final class Ghost {
                 synchronized (messageCache) {
                     messageCache.put(viewKey, raw);
                 }
+                ChatSearch.indexMessage("dm", "Співрозмовник", raw, false, System.currentTimeMillis());
             }
         }
 

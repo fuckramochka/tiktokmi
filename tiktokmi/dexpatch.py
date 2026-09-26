@@ -228,6 +228,7 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
     (USER, "isPreventDownload", "()Z", "(%s)Z" % USER, DOWNLOAD),
     # the page of the feed, before anything has looked at it
     (FEED_ITEM_LIST, "getItems", "()%s" % LIST, "(%s)%s" % (FEED_ITEM_LIST, LIST), FEED),
+    (AWEME, "getDesc", "()%s" % STRING, "(%s)%s" % (AWEME, STRING), FEED),
     # who is signed in. The mod does not ask -- there is no unobfuscated way to
     # reach the service -- so it listens instead: the app asks often enough,
     # and the answer goes past on its way back.
@@ -235,6 +236,8 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
      "(%s)%s" % (ACCOUNT_SERVICE, STRING), ACCOUNT),
     (ACCOUNT_SERVICE, "getCurSecUserId", "()%s" % STRING,
      "(%s)%s" % (ACCOUNT_SERVICE, STRING), ACCOUNT),
+    (ACCOUNT_SERVICE, "getCurUser", "()%s" % USER,
+     "(%s)%s" % (ACCOUNT_SERVICE, USER), ACCOUNT),
     # which sticker a comment is carrying, read as the comment is bound: the
     # view gets its long press wrapped a moment later, and this is what says
     # what that view is showing
