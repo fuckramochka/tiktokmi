@@ -28,10 +28,14 @@ public final class Account {
     public static final String KEY_ID = "account_id";
     public static final String KEY_SEC_ID = "account_sec_id";
     public static final String KEY_USERNAME = "account_username";
+    public static final String KEY_NICKNAME = "account_nickname";
+    public static final String KEY_AVATAR = "account_avatar";
 
     private static volatile String id;
     private static volatile String secId;
     private static volatile String username;
+    private static volatile String nickname;
+    private static volatile String avatar;
 
     // ------------------------------------------------ where the calls land
 
@@ -53,6 +57,14 @@ public final class Account {
             if (sec != null && !sec.isEmpty()) remember(KEY_SEC_ID, sec);
             String uName = user.getUniqueId();
             if (uName != null && !uName.isEmpty()) remember(KEY_USERNAME, uName);
+            String nick = user.getNickname();
+            if (nick != null && !nick.isEmpty()) remember(KEY_NICKNAME, nick);
+            com.ss.android.ugc.aweme.base.model.UrlModel av = user.getAvatarMedium();
+            if (av == null) av = user.getAvatarLarger();
+            if (av != null && av.getUrlList() != null && !av.getUrlList().isEmpty()) {
+                Object first = av.getUrlList().get(0);
+                if (first != null) remember(KEY_AVATAR, first.toString());
+            }
         } catch (Throwable ignored) {}
     }
 
@@ -108,6 +120,20 @@ public final class Account {
         String known = username;
         if (known != null) return known;
         return stored(KEY_USERNAME);
+    }
+
+    /** The profile nickname, or null if unknown. */
+    public static String nickname() {
+        String known = nickname;
+        if (known != null) return known;
+        return stored(KEY_NICKNAME);
+    }
+
+    /** The profile avatar URL, or null if unknown. */
+    public static String avatar() {
+        String known = avatar;
+        if (known != null) return known;
+        return stored(KEY_AVATAR);
     }
 
     private static String stored(String key) {

@@ -36,6 +36,12 @@ public final class MiogramBridge {
     public static final String ACTION_POST_STORY = "app.amegram.POST_STORY";
     public static final String ACTION_CLIP_VAULT = "app.amegram.ACTION_CLIP_VAULT";
     public static final String ACTION_TIKTOK_WATCHING = "app.amegram.ACTION_TIKTOK_WATCHING";
+    public static final String ACTION_LINK_TIKTOK = "app.amegram.ACTION_LINK_TIKTOK";
+    public static final String ACTION_AMEGRAM_LINKED = "mi.tiktokmi.ACTION_AMEGRAM_LINKED";
+
+    public static final String KEY_AMEGRAM_LINKED = "amegram_linked";
+    public static final String KEY_LINKED_TG_USER = "amegram_linked_tg_username";
+    public static final String KEY_LINKED_TG_ID = "amegram_linked_tg_id";
 
     /**
      * Finds the preferred installed package: Amegram -> Miogram (legacy) -> Telegram (official).
@@ -394,21 +400,97 @@ public final class MiogramBridge {
         return syncingFromAmegram;
     }
 
+    public static void syncWithAmegram(Context context) {
+        if (context == null) context = Margy.context();
+        if (context == null) return;
+        if (!isAmegramInstalled(context)) {
+            Toast.makeText(context, "Amegram не знайдено на пристрої", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            Intent intent = new Intent(ACTION_LINK_TIKTOK);
+            intent.setData(Uri.parse("amegram://sync/tiktokmi"));
+            intent.setPackage(getPreferredPackage(context));
+            String uid = Account.id();
+            String username = Account.username();
+            String nickname = Account.nickname();
+            String avatar = Account.avatar();
+            if (uid != null) intent.putExtra("tiktok_uid", uid);
+            if (username != null) intent.putExtra("tiktok_username", username);
+            if (nickname != null) intent.putExtra("tiktok_nickname", nickname);
+            if (avatar != null) intent.putExtra("tiktok_avatar", avatar);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Throwable error) {
+            Toast.makeText(context, "Помилка зв'язку з Amegram: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public static boolean isAmegramLinked(Context context) {
+        if (context == null) context = Margy.context();
+        if (context == null) return false;
+        try {
+            boolean local = context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE)
+                    .getBoolean(KEY_AMEGRAM_LINKED, false);
+            if (local) return true;
+            Uri providerUri = Uri.parse("content://" + ECOSYSTEM_AUTHORITY + "/account");
+            Bundle res = context.getContentResolver().call(providerUri, "getLinkedAccount", null, null);
+            if (res != null && res.getBoolean("linked", false)) {
+                String tgUser = res.getString("telegram_username", "");
+                long tgId = res.getLong("telegram_id", 0);
+                context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE)
+                        .edit()
+                        .putBoolean(KEY_AMEGRAM_LINKED, true)
+                        .putString(KEY_LINKED_TG_USER, tgUser)
+                        .putLong(KEY_LINKED_TG_ID, tgId)
+                        .apply();
+                return true;
+            }
+        } catch (Throwable ignored) {
+        }
+        return isAmegramDonor(context);
+    }
+
+    public static String getLinkedTelegramUsername(Context context) {
+        if (context == null) context = Margy.context();
+        if (context == null) return null;
+        try {
+            return context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE)
+                    .getString(KEY_LINKED_TG_USER, null);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
     /**
      * Initializes the ecosystem bridge and registers dynamic receivers.
      */
     public static void start(Context context) {
         if (context == null) return;
         try {
-            android.content.IntentFilter filter = new android.content.IntentFilter("mi.tiktokmi.ACTION_THEME_CHANGED");
+            android.content.IntentFilter filter = new android.content.IntentFilter();
+            filter.addAction("mi.tiktokmi.ACTION_THEME_CHANGED");
+            filter.addAction(ACTION_AMEGRAM_LINKED);
             context.registerReceiver(new android.content.BroadcastReceiver() {
                 @Override
                 public void onReceive(Context ctx, Intent intent) {
-                    if (intent == null) return;
-                    int accent = intent.getIntExtra("accent", 0);
-                    boolean dark = intent.getBooleanExtra("dark", true);
-                    boolean amoled = intent.getBooleanExtra("amoled", false);
-                    handleIncomingTheme(accent, dark, amoled);
+                    if (intent == null || intent.getAction() == null) return;
+                    if ("mi.tiktokmi.ACTION_THEME_CHANGED".equals(intent.getAction())) {
+                        int accent = intent.getIntExtra("accent", 0);
+                        boolean dark = intent.getBooleanExtra("dark", true);
+                        boolean amoled = intent.getBooleanExtra("amoled", false);
+                        handleIncomingTheme(accent, dark, amoled);
+                    } else if (ACTION_AMEGRAM_LINKED.equals(intent.getAction())) {
+                        String tgUser = intent.getStringExtra("tg_username");
+                        long tgId = intent.getLongExtra("tg_user_id", 0);
+                        ctx.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE)
+                                .edit()
+                                .putBoolean(KEY_AMEGRAM_LINKED, true)
+                                .putString(KEY_LINKED_TG_USER, tgUser != null ? tgUser : "")
+                                .putLong(KEY_LINKED_TG_ID, tgId)
+                                .apply();
+                        Toast.makeText(ctx, "TikTok MI синхронізовано з Amegram ໒꒱", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }, filter);
         } catch (Throwable ignored) {

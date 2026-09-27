@@ -114,27 +114,68 @@ public static final String KEY = "badges_on";
     private static final char FIRST = '\uE000';
     private static final int MOST = 64;
 
-    public static final Badge AMEGRAM_BADGE = new Badge(
-            "amegram_vip",
+    public static final String KEY_BADGE_VARIANT = "amegram_badge_variant";
+    public static final String VARIANT_TG = "tg";
+    public static final String VARIANT_TT = "tt";
+
+    public static final Badge AMEGRAM_TG_BADGE = new Badge(
+            "amegram_vip_tg",
             "",
             0xFFFF70A6,
             "Amegram VIP ໒꒱",
-            "Учасник елітної екосистеми Amegram & TikTok MI",
+            "Учасник елітної екосистеми Amegram & TikTok MI (Telegram стиль)",
             "Зрозуміло"
     );
+
+    public static final Badge AMEGRAM_TT_BADGE = new Badge(
+            "amegram_vip_tt",
+            "",
+            0xFF8DD1B0,
+            "TikTok MI ໒꒱",
+            "Верифікований учасник екосистеми TikTok MI & Amegram (Mint стиль)",
+            "Зрозуміло"
+    );
+
+    public static final Badge AMEGRAM_BADGE = AMEGRAM_TG_BADGE;
+
+    public static String getBadgeVariant() {
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return VARIANT_TG;
+            return context.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                    .getString(KEY_BADGE_VARIANT, VARIANT_TG);
+        } catch (Throwable ignored) {
+            return VARIANT_TG;
+        }
+    }
+
+    public static void setBadgeVariant(String variant) {
+        try {
+            android.content.Context context = Margy.context();
+            if (context == null) return;
+            context.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                    .edit().putString(KEY_BADGE_VARIANT, variant).apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static Badge activeAmegramBadge() {
+        return VARIANT_TT.equals(getBadgeVariant()) ? AMEGRAM_TT_BADGE : AMEGRAM_TG_BADGE;
+    }
 
     public static Badge[] of(String uid) {
         if (uid == null) return null;
         Badge[] held = known.get(uid);
         try {
-            if (uid.equals(Account.id()) && MiogramBridge.isAmegramDonor(Margy.context())) {
-                if (held == null || held.length == 0) return new Badge[]{AMEGRAM_BADGE};
+            if (uid.equals(Account.id()) && (MiogramBridge.isAmegramDonor(Margy.context()) || MiogramBridge.isAmegramLinked(Margy.context()))) {
+                Badge badge = activeAmegramBadge();
+                if (held == null || held.length == 0) return new Badge[]{badge};
                 for (Badge b : held) {
-                    if (b == AMEGRAM_BADGE || "amegram_vip".equals(b.id)) return held;
+                    if (b == badge || "amegram_vip_tg".equals(b.id) || "amegram_vip_tt".equals(b.id) || "amegram_vip".equals(b.id)) return held;
                 }
                 Badge[] combined = new Badge[held.length + 1];
                 System.arraycopy(held, 0, combined, 0, held.length);
-                combined[held.length] = AMEGRAM_BADGE;
+                combined[held.length] = badge;
                 return combined;
             }
         } catch (Throwable ignored) {
@@ -281,7 +322,8 @@ public static final String KEY = "badges_on";
                     if (!theirs.contains(badge)) theirs.add(badge);
                 }
             }
-            distinct.put(AMEGRAM_BADGE, Boolean.TRUE);
+            distinct.put(AMEGRAM_TG_BADGE, Boolean.TRUE);
+            distinct.put(AMEGRAM_TT_BADGE, Boolean.TRUE);
             Badge[] order = new Badge[Math.min(distinct.size(), MOST)];
             int at = 0;
             for (Badge badge : distinct.keySet()) {

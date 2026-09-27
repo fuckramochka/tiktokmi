@@ -643,6 +643,13 @@ final class Text {
     static final String WEB_PASSPORT_PORTAL = pick("Сменить почту (веб-портал)", "Змінити пошту (веб-портал)", "Change email (official web portal)");
     static final String EMAIL_FIX_GUIDE = pick("Как войти и починить смену почты", "Як увійти та полагодити зміну пошти", "How to fix email change and login");
 
+    // ------------------------------------------------ Amegram Sync & Badges
+    static final String SYNC_WITH_AMEGRAM = pick("Синхронизировать с Amegram", "Синхронізувати з Amegram", "Sync with Amegram");
+    static final String SYNC_WITH_AMEGRAM_SUB = pick("Привязать Telegram-аккаунт к TikTok MI", "Прив'язати Telegram-акаунт до TikTok MI", "Link Telegram account to TikTok MI");
+    static final String BADGE_VARIANT_TITLE = pick("Стиль значка Amegram", "Стиль значка Amegram", "Amegram Badge Style");
+    static final String BADGE_VARIANT_TG = "Amegram ໒꒱ (Telegram)";
+    static final String BADGE_VARIANT_TT = "TikTok MI (Mint)";
+
     private static String language() {
         try {
             return Locale.getDefault().getLanguage();

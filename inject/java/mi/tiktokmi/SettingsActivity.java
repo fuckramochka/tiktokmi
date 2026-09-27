@@ -358,6 +358,26 @@ public class SettingsActivity extends Activity {
             ecosystem.addView(line());
             ecosystem.addView(toggleRow("article", Text.CLIPVAULT, MiogramBridge.isClipVaultEnabled(),
                     MiogramBridge::setClipVaultEnabled));
+            ecosystem.addView(line());
+            ecosystem.addView(actionRow(
+                    "refresh",
+                    Text.SYNC_WITH_AMEGRAM,
+                    MiogramBridge.isAmegramLinked(this)
+                            ? ("@" + (MiogramBridge.getLinkedTelegramUsername(this) != null ? MiogramBridge.getLinkedTelegramUsername(this) : "Amegram"))
+                            : Text.SYNC_WITH_AMEGRAM_SUB,
+                    () -> MiogramBridge.syncWithAmegram(this)));
+            ecosystem.addView(line());
+            String currentVariant = Badges.getBadgeVariant();
+            ecosystem.addView(actionRow(
+                    "extension",
+                    Text.BADGE_VARIANT_TITLE,
+                    Badges.VARIANT_TT.equals(currentVariant) ? Text.BADGE_VARIANT_TT : Text.BADGE_VARIANT_TG,
+                    () -> {
+                        String cur = Badges.getBadgeVariant();
+                        String next = Badges.VARIANT_TT.equals(cur) ? Badges.VARIANT_TG : Badges.VARIANT_TT;
+                        Badges.setBadgeVariant(next);
+                        recreate();
+                    }));
         }
         column.addView(wrap(ecosystem));
         column.addView(caption(Text.CLIPVAULT_NOTE));
