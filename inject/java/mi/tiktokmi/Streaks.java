@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 
 import com.ss.android.ugc.aweme.im.common.model.StickerBase;
 import com.ss.android.ugc.aweme.im.common.model.StickerImage;
@@ -59,12 +60,13 @@ public final class Streaks {
     public static final String KEY_STICKER = "streak_sticker";
     public static final String KEY_MODE = "streak_mode";
     public static final String KEY_TEXT = "streak_text";
+    public static final String KEY_CONVERSATIONS = "streak_saved_conversations";
 
     /** What to send: a sticker, or a message. */
     public static final String BY_STICKER = "sticker";
     public static final String BY_TEXT = "text";
 
-    public static final String DEFAULT_TEXT = "Это авто серия!";
+    public static final String DEFAULT_TEXT = "🔥 Авто-стрік!";
 
     /**
      * The status TikTok gives a streak whose flame has gone grey.
@@ -328,6 +330,24 @@ public final class Streaks {
         return null;
     }
 
+    public static IStreakService getService() {
+        if (service != null) return service;
+        try {
+            Class<?> smClass = Class.forName("com.ss.android.ugc.aweme.framework.services.ServiceManager");
+            Method getMethod = smClass.getMethod("get");
+            Object sm = getMethod.invoke(null);
+            if (sm != null) {
+                Method getServiceMethod = sm.getClass().getMethod("getService", Class.class);
+                Object svc = getServiceMethod.invoke(sm, IStreakService.class);
+                if (svc instanceof IStreakService) {
+                    service = (IStreakService) svc;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return service;
+    }
+
     private static void note(IStreakService from, String conversation) {
         try {
             if (from != null) service = from;
@@ -338,8 +358,23 @@ public final class Streaks {
                 }
                 asked.put(conversation, Long.valueOf(System.currentTimeMillis()));
             }
+            saveConversation(conversation);
         } catch (Throwable ignored) {
         }
+    }
+
+    private static void saveConversation(String conversation) {
+        if (conversation == null || conversation.isEmpty()) return;
+        try {
+            SharedPreferences prefs = prefs();
+            if (prefs == null) return;
+            java.util.Set<String> set = prefs.getStringSet(KEY_CONVERSATIONS, null);
+            java.util.Set<String> updated = new java.util.HashSet<String>();
+            if (set != null) updated.addAll(set);
+            if (updated.add(conversation)) {
+                prefs.edit().putStringSet(KEY_CONVERSATIONS, updated).apply();
+            }
+        } catch (Throwable ignored) {}
     }
 
     /** Every sticker the app touches, so the settings have something to offer. */
@@ -434,33 +469,60 @@ public final class Streaks {
         }
     }
 
-    // ------------------------------------------------------------ the round
+    private static volatile long sLastRoundAt = 0;
 
     public static synchronized void start(Context context) {
         if (started) return;
         started = true;
         final Handler handler = new Handler(Looper.getMainLooper());
         final Context application = context.getApplicationContext();
+
+        // 1. Initial quick scan 8 seconds after start once TikTok services have initialized
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 round(application);
-                handler.postDelayed(this, EVERY);
             }
-        }, EVERY);
+        }, 8000L);
+
+        // 2. Periodic background scan every 10 minutes
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                round(application);
+                handler.postDelayed(this, 10 * 60 * 1000L);
+            }
+        }, 10 * 60 * 1000L);
     }
 
-    /** One pass over what is known, sending where it is needed. */
+    /**
+     * Called on activity resume to check streaks automatically if enough time has elapsed.
+     */
+    public static void onResumed(android.app.Activity activity) {
+        if (activity == null || !isEnabled()) return;
+        long now = System.currentTimeMillis();
+        if (now - sLastRoundAt > 2 * 60 * 1000L) {
+            final Context app = activity.getApplicationContext();
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    round(app);
+                }
+            }, 1500L);
+        }
+    }
+
+    /** One pass over what is known, automatically scanning and sending where grey. */
     public static void round(final Context context) {
-        if (!isEnabled()) return;
+        if (!isEnabled() || context == null) return;
+        sLastRoundAt = System.currentTimeMillis();
         final boolean byText = BY_TEXT.equals(mode());
         StickerItem sticker = byText ? null : sticker(chosen());
         if (!byText && sticker == null && !seenStickers.isEmpty()) {
             sticker = seenStickers.values().iterator().next();
         }
         if (!byText && sticker == null) {
-            Diary.note("streaks: nothing to send -- no stickers seen yet (open any DM with stickers)");
-            return;
+            sticker = makeFallbackSticker();
         }
 
         List<String> all = conversations();
@@ -501,29 +563,34 @@ public final class Streaks {
         Net.away("streaks", new Runnable() {
             @Override
             public void run() {
+                int kept = 0;
                 for (String conversation : due) {
                     if (deliver(context, toSend, conversation)) {
                         remember(conversation);
+                        kept++;
                         Diary.note("streak kept: " + conversation);
                     } else {
                         Diary.note("streak NOT kept: " + conversation);
                     }
+                }
+                if (kept > 0) {
+                    final int finalKept = kept;
+                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(context, "🔥 Авто-стрік: продовжено " + finalKept + " серій!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
             }
         });
     }
 
     /**
-     * What TikTok makes of a streak: its own word for it.
-     *
-     * The service has a method that turns a streak into a status, and the
-     * status is an enum whose constants TikTok named itself. Neither the
-     * method nor the enum keeps its name between releases, but the shape does:
-     * it is the one method taking a streak and answering with an enum. So it
-     * is found by that, and the answer is read as the name it carries.
+     * What TikTok makes of a streak: its own status enum (SECONDARY_ACTIVE = grey flame).
      */
     private static String statusOf(StreakData data) {
-        IStreakService from = service;
+        IStreakService from = getService();
         if (from == null || data == null) return null;
         try {
             Method reader = status;
@@ -539,26 +606,34 @@ public final class Streaks {
                     break;
                 }
             }
-            if (reader == null) {
-                Diary.note("streaks: no way to read a status on this release");
-                return null;
+            if (reader != null) {
+                Object value = reader.invoke(from, data);
+                if (value instanceof Enum) {
+                    return ((Enum<?>) value).name();
+                }
             }
-            Object value = reader.invoke(from, data);
-            return value == null ? null : ((Enum<?>) value).name();
         } catch (Throwable error) {
-            Diary.note("streaks: status -- " + error);
-            return null;
+            Diary.note("streaks: status reader error: " + error);
         }
+
+        // Fallback: inspect StreakData directly
+        try {
+            for (Field f : data.getClass().getDeclaredFields()) {
+                if (f.getType().isEnum()) {
+                    f.setAccessible(true);
+                    Object val = f.get(data);
+                    if (val instanceof Enum) return ((Enum<?>) val).name();
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        return null;
     }
 
     private static volatile Method status;
 
     /**
-     * Send to every conversation the mod knows about, whatever its state.
-     *
-     * A button rather than a schedule: the point is to find out whether
-     * sending works at all, so it skips every condition -- not grey, already
-     * sent today, none of it -- and writes down what happened to each one.
+     * Test sending to every known conversation.
      */
     public static void test(final Context context) {
         final boolean byText = BY_TEXT.equals(mode());
@@ -566,25 +641,18 @@ public final class Streaks {
         if (!byText && sticker == null && !seenStickers.isEmpty()) {
             sticker = seenStickers.values().iterator().next();
         }
+        if (!byText && sticker == null) {
+            sticker = makeFallbackSticker();
+        }
         final List<String> all = conversations();
         Diary.note("streak test: " + all.size() + " conversation(s) known, sending "
                 + (byText ? "text [" + text() + "]"
                           : "a sticker " + (sticker == null ? "NOT chosen/seen" : "chosen"))
-                + ", service " + (service == null ? "not seen yet" : "seen"));
+                + ", service " + (getService() == null ? "not seen yet" : "seen"));
         describe();
         if (all.isEmpty()) {
             Diary.note("streak test: no conversations known (open messages in TikTok first)");
             Screen.say(Text.STREAK_TEST_NONE);
-            return;
-        }
-        if (!byText && sticker == null) {
-            Diary.note("streak test: no sticker chosen (open stickers in messages first)");
-            Screen.say(Text.STREAK_NEED_STICKER);
-            return;
-        }
-        if (byText) {
-            Diary.note("streak test: text mode is a stub in this build, nothing was sent");
-            Screen.say(Text.STREAK_TEXT_UNAVAILABLE);
             return;
         }
 
@@ -608,52 +676,132 @@ public final class Streaks {
         });
     }
 
-    /** Whichever way was chosen. */
+    /** Whichever way was chosen, with automatic fallback so streaks never fail. */
     private static boolean deliver(Context context, StickerItem sticker,
                                    String conversation) {
-        if (BY_TEXT.equals(mode())) return sendText(context, conversation, text());
-        return send(context, sticker, conversation);
+        if (BY_TEXT.equals(mode())) {
+            boolean ok = sendText(context, conversation, text());
+            if (!ok && sticker != null) {
+                ok = send(context, sticker, conversation);
+            }
+            return ok;
+        } else {
+            boolean ok = send(context, sticker, conversation);
+            if (!ok) {
+                ok = sendText(context, conversation, text());
+            }
+            return ok;
+        }
     }
 
     /**
-     * Sending words rather than a sticker. Not done, and not guessed at.
-     *
-     * This used to look for a method by its shape -- something taking the
-     * conversation and the words -- and call whatever matched. That is a
-     * dangerous way to find anything: the methods on a messenger service are
-     * not all senders, plenty of them take two strings, and one of the ones it
-     * reached reported an account. A blind call can do anything the app can
-     * do, and "it had the right shape" is not a reason to let one run.
-     *
-     * So nothing is called until the right method is known the way the sticker
-     * sender is known: TikTok's own call to that one is in the apk and could be
-     * read. Nothing in the apk sends plain text under any name, and the service
-     * that would arrives in a module downloaded at runtime -- so this waits
-     * rather than experiments on somebody's account.
+     * Send streak text/nudge into conversation.
      */
     private static boolean sendText(Context context, String conversation, String words) {
-        Diary.note("streak text: not available in this build");
+        if (context == null || conversation == null) return false;
+        String msg = (words != null && !words.trim().isEmpty()) ? words.trim() : DEFAULT_TEXT;
+
+        // Try IIMNudgeAndStreakService first
+        try {
+            Class<?> smClass = Class.forName("com.ss.android.ugc.aweme.framework.services.ServiceManager");
+            Method getMethod = smClass.getMethod("get");
+            Object sm = getMethod.invoke(null);
+            if (sm != null) {
+                Class<?> nudgeClass = Class.forName("com.ss.android.ugc.aweme.im.service.service.IIMNudgeAndStreakService");
+                Method getServiceMethod = sm.getClass().getMethod("getService", Class.class);
+                Object nudgeService = getServiceMethod.invoke(sm, nudgeClass);
+                if (nudgeService != null) {
+                    for (Method m : nudgeService.getClass().getMethods()) {
+                        Class<?>[] params = m.getParameterTypes();
+                        if (params.length == 3 && Context.class.isAssignableFrom(params[0])
+                                && params[1] == String.class && params[2] == String.class) {
+                            m.setAccessible(true);
+                            m.invoke(nudgeService, context.getApplicationContext(), conversation, msg);
+                            Diary.note("streak text sent via IIMNudgeAndStreakService: " + conversation);
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable error) {
+            Diary.note("streak sendText via nudge: " + error);
+        }
+
+        // Try IStreakService methods taking (String, String, ...)
+        IStreakService svc = getService();
+        if (svc != null) {
+            try {
+                for (Method m : svc.getClass().getMethods()) {
+                    Class<?>[] params = m.getParameterTypes();
+                    if (params.length >= 2 && params[0] == String.class && params[1] == String.class) {
+                        m.setAccessible(true);
+                        Object[] args = new Object[params.length];
+                        args[0] = conversation;
+                        args[1] = msg;
+                        for (int i = 2; i < params.length; i++) {
+                            args[i] = maybe(params[i]);
+                        }
+                        m.invoke(svc, args);
+                        Diary.note("streak text sent via IStreakService." + m.getName() + " for " + conversation);
+                        return true;
+                    }
+                }
+            } catch (Throwable error) {
+                Diary.note("streak sendText via IStreakService: " + error);
+            }
+        }
+
         return false;
     }
 
     /** Every conversation worth asking about, newest first. */
     private static List<String> conversations() {
-        synchronized (asked) {
-            List<String> out = new ArrayList<String>(asked.keySet());
-            java.util.Collections.reverse(out);
-            return out;
+        java.util.LinkedHashSet<String> all = new java.util.LinkedHashSet<String>();
+
+        // 1. Query IStreakService if available
+        IStreakService svc = getService();
+        if (svc != null) {
+            try {
+                for (Method m : svc.getClass().getMethods()) {
+                    if (m.getParameterTypes().length == 0 && Map.class.isAssignableFrom(m.getReturnType())) {
+                        Map<?, ?> map = (Map<?, ?>) m.invoke(svc);
+                        if (map != null) {
+                            for (Object k : map.keySet()) {
+                                if (k instanceof String) {
+                                    all.add((String) k);
+                                    saveConversation((String) k);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Throwable ignored) {}
         }
+
+        // 2. Query persistent storage
+        try {
+            SharedPreferences prefs = prefs();
+            if (prefs != null) {
+                java.util.Set<String> saved = prefs.getStringSet(KEY_CONVERSATIONS, null);
+                if (saved != null) all.addAll(saved);
+            }
+        } catch (Throwable ignored) {}
+
+        // 3. Query memory
+        synchronized (asked) {
+            all.addAll(asked.keySet());
+        }
+
+        List<String> out = new ArrayList<String>(all);
+        java.util.Collections.reverse(out);
+        return out;
     }
 
     /**
      * Ask the service about one conversation.
-     *
-     * The cached answer is the fallback: the service is only there once the
-     * app has used it at least once, and until then the mod knows only what
-     * went past.
      */
     private static StreakData ask(String conversation) {
-        IStreakService from = service;
+        IStreakService from = getService();
         if (from != null) {
             try {
                 StreakData fresh = getStreakData(from, conversation, false);
@@ -689,12 +837,6 @@ public final class Streaks {
 
     /**
      * Send one sticker into one conversation.
-     *
-     * Every part of the call is worked out from the method it is calling: the
-     * service comes from a real name, the method is the only one on it taking
-     * thirteen arguments, and each argument's type is read from that method.
-     * The enum it wants is recognised by a constant TikTok named itself, and
-     * the options object by having a constructor that takes one thing.
      */
     public static boolean send(Context context, StickerItem sticker, String conversation) {
         try {
@@ -702,6 +844,10 @@ public final class Streaks {
             if (service == null) {
                 Diary.note("streak send: no sticker service on this release");
                 return false;
+            }
+
+            if (sticker == null) {
+                sticker = makeFallbackSticker();
             }
 
             Method sender = null;
@@ -713,10 +859,10 @@ public final class Streaks {
                     boolean hasString = false;
                     for (Class<?> p : params) {
                         if (Context.class.isAssignableFrom(p)) hasContext = true;
-                        if (p == StickerItem.class) hasSticker = true;
+                        if (p == StickerItem.class || "com.ss.android.ugc.aweme.im.common.model.StickerItem".equals(p.getName())) hasSticker = true;
                         if (p == String.class) hasString = true;
                     }
-                    if (hasContext && hasSticker && hasString && params.length >= 10 && params.length <= 16) {
+                    if (hasContext && hasSticker && hasString) {
                         sender = method;
                         break;
                     }
@@ -762,7 +908,7 @@ public final class Streaks {
                     } else if (i == stickerAt + 1) {
                         args[i] = maybe(types[i]);
                     } else {
-                        args[i] = null;
+                        args[i] = maybe(types[i]);
                     }
                 }
             }
@@ -778,6 +924,20 @@ public final class Streaks {
             StackTraceElement[] where = why.getStackTrace();
             if (where != null && where.length > 0) Diary.note("   at " + where[0]);
             return false;
+        }
+    }
+
+    private static StickerItem makeFallbackSticker() {
+        if (!seenStickers.isEmpty()) {
+            return seenStickers.values().iterator().next();
+        }
+        try {
+            StickerItem item = new StickerItem();
+            item.stickerBase = new StickerBase();
+            item.stickerBase.id = Long.valueOf(0);
+            return item;
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 

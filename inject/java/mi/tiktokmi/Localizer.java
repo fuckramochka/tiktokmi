@@ -47,11 +47,11 @@ public final class Localizer {
     public static boolean isAutoFavoritesEnabled() {
         try {
             Context ctx = Margy.context();
-            if (ctx == null) return true;
+            if (ctx == null) return false;
             return ctx.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE)
-                    .getBoolean(KEY_AUTO_FAVORITES, true);
+                    .getBoolean(KEY_AUTO_FAVORITES, false);
         } catch (Throwable ignored) {
-            return true;
+            return false;
         }
     }
 
@@ -369,6 +369,7 @@ public final class Localizer {
 
                     int count = 0;
                     for (File f : folders) {
+                        if (count >= 5) break;
                         if (f.isDirectory()) {
                             File vid = new File(f, "video.mp4");
                             File meta = new File(f, "metadata.json");
@@ -429,13 +430,12 @@ public final class Localizer {
         if (context == null) return;
         try {
             File dir = getArchiveDir(context);
-            Uri uri = androidx.core.content.FileProvider.getUriForFile(
-                    context, context.getPackageName() + ".tiktokmi", dir);
+            if (!dir.exists()) dir.mkdirs();
             Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(uri, "*/*");
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.setDataAndType(Uri.fromFile(dir), "*/*");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(Intent.createChooser(intent, "Відкрити архів"));
-        } catch (Throwable error) {
+        } catch (Throwable ignored) {
             Toast.makeText(context, "Папка: " + getArchiveDir(context).getAbsolutePath(), Toast.LENGTH_LONG).show();
         }
     }

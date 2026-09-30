@@ -101,22 +101,32 @@ public final class Ui {
         }
     }
 
+    private static final android.util.SparseBooleanArray sMatchCache = new android.util.SparseBooleanArray();
+
     private static boolean matches(View view) {
         int id = view.getId();
         if (id == View.NO_ID) return false;
-        String name;
+        int idx = sMatchCache.indexOfKey(id);
+        if (idx >= 0) return sMatchCache.valueAt(idx);
+
+        boolean result = false;
         try {
-            name = view.getResources().getResourceEntryName(id);
-        } catch (Throwable ignored) {
-            return false;
-        }
-        if (name == null) return false;
-        String[] parts = name.toLowerCase(java.util.Locale.US).split("_");
-        for (String part : parts) {
-            for (String segment : SEGMENTS) {
-                if (part.equals(segment)) return true;
+            String name = view.getResources().getResourceEntryName(id);
+            if (name != null) {
+                String[] parts = name.toLowerCase(java.util.Locale.US).split("_");
+                for (String part : parts) {
+                    for (String segment : SEGMENTS) {
+                        if (part.equals(segment)) {
+                            result = true;
+                            break;
+                        }
+                    }
+                    if (result) break;
+                }
             }
+        } catch (Throwable ignored) {
         }
-        return false;
+        sMatchCache.put(id, result);
+        return result;
     }
 }

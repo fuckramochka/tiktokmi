@@ -86,11 +86,24 @@ public final class MargyProvider extends ContentProvider {
      * provider, and this one is already declared, so it serves the file
      * itself.
      */
+    private static final java.util.Map<String, File> sSharedFiles =
+            new java.util.concurrent.ConcurrentHashMap<String, File>();
+
+    /**
+     * A content uri for a file of the mod's own or any file being shared.
+     *
+     * Android will not install an apk or share private media from a path; it wants a uri it
+     * can be granted read on. A FileProvider is the usual answer and it needs
+     * an xml resource, which this build cannot add -- but a provider is a
+     * provider, and this one is already declared, so it serves the file
+     * itself.
+     */
     public static Uri share(Context context, File file) {
+        if (context == null || file == null || !file.exists()) return null;
         try {
-            if (!file.isFile()) return null;
-            return Uri.parse("content://" + context.getPackageName() + ".tiktokmi/"
-                    + file.getName());
+            String token = "share_" + Math.abs(file.getAbsolutePath().hashCode()) + "_" + file.getName();
+            sSharedFiles.put(token, file.getAbsoluteFile());
+            return Uri.parse("content://" + context.getPackageName() + ".tiktokmi/" + token);
         } catch (Throwable ignored) {
             return null;
         }
@@ -100,16 +113,18 @@ public final class MargyProvider extends ContentProvider {
     public ParcelFileDescriptor openFile(Uri uri, String mode) {
         try {
             Context context = getContext();
-            if (context == null) return null;
+            if (context == null || uri == null) return null;
             String name = uri.getLastPathSegment();
-            // one directory, no traversal, read only: the installer needs the
-            // update and has no business anywhere else
             if (name == null || name.contains("/") || name.contains("..")) return null;
-            File file = new File(new File(context.getFilesDir(), "tiktokmi"), name);
+
+            File file = sSharedFiles.get(name);
+            if (file == null || !file.isFile()) {
+                file = new File(new File(context.getFilesDir(), "tiktokmi"), name);
+            }
             if (!file.isFile()) return null;
             return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
         } catch (Throwable error) {
-            Diary.note("share: " + error);
+            Diary.note("share openFile: " + error);
             return null;
         }
     }
@@ -118,10 +133,14 @@ public final class MargyProvider extends ContentProvider {
     public Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {
         try {
             Context context = getContext();
-            if (context == null) return null;
+            if (context == null || uri == null) return null;
             String name = uri.getLastPathSegment();
             if (name == null || name.contains("/") || name.contains("..")) return null;
-            File file = new File(new File(context.getFilesDir(), "tiktokmi"), name);
+
+            File file = sSharedFiles.get(name);
+            if (file == null || !file.isFile()) {
+                file = new File(new File(context.getFilesDir(), "tiktokmi"), name);
+            }
             if (!file.isFile()) return null;
 
             if (projection == null) {
@@ -163,11 +182,20 @@ public final class MargyProvider extends ContentProvider {
     public String getType(Uri uri) {
         if (uri != null) {
             String name = uri.getLastPathSegment();
-            if (name != null && name.endsWith(".apk")) {
-                return "application/vnd.android.package-archive";
+            if (name != null) {
+                String lower = name.toLowerCase(java.util.Locale.US);
+                if (lower.endsWith(".apk")) return "application/vnd.android.package-archive";
+                if (lower.endsWith(".mp4")) return "video/mp4";
+                if (lower.endsWith(".mp3")) return "audio/mpeg";
+                if (lower.endsWith(".m4a")) return "audio/mp4";
+                if (lower.endsWith(".ogg")) return "audio/ogg";
+                if (lower.endsWith(".png")) return "image/png";
+                if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+                if (lower.endsWith(".webp")) return "image/webp";
+                if (lower.endsWith(".json")) return "application/json";
             }
         }
-        return null;
+        return "application/octet-stream";
     }
 
     @Override

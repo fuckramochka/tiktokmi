@@ -300,21 +300,12 @@ public final class Feed {
 
     /**
      * Where rewritten calls to Aweme.getDesc() land.
-     * Records watched video in local history, tracks continuation, and feeds the localizer.
+     * Records watched video in local history (which dispatches to Continuation, Localizer, and OfflineActions).
      */
     public static String getDesc(Aweme aweme) {
         if (aweme == null) return null;
         try {
             WatchHistory.onVideoWatched(aweme);
-        } catch (Throwable ignored) {}
-        try {
-            Continuation.onVideoSeen(aweme);
-        } catch (Throwable ignored) {}
-        try {
-            Localizer.onVideoSeen(aweme);
-        } catch (Throwable ignored) {}
-        try {
-            OfflineActions.onVideoSeen(aweme);
         } catch (Throwable ignored) {}
         return aweme.getDesc();
     }
@@ -322,6 +313,7 @@ public final class Feed {
     private static final int OLED_TAG = 0x4D61726A;
     private static final int OLED_BUDGET = 2000;
     private static int oledSeen;
+    private static final android.util.SparseBooleanArray sOledIdCache = new android.util.SparseBooleanArray();
 
     /**
      * Protect AMOLED/OLED screens from burn-in by making static feed HUD elements
@@ -343,17 +335,27 @@ public final class Feed {
             if (enabled) {
                 int id = view.getId();
                 if (id != View.NO_ID) {
-                    String name = view.getResources().getResourceEntryName(id);
-                    if (name != null) {
-                        String lower = name.toLowerCase(java.util.Locale.US);
-                        if (lower.contains("interact") || lower.contains("action_bar")
-                                || lower.contains("right_layout") || lower.contains("desc")
-                                || lower.contains("author") || lower.contains("music_cover")
-                                || lower.contains("feed_share") || lower.contains("feed_comment")
-                                || lower.contains("feed_like")) {
-                            view.setAlpha(0.6f);
-                            view.setTag(OLED_TAG, Boolean.TRUE);
+                    boolean isTarget;
+                    int cacheIdx = sOledIdCache.indexOfKey(id);
+                    if (cacheIdx >= 0) {
+                        isTarget = sOledIdCache.valueAt(cacheIdx);
+                    } else {
+                        String name = view.getResources().getResourceEntryName(id);
+                        if (name != null) {
+                            String lower = name.toLowerCase(java.util.Locale.US);
+                            isTarget = lower.contains("interact") || lower.contains("action_bar")
+                                    || lower.contains("right_layout") || lower.contains("desc")
+                                    || lower.contains("author") || lower.contains("music_cover")
+                                    || lower.contains("feed_share") || lower.contains("feed_comment")
+                                    || lower.contains("feed_like");
+                        } else {
+                            isTarget = false;
                         }
+                        sOledIdCache.put(id, isTarget);
+                    }
+                    if (isTarget) {
+                        view.setAlpha(0.6f);
+                        view.setTag(OLED_TAG, Boolean.TRUE);
                     }
                 }
             } else if (Boolean.TRUE.equals(view.getTag(OLED_TAG))) {

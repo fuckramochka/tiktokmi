@@ -277,12 +277,12 @@ public final class OfflineActions {
                 File[] files = dir.listFiles();
                 if (files == null) continue;
                 for (File f : files) {
-                    if (f.isFile() && f.length() > 500 * 1024) { // > 500KB
+                    if (f.isFile() && f.length() > 200 * 1024) { // > 200KB
                         String name = f.getName().toLowerCase();
-                        if (aid != null && name.contains(aid)) {
+                        if (aid != null && name.contains(aid) && isMp4(f)) {
                             return f; // exact match
                         }
-                        if (name.endsWith(".mp4") || f.length() > maxLen) {
+                        if (isMp4(f) && f.length() > maxLen) {
                             maxLen = f.length();
                             largestVideo = f;
                         }
@@ -294,6 +294,27 @@ public final class OfflineActions {
             Diary.note("findCachedVideoFile error: " + error);
             return null;
         }
+    }
+
+    private static boolean isMp4(File f) {
+        if (f == null || f.length() < 1024) return false;
+        InputStream fis = null;
+        try {
+            fis = new FileInputStream(f);
+            byte[] header = new byte[16];
+            int read = fis.read(header);
+            if (read >= 8) {
+                if (header[4] == 'f' && header[5] == 't' && header[6] == 'y' && header[7] == 'p') {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {
+        } finally {
+            if (fis != null) {
+                try { fis.close(); } catch (Throwable ignored) {}
+            }
+        }
+        return false;
     }
 
     public static void downloadFromCacheOffline(final Context context, final String aid) {
@@ -345,14 +366,15 @@ public final class OfflineActions {
         File cached = findCachedVideoFile(context, aid);
         if (cached != null && cached.exists()) {
             try {
-                Uri uri = androidx.core.content.FileProvider.getUriForFile(
-                        context, context.getPackageName() + ".tiktokmi", cached);
-                Intent share = new Intent(Intent.ACTION_SEND);
-                share.setType("video/mp4");
-                share.putExtra(Intent.EXTRA_STREAM, uri);
-                share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(Intent.createChooser(share, "Надіслати відео (офлайн)"));
-                return;
+                Uri uri = MargyProvider.share(context, cached);
+                if (uri != null) {
+                    Intent share = new Intent(Intent.ACTION_SEND);
+                    share.setType("video/mp4");
+                    share.putExtra(Intent.EXTRA_STREAM, uri);
+                    share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(Intent.createChooser(share, "Надіслати відео (офлайн)"));
+                    return;
+                }
             } catch (Throwable ignored) {}
         }
         // Fallback: copy link

@@ -419,17 +419,14 @@ final class Text {
     static final String STREAKS = pick("Серии", "Серії", "Streaks");
 
     static final String STREAK_AUTO = pick(
-            "Продлевать серии сами", "Продовжувати серії самі", "Keep streaks alive");
+            "Продлевать серии автоматически", "Продовжувати серії автоматично", "Keep streaks automatically");
 
-    static final String BETA = pick("бета", "бета", "beta");
+    static final String BETA = pick("авто", "авто", "auto");
 
     static final String STREAK_NOTE = pick(
-            "Отправляет выбранный стикер тем, с кем серия вот-вот погаснет. "
-                    + "Не чаще раза в сутки на человека.",
-            "Надсилає вибраний стікер тим, з ким серія ось-ось згасне. "
-                    + "Не частіше разу на добу на людину.",
-            "Sends the sticker you picked to whoever the streak is about to lapse "
-                    + "with, at most once a day each.");
+            "Автоматически сканирует серые серии и отправляет сообщение или стикер, продлевая серию без вашего участия.",
+            "Автоматично сканує сірі стріки та надсилає повідомлення чи стікер, продовжуючи серію без вашої участі.",
+            "Automatically scans for grey streaks and sends a message or sticker, keeping the streak alive without user interaction.");
 
     static final String STREAK_STICKER = pick(
             "Чем продлевать", "Чим продовжувати", "What to send");

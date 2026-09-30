@@ -57,6 +57,12 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         attachGestures(activity);
 
         String name = activity.getClass().getName();
+        String lowerName = name.toLowerCase(Locale.US);
+        boolean isAuth = lowerName.contains("passport") || lowerName.contains("login")
+                || lowerName.contains("authorize") || lowerName.contains("verification")
+                || lowerName.contains("bindphone") || lowerName.contains("bindemail");
+        AccountFix.setAuthInProgress(isAuth);
+        Streaks.onResumed(activity);
 
         for (String screen : AVATAR_SCREENS) {
             if (screen.equals(name)) {
@@ -170,6 +176,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
     @Override
     public void onActivityPaused(Activity activity) {
         Plugins.onActivityPaused(activity);
+        AccountFix.setAuthInProgress(false);
         Screen.gone(activity);
         try {
             WatchHistory.flush();

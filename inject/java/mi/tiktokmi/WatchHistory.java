@@ -186,17 +186,23 @@ public final class WatchHistory {
         }
     }
 
+    private static final Handler sFlushHandler = new Handler(Looper.getMainLooper());
+    private static final Runnable sFlushRunnable = new Runnable() {
+        @Override
+        public void run() {
+            Net.away("history-flush", new Runnable() {
+                @Override
+                public void run() {
+                    flush();
+                }
+            });
+        }
+    };
+
     private static void scheduleFlush() {
         sDirty = true;
-        Net.away("history-flush", new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(1000);
-                } catch (Throwable ignored) {}
-                flush();
-            }
-        });
+        sFlushHandler.removeCallbacks(sFlushRunnable);
+        sFlushHandler.postDelayed(sFlushRunnable, 2000);
     }
 
     // ------------------------------------------------------------- Recording
@@ -209,7 +215,7 @@ public final class WatchHistory {
 
             ensureLoaded();
 
-            Entry entry = new Entry();
+            final Entry entry = new Entry();
             entry.aid = aid;
             entry.desc = aweme.getDesc();
             entry.timestamp = System.currentTimeMillis();
@@ -268,11 +274,16 @@ public final class WatchHistory {
             Continuation.onVideoSeen(aweme);
             OfflineActions.onVideoSeen(aweme);
 
-            // Notify ecosystem watching bridge
-            Context ctx = Margy.context();
-            if (ctx != null) {
-                MiogramBridge.notifyWatching(ctx, entry.getShareUrl(), entry.desc, entry.getAuthorDisplay(), entry.coverUrl);
-            }
+            // Notify ecosystem watching bridge asynchronously
+            Net.away("notify-watching", new Runnable() {
+                @Override
+                public void run() {
+                    Context ctx = Margy.context();
+                    if (ctx != null) {
+                        MiogramBridge.notifyWatching(ctx, entry.getShareUrl(), entry.desc, entry.getAuthorDisplay(), entry.coverUrl);
+                    }
+                }
+            });
         } catch (Throwable error) {
             Diary.note("history onVideoWatched: " + error);
         }

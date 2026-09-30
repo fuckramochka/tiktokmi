@@ -148,8 +148,7 @@ public final class MiogramBridge {
         }
 
         try {
-            Uri uri = androidx.core.content.FileProvider.getUriForFile(
-                    context, context.getPackageName() + ".fileprovider", file);
+            Uri uri = MargyProvider.share(context, file);
 
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType(mimeType != null ? mimeType : "*/*");
@@ -194,8 +193,7 @@ public final class MiogramBridge {
         }
 
         try {
-            Uri uri = androidx.core.content.FileProvider.getUriForFile(
-                    context, context.getPackageName() + ".fileprovider", audioFile);
+            Uri uri = MargyProvider.share(context, audioFile);
 
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("audio/*");
@@ -235,8 +233,8 @@ public final class MiogramBridge {
             ArrayList<Uri> uris = new ArrayList<Uri>(stickerFiles.size());
             for (File file : stickerFiles) {
                 if (file != null && file.exists()) {
-                    uris.add(androidx.core.content.FileProvider.getUriForFile(
-                            context, context.getPackageName() + ".fileprovider", file));
+                    Uri u = MargyProvider.share(context, file);
+                    if (u != null) uris.add(u);
                 }
             }
             if (uris.isEmpty()) return;
@@ -471,7 +469,7 @@ public final class MiogramBridge {
             android.content.IntentFilter filter = new android.content.IntentFilter();
             filter.addAction("mi.tiktokmi.ACTION_THEME_CHANGED");
             filter.addAction(ACTION_AMEGRAM_LINKED);
-            context.registerReceiver(new android.content.BroadcastReceiver() {
+            android.content.BroadcastReceiver receiver = new android.content.BroadcastReceiver() {
                 @Override
                 public void onReceive(Context ctx, Intent intent) {
                     if (intent == null || intent.getAction() == null) return;
@@ -492,9 +490,24 @@ public final class MiogramBridge {
                         Toast.makeText(ctx, "TikTok MI синхронізовано з Amegram ໒꒱", Toast.LENGTH_SHORT).show();
                     }
                 }
-            }, filter);
+            };
+            registerReceiverCompat(context, receiver, filter);
         } catch (Throwable ignored) {
         }
+    }
+
+    private static void registerReceiverCompat(Context context, android.content.BroadcastReceiver receiver,
+                                               android.content.IntentFilter filter) {
+        if (context == null || receiver == null || filter == null) return;
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                java.lang.reflect.Method m = Context.class.getMethod("registerReceiver",
+                        android.content.BroadcastReceiver.class, android.content.IntentFilter.class, int.class);
+                m.invoke(context, receiver, filter, 2 /* Context.RECEIVER_EXPORTED */);
+                return;
+            }
+        } catch (Throwable ignored) {}
+        context.registerReceiver(receiver, filter);
     }
 
     public static final String KEY_SYNC_THEME = "amegram_sync_theme";

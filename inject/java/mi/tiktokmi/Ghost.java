@@ -110,6 +110,8 @@ public final class Ghost {
         return null;
     }
 
+    private static final int GHOST_TAG = 0x54544748; // "TTGH"
+
     // ------------------------------------------------- Message Interception
 
     /**
@@ -122,13 +124,9 @@ public final class Ghost {
         String raw = text.toString().trim();
         if (raw.isEmpty()) return text;
 
-        int viewKey = System.identityHashCode(view);
-
         if (isRecallNotice(raw)) {
-            String saved = null;
-            synchronized (messageCache) {
-                saved = messageCache.get(viewKey);
-            }
+            Object tag = view.getTag(GHOST_TAG);
+            String saved = (tag instanceof String) ? (String) tag : null;
             if (saved != null && !isRecallNotice(saved)) {
                 ChatSearch.indexMessage("dm", "Співрозмовник", saved, true, System.currentTimeMillis());
                 SpannableStringBuilder builder = new SpannableStringBuilder();
@@ -141,11 +139,9 @@ public final class Ghost {
                 return builder;
             }
         } else {
-            // Normal message: remember it in case it gets recalled later
+            // Normal message: remember it in case it gets recalled in this view
             if (raw.length() > 0 && raw.length() < 1000) {
-                synchronized (messageCache) {
-                    messageCache.put(viewKey, raw);
-                }
+                view.setTag(GHOST_TAG, raw);
                 ChatSearch.indexMessage("dm", "Співрозмовник", raw, false, System.currentTimeMillis());
             }
         }
@@ -157,15 +153,15 @@ public final class Ghost {
      * Checks whether the string matches a recall or deletion notice.
      */
     private static boolean isRecallNotice(String text) {
-        if (text == null) return false;
-        String lower = text.toLowerCase();
+        if (text == null || text.length() > 65) return false;
+        String lower = text.toLowerCase(java.util.Locale.US);
         return lower.contains("recalled")
                 || lower.contains("message recalled")
                 || lower.contains("this message was deleted")
-                || lower.contains("видален")
-                || lower.contains("відкликан")
-                || lower.contains("удален")
-                || lower.contains("отозван");
+                || lower.contains("повідомлення видалено")
+                || lower.contains("повідомлення відкликано")
+                || lower.contains("сообщение удалено")
+                || lower.contains("сообщение отозвано");
     }
 
     // -------------------------------------------------------------- Storage

@@ -84,13 +84,29 @@ public final class Account {
 
     private static void remember(String key, String value) {
         if (value == null || value.length() == 0) return;
-        boolean numeric = KEY_ID.equals(key);
-        String known = numeric ? id : secId;
-        if (value.equals(known)) return;  // the common case: nothing to write
-        if (numeric) {
+        String known = null;
+        if (KEY_ID.equals(key)) {
+            known = id;
+            if (value.equals(known)) return;
             id = value;
-        } else {
+        } else if (KEY_SEC_ID.equals(key)) {
+            known = secId;
+            if (value.equals(known)) return;
             secId = value;
+        } else if (KEY_USERNAME.equals(key)) {
+            known = username;
+            if (value.equals(known)) return;
+            username = value;
+        } else if (KEY_NICKNAME.equals(key)) {
+            known = nickname;
+            if (value.equals(known)) return;
+            nickname = value;
+        } else if (KEY_AVATAR.equals(key)) {
+            known = avatar;
+            if (value.equals(known)) return;
+            avatar = value;
+        } else {
+            return;
         }
         try {
             SharedPreferences prefs = prefs();
