@@ -186,10 +186,28 @@ public final class Streaks {
         note(from, conversation);
         if (from == null) return false;
         try {
-            return from.LJJIJIIJI(conversation);
-        } catch (NoSuchMethodError e1) {
+            return from.V(conversation);
+        } catch (NoSuchMethodError e0) {
             try {
-                return from.a0(conversation);
+                return from.W(conversation);
+            } catch (NoSuchMethodError e0b) {
+                try {
+                    return from.Z(conversation);
+                } catch (NoSuchMethodError e0c) {
+                    try {
+                        return from.LJJIJIIJI(conversation);
+                    } catch (NoSuchMethodError e1) {
+                        try {
+                            return from.a0(conversation);
+                        } catch (Throwable ignored) {
+                            return false;
+                        }
+                    } catch (Throwable ignored) {
+                        return false;
+                    }
+                } catch (Throwable ignored) {
+                    return false;
+                }
             } catch (Throwable ignored) {
                 return false;
             }
@@ -203,10 +221,16 @@ public final class Streaks {
         note(from, conversation);
         if (from == null) return false;
         try {
-            return from.LJJJJI(conversation, flag);
-        } catch (NoSuchMethodError e1) {
+            return from.i0(conversation, flag);
+        } catch (NoSuchMethodError e0) {
             try {
-                return from.h0(conversation, flag);
+                return from.LJJJJI(conversation, flag);
+            } catch (NoSuchMethodError e1) {
+                try {
+                    return from.h0(conversation, flag);
+                } catch (Throwable ignored) {
+                    return false;
+                }
             } catch (Throwable ignored) {
                 return false;
             }
@@ -223,10 +247,16 @@ public final class Streaks {
         note(from, conversation);
         if (from == null) return 0;
         try {
-            return from.LJII(conversation);
-        } catch (NoSuchMethodError e1) {
+            return from.y(conversation);
+        } catch (NoSuchMethodError e0) {
             try {
-                return from.w(conversation);
+                return from.LJII(conversation);
+            } catch (NoSuchMethodError e1) {
+                try {
+                    return from.w(conversation);
+                } catch (Throwable ignored) {
+                    return 0;
+                }
             } catch (Throwable ignored) {
                 return 0;
             }
@@ -259,10 +289,16 @@ public final class Streaks {
         note(from, conversation);
         if (from == null) return null;
         try {
-            return from.LJJJJJL(conversation);
-        } catch (NoSuchMethodError e1) {
+            return from.k0(conversation);
+        } catch (NoSuchMethodError e0) {
             try {
-                return from.l0(conversation);
+                return from.LJJJJJL(conversation);
+            } catch (NoSuchMethodError e1) {
+                try {
+                    return from.l0(conversation);
+                } catch (Throwable ignored) {
+                    return null;
+                }
             } catch (Throwable ignored) {
                 return null;
             }
@@ -275,10 +311,16 @@ public final class Streaks {
         note(from, conversation);
         if (from == null) return null;
         try {
-            return from.LJIJJ(conversation);
-        } catch (NoSuchMethodError e1) {
+            return from.N(conversation);
+        } catch (NoSuchMethodError e0) {
             try {
-                return from.O(conversation);
+                return from.LJIJJ(conversation);
+            } catch (NoSuchMethodError e1) {
+                try {
+                    return from.O(conversation);
+                } catch (Throwable ignored) {
+                    return null;
+                }
             } catch (Throwable ignored) {
                 return null;
             }
@@ -290,12 +332,18 @@ public final class Streaks {
     private static StreakData getStreakData(IStreakService from, String conversation, boolean fresh) {
         if (from == null) return null;
         try {
-            return from.LJIIZILJ(conversation, fresh);
-        } catch (NoSuchMethodError e1) {
+            return from.I(conversation, fresh);
+        } catch (NoSuchMethodError e0) {
             try {
-                return from.J(conversation, fresh);
-            } catch (NoSuchMethodError e2) {
-                return reflectStreakData(from, conversation, fresh);
+                return from.LJIIZILJ(conversation, fresh);
+            } catch (NoSuchMethodError e1) {
+                try {
+                    return from.J(conversation, fresh);
+                } catch (NoSuchMethodError e2) {
+                    return reflectStreakData(from, conversation, fresh);
+                } catch (Throwable ignored) {
+                    return null;
+                }
             } catch (Throwable ignored) {
                 return null;
             }

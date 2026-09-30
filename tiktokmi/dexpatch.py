@@ -294,26 +294,26 @@ MODEL_SOURCES: List[Tuple[str, str, str, str, str]] = [
     # app asks about is one the mod can then ask about itself.
     #
     # The method names are TikTok's own obfuscated names and change across
-    # releases. We support 47.0.3 (LJIIZILJ, LJJIJIIJI, LJJJJI, LJII, LJJJJJL, LJIJJ)
-    # as well as earlier releases (J, a0, h0, w, l0, O).
-    (STREAK_SERVICE, (("LJIIZILJ", "J"), "streakOf"), "(%sZ)%s" % (STRING, STREAK_DATA),
+    # releases. We support 47.1.4 (I, V/W/Z, i0, y, k0, N), 47.0.3 (LJIIZILJ,
+    # LJJIJIIJI, LJJJJI, LJII, LJJJJJL, LJIJJ) as well as earlier releases (J, a0, h0, w, l0, O).
+    (STREAK_SERVICE, (("I", "LJIIZILJ", "J"), "streakOf"), "(%sZ)%s" % (STRING, STREAK_DATA),
      "(%s%sZ)%s" % (STREAK_SERVICE, STRING, STREAK_DATA), STREAKS),
-    (STREAK_SERVICE, (("LJJIJIIJI", "a0"), "hasStreak"), "(%s)Z" % STRING,
+    (STREAK_SERVICE, (("V", "W", "Z", "LJJIJIIJI", "a0"), "hasStreak"), "(%s)Z" % STRING,
      "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
-    (STREAK_SERVICE, (("LJJJJI", "h0"), "showsStreak"), "(%sZ)Z" % STRING,
+    (STREAK_SERVICE, (("i0", "LJJJJI", "h0"), "showsStreak"), "(%sZ)Z" % STRING,
      "(%s%sZ)Z" % (STREAK_SERVICE, STRING), STREAKS),
     # every other question the app asks about one conversation, because the
     # first three between them only ever turned up a single conversation and a
     # feature that only knows about one chat is no feature
-    (STREAK_SERVICE, (("LJII", "w"), "streakCount"), "(%s)I" % STRING,
+    (STREAK_SERVICE, (("y", "LJII", "w"), "streakCount"), "(%s)I" % STRING,
      "(%s%s)I" % (STREAK_SERVICE, STRING), STREAKS),
     (STREAK_SERVICE, ("X", "asksAbout"), "(%s)Z" % STRING,
      "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
     (STREAK_SERVICE, ("Y", "asksAboutToo"), "(%s)Z" % STRING,
      "(%s%s)Z" % (STREAK_SERVICE, STRING), STREAKS),
-    (STREAK_SERVICE, (("LJJJJJL", "l0"), "streakState"), "(%s)Ljava/lang/Integer;" % STRING,
+    (STREAK_SERVICE, (("k0", "LJJJJJL", "l0"), "streakState"), "(%s)Ljava/lang/Integer;" % STRING,
      "(%s%s)Ljava/lang/Integer;" % (STREAK_SERVICE, STRING), STREAKS),
-    (STREAK_SERVICE, (("LJIJJ", "O"), "streakText"), "(%s)%s" % (STRING, STRING),
+    (STREAK_SERVICE, (("N", "LJIJJ", "O"), "streakText"), "(%s)%s" % (STRING, STRING),
      "(%s%s)%s" % (STREAK_SERVICE, STRING, STRING), STREAKS),
 
     # a sound pulled for copyright: the video stays and these four mute it
@@ -519,10 +519,12 @@ def accent_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     return out
 
 
-def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
+def model_rules(target_filter: Optional[str] = None) -> List[Tuple[str, "re.Pattern[str]", str]]:
     """Calls on TikTok's own models, answered by the mod instead."""
     out = []
     for owner, name, original, replacement, target in MODEL_SOURCES:
+        if target_filter is not None and target != target_filter:
+            continue
         # a pair when what the mod calls it differs from what TikTok does:
         # the app's obfuscated name on the way in, a readable one on the way out
         theirs, ours = name if isinstance(name, tuple) else (name, name)
@@ -537,6 +539,8 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
                 r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
             ))
     for owner, name, original, replacement, target in MODEL_STATICS:
+        if target_filter is not None and target != target_filter:
+            continue
         theirs, ours = name if isinstance(name, tuple) else (name, name)
         theirs_list = [theirs] if isinstance(theirs, str) else list(theirs)
         for t in theirs_list:
@@ -546,6 +550,8 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
                            % (re.escape(owner), re.escape(t), re.escape(original))),
                 r"invoke-static\1 \2, %s->%s%s" % (target, ours, replacement),
             ))
+    if target_filter is not None:
+        return out
     for label, descriptor, ours, target in DISCOVERED_VIRTUALS:
         found = FOUND.get(label)
         if found is None:
@@ -603,21 +609,27 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
     return out
 
 
-def rewrite_models(root: str) -> Dict[str, int]:
+def rewrite_models(root: str, target_filter: Optional[str] = None) -> Dict[str, int]:
     """Rewrite every call on TikTok's models, counting them by signature."""
     counts: Dict[str, int] = {}
-    prepared = model_rules()
-    owners = tuple(set([owner for owner, _n, _o, _r, _t in MODEL_SOURCES]
-                       + [owner for owner, _n, _o, _r, _t in MODEL_STATICS]
-                       + [owner for owner, _f, _k, _n, _t in FIELD_SOURCES]
-                       # a rule with no owner of its own is recognised by the
-                       # method it is looking for, or its file is never opened
-                       + [name for name, _o, _r, _t in WILD_SOURCES]
-                       # and one whose owner was found rather than written down
-                       # is recognised by the owner that was found
-                       + [FOUND[label][0]
-                          for label, _d, _o, _t in DISCOVERED_STATICS + DISCOVERED_VIRTUALS
-                          if label in FOUND]))
+    prepared = model_rules(target_filter=target_filter)
+    if target_filter is not None:
+        owners = tuple(set(
+            [owner for owner, _n, _o, _r, t in MODEL_SOURCES if t == target_filter]
+            + [owner for owner, _n, _o, _r, t in MODEL_STATICS if t == target_filter]
+        ))
+    else:
+        owners = tuple(set([owner for owner, _n, _o, _r, _t in MODEL_SOURCES]
+                           + [owner for owner, _n, _o, _r, _t in MODEL_STATICS]
+                           + [owner for owner, _f, _k, _n, _t in FIELD_SOURCES]
+                           # a rule with no owner of its own is recognised by the
+                           # method it is looking for, or its file is never opened
+                           + [name for name, _o, _r, _t in WILD_SOURCES]
+                           # and one whose owner was found rather than written down
+                           # is recognised by the owner that was found
+                           + [FOUND[label][0]
+                              for label, _d, _o, _t in DISCOVERED_STATICS + DISCOVERED_VIRTUALS
+                              if label in FOUND]))
     for dirpath, _dirs, files in os.walk(root):
         for name in files:
             if not name.endswith(".smali"):
@@ -636,6 +648,7 @@ def rewrite_models(root: str) -> Dict[str, int]:
                 with open(path, "w", encoding="utf-8") as handle:
                     handle.write(text)
     return counts
+
 
 
 def anchored_rules() -> List[Tuple[str, str, "re.Pattern[str]", str]]:
@@ -1084,9 +1097,13 @@ def patch(dex: bytes, name: str, smali: Smali, workspace: str,
     counts = rewrite_smali(os.path.join(room, "smali"))
     counts.update(rewrite_literals(os.path.join(room, "smali"), literals or {}))
     counts.update(force_false(os.path.join(room, "smali")))
-    counts.update(rewrite_accent(os.path.join(room, "smali")))
-    counts.update(rewrite_models(os.path.join(room, "smali")))
-    counts.update(rewrite_anchored(os.path.join(room, "smali")))
+    method_count = struct.unpack_from("<I", dex, 88)[0]
+    if method_count > 65500:
+        counts.update(rewrite_models(os.path.join(room, "smali"), target_filter=FLAGS))
+    else:
+        counts.update(rewrite_accent(os.path.join(room, "smali")))
+        counts.update(rewrite_models(os.path.join(room, "smali")))
+        counts.update(rewrite_anchored(os.path.join(room, "smali")))
     if not counts:
         shutil.rmtree(room, ignore_errors=True)
         return dex, counts

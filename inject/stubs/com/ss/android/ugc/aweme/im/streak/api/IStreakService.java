@@ -14,6 +14,16 @@ package com.ss.android.ugc.aweme.im.streak.api;
  */
 public interface IStreakService {
 
+    /** TikTok 47.1.4 signatures */
+    StreakData I(String conversation, boolean fresh);
+    boolean V(String conversation);
+    boolean W(String conversation);
+    boolean Z(String conversation);
+    boolean i0(String conversation, boolean flag);
+    int y(String conversation);
+    Integer k0(String conversation);
+    String N(String conversation);
+
     /** TikTok 47.0.3 signatures */
     StreakData LJIIZILJ(String conversation, boolean fresh);
     boolean LJJIJIIJI(String conversation);
