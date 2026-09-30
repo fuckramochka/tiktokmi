@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.3.6.1",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.6.1/tiktokmi.apk",
-  "notes": "TikTok MI v0.3.6.1: Micro-fix for the update check — no prompt if remote is lower or equal, only if strictly higher (supports 4-part versions like 0.3.6.1).",
-  "notes_ru": "TikTok MI v0.3.6.1: Микрофикс проверки обновлений — не предлагает, если версия ниже или равна текущей, только если строго выше (включая версии вида 0.3.6.1).",
-  "notes_uk": "TikTok MI v0.3.6.1: Мікрофікс перевірки оновлень — не сповіщає, якщо версія нижча або така сама, лише якщо строго вища (включно з версіями виду 0.3.6.1)."
+  "version": "0.3.7",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.7/tiktokmi.apk",
+  "notes": "TikTok MI v0.3.7: Base updated to TikTok 47.1.4 universal nodpi. Fixed smali 64K method pool overflow on classes2.dex. Updated auto-streaks scanner and streak service method bindings for 47.1.4.",
+  "notes_ru": "TikTok MI v0.3.7: База обновлена до TikTok 47.1.4 universal nodpi. Исправлено переполнение пула методов 64K в classes2.dex. Обновлён автосканер огоньков и привязки сервиса стриков под 47.1.4.",
+  "notes_uk": "TikTok MI v0.3.7: Базу оновлено до TikTok 47.1.4 universal nodpi. Виправлено переповнення пулу методів 64K у classes2.dex. Оновлено автосканер вогників та прив'язки сервісу стріків під 47.1.4."
 }
