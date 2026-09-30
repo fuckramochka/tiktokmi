@@ -9,7 +9,8 @@ on:
     inputs:
       apk_url:
         description: "Direct link to a universal TikTok apk"
-        required: true
+        required: false
+        default: "https://github.com/fuckramochka/tiktokmi/releases/download/official-47.1.4/com.zhiliaoapp.musically_47.1.4-2024701040_minAPI23.arm64-v8a.armeabi-v7a.nodpi.apk"
       accent:
         description: "Baked accent RRGGBB (empty keeps TikTok pink)"
         required: false
@@ -45,7 +46,11 @@ jobs:
 
       - name: download the official apk
         run: |
-          curl -fSL --retry 3 -A "Mozilla/5.0" -o official.apk "${{ inputs.apk_url }}"
+          APK_URL="${{ inputs.apk_url }}"
+          if [ -z "$APK_URL" ]; then
+            APK_URL="https://github.com/fuckramochka/tiktokmi/releases/download/official-47.1.4/com.zhiliaoapp.musically_47.1.4-2024701040_minAPI23.arm64-v8a.armeabi-v7a.nodpi.apk"
+          fi
+          curl -fSL --retry 3 -A "Mozilla/5.0" -o official.apk "$APK_URL"
           ls -la official.apk
 
       - name: install Pillow (icon thumbnails)
