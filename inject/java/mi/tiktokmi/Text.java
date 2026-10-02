@@ -145,6 +145,10 @@ final class Text {
     static final String VOICE = pick(
             "Голосовые комментарии", "Голосові коментарі", "Voice comments");
 
+    static final String BANNERS = pick(
+            "Баннеры профиля и новый профиль", "Банери профілю та новий профіль",
+            "Profile banners and the new profile");
+
     static final String THEME_STRENGTH = pick(
             "Насыщенность фона", "Насиченість тла", "How much of that background");
 
@@ -430,6 +434,18 @@ final class Text {
 
     static final String STREAK_STICKER = pick(
             "Чем продлевать", "Чим продовжувати", "What to send");
+
+    static final String STREAK_MODE = pick(
+            "Стікер або текст", "Стікер або текст", "Sticker or text");
+
+    static final String STREAK_MODE_STICKER = pick(
+            "Стікер", "Стікер", "Sticker");
+
+    static final String STREAK_MODE_TEXT = pick(
+            "Текст", "Текст", "Text");
+
+    static final String STREAK_TEXT_TITLE = pick(
+            "Текст вогника", "Текст вогника", "Streak text");
 
     static final String STREAK_NOTHING = pick(
             "Откройте стикеры в переписке, и они появятся здесь",

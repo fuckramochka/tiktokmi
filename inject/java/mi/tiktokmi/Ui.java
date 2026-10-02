@@ -110,9 +110,11 @@ public final class Ui {
         if (idx >= 0) return sMatchCache.valueAt(idx);
 
         boolean result = false;
+        boolean known = false;
         try {
             String name = view.getResources().getResourceEntryName(id);
             if (name != null) {
+                known = true;
                 String[] parts = name.toLowerCase(java.util.Locale.US).split("_");
                 for (String part : parts) {
                     for (String segment : SEGMENTS) {
@@ -125,8 +127,9 @@ public final class Ui {
                 }
             }
         } catch (Throwable ignored) {
+            // resource names may be unavailable: do not cache, try again next pass
         }
-        sMatchCache.put(id, result);
+        if (known) sMatchCache.put(id, result);
         return result;
     }
 }

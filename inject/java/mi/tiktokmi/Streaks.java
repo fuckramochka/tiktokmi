@@ -569,8 +569,17 @@ public final class Streaks {
         if (!byText && sticker == null && !seenStickers.isEmpty()) {
             sticker = seenStickers.values().iterator().next();
         }
+        // Never send a fabricated sticker: a fake id=0 is a "successful" call
+        // that the server drops, which looks exactly like "auto-streak broken".
         if (!byText && sticker == null) {
-            sticker = makeFallbackSticker();
+            Diary.note("streaks: no sticker chosen/seen yet, open stickers in a chat first");
+            List<String> probe = conversations();
+            if (probe.isEmpty()) {
+                Diary.note("streaks: no conversation has been looked at yet");
+            } else {
+                scanOnly(probe);
+            }
+            return;
         }
 
         List<String> all = conversations();
@@ -689,9 +698,6 @@ public final class Streaks {
         if (!byText && sticker == null && !seenStickers.isEmpty()) {
             sticker = seenStickers.values().iterator().next();
         }
-        if (!byText && sticker == null) {
-            sticker = makeFallbackSticker();
-        }
         final List<String> all = conversations();
         Diary.note("streak test: " + all.size() + " conversation(s) known, sending "
                 + (byText ? "text [" + text() + "]"
@@ -701,6 +707,11 @@ public final class Streaks {
         if (all.isEmpty()) {
             Diary.note("streak test: no conversations known (open messages in TikTok first)");
             Screen.say(Text.STREAK_TEST_NONE);
+            return;
+        }
+        if (!byText && sticker == null) {
+            Diary.note("streak test: no sticker to send (open stickers in a chat first)");
+            Screen.say(Text.STREAK_NEED_STICKER);
             return;
         }
 
@@ -727,18 +738,60 @@ public final class Streaks {
     /** Whichever way was chosen, with automatic fallback so streaks never fail. */
     private static boolean deliver(Context context, StickerItem sticker,
                                    String conversation) {
+        if (context == null || conversation == null || conversation.isEmpty()) return false;
         if (BY_TEXT.equals(mode())) {
             boolean ok = sendText(context, conversation, text());
-            if (!ok && sticker != null) {
+            if (!ok && sticker != null && isRealSticker(sticker)) {
                 ok = send(context, sticker, conversation);
             }
             return ok;
         } else {
+            if (sticker == null || !isRealSticker(sticker)) {
+                return sendText(context, conversation, text());
+            }
             boolean ok = send(context, sticker, conversation);
             if (!ok) {
                 ok = sendText(context, conversation, text());
             }
             return ok;
+        }
+    }
+
+    private static boolean isRealSticker(StickerItem sticker) {
+        try {
+            if (sticker == null || sticker.stickerBase == null) return false;
+            if (sticker.stickerBase.id != null) {
+                long id = sticker.stickerBase.id.longValue();
+                if (id != 0) return true;
+            }
+            StickerImage image = sticker.stickerBase.image != null
+                    ? sticker.stickerBase.image : sticker.stickerBase.thumbnail;
+            return image != null && image.urlList != null && !image.urlList.isEmpty();
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /** Count-only pass used when there is nothing to send with yet. */
+    private static void scanOnly(List<String> all) {
+        try {
+            int grey = 0, lit = 0, gone = 0, unknown = 0;
+            for (String conversation : all) {
+                StreakData data = ask(conversation);
+                if (data == null) {
+                    unknown++;
+                    continue;
+                }
+                String state = statusOf(data);
+                if (GREY.equals(state)) grey++;
+                else if ("ACTIVE".equals(state)) lit++;
+                else if (state == null) unknown++;
+                else gone++;
+            }
+            Diary.note("streaks scan: " + all.size() + " looked at -- " + grey + " grey, "
+                    + lit + " lit, " + gone + " over, " + unknown + " unreadable");
+        } catch (Throwable error) {
+            Diary.note("streaks scan: " + error);
         }
     }
 
@@ -868,9 +921,14 @@ public final class Streaks {
     }
 
     private static boolean sentToday(String conversation, long now) {
+        if (conversation == null) return false;
         SharedPreferences prefs = prefs();
-        if (prefs == null || conversation == null) return true;
-        return now - prefs.getLong("streak_at_" + conversation, 0) < DAY;
+        if (prefs == null) return false;
+        try {
+            return now - prefs.getLong("streak_at_" + conversation, 0) < DAY;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static void remember(String conversation) {

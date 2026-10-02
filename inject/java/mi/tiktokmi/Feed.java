@@ -310,7 +310,8 @@ public final class Feed {
         return aweme.getDesc();
     }
 
-    private static final int OLED_TAG = 0x4D61726A;
+    private static final int OLED_TAG = 0x4F4C4544; // "OLED", must differ from every other tag
+    private static final int OLED_ALPHA_TAG = 0x4F4C4161; // "OLa", original alpha
     private static final int OLED_BUDGET = 2000;
     private static int oledSeen;
     private static final android.util.SparseBooleanArray sOledIdCache = new android.util.SparseBooleanArray();
@@ -354,13 +355,29 @@ public final class Feed {
                         sOledIdCache.put(id, isTarget);
                     }
                     if (isTarget) {
+                        if (view.getTag(OLED_ALPHA_TAG) == null) {
+                            try {
+                                view.setTag(OLED_ALPHA_TAG, Float.valueOf(view.getAlpha()));
+                            } catch (Throwable ignored) {
+                            }
+                        }
                         view.setAlpha(0.6f);
                         view.setTag(OLED_TAG, Boolean.TRUE);
                     }
                 }
             } else if (Boolean.TRUE.equals(view.getTag(OLED_TAG))) {
-                view.setAlpha(1.0f);
+                try {
+                    Object saved = view.getTag(OLED_ALPHA_TAG);
+                    float back = (saved instanceof Float) ? ((Float) saved).floatValue() : 1.0f;
+                    view.setAlpha(back);
+                } catch (Throwable ignored) {
+                    try {
+                        view.setAlpha(1.0f);
+                    } catch (Throwable ignored) {
+                    }
+                }
                 view.setTag(OLED_TAG, null);
+                view.setTag(OLED_ALPHA_TAG, null);
             }
         } catch (Throwable ignored) {
         }
@@ -432,27 +449,39 @@ public final class Feed {
                 && words.length == 0 && captionMax <= 0 && mine == null) return items;
 
         try {
+            int n = items.size();
+            boolean[] out = new boolean[n];
             int toDrop = 0;
-            for (Object item : items) {
-                if (item instanceof Aweme
+            int ads = 0, lives = 0, media = 0, wordsHit = 0, regionHit = 0;
+            for (int i = 0; i < n; i++) {
+                Object item = items.get(i);
+                boolean dropIt = (item instanceof Aweme)
                         && drop((Aweme) item, dropAds, dropLives, dropPhotos,
-                                dropStories, words, captionMax, mine)) {
-                    toDrop++;
+                                dropStories, words, captionMax, mine);
+                out[i] = dropIt;
+                if (!dropIt) continue;
+                toDrop++;
+                // best-effort reason counters for the diary, never blocking
+                try {
+                    Aweme aweme = (Aweme) item;
+                    if (dropAds && aweme.isAd()) ads++;
+                    else if (dropLives && isLiveAweme(aweme)) lives++;
+                    else if ((dropPhotos || dropStories)) media++;
+                    else if (mine != null && regionOf(aweme) != null) regionHit++;
+                    else wordsHit++;
+                } catch (Throwable ignored) {
                 }
             }
             if (toDrop == 0) return items;
 
-            List kept = new ArrayList(items.size() - toDrop);
-            for (Object item : items) {
-                if (item instanceof Aweme
-                        && drop((Aweme) item, dropAds, dropLives, dropPhotos,
-                                dropStories, words, captionMax, mine)) {
-                    continue;
-                }
-                kept.add(item);
+            List kept = new ArrayList(n - toDrop);
+            for (int i = 0; i < n; i++) {
+                if (!out[i]) kept.add(items.get(i));
             }
             dropped += toDrop;
-            Diary.note("feed: " + toDrop + " item(s) dropped, " + dropped + " so far");
+            Diary.note("feed: " + toDrop + " item(s) dropped, " + dropped + " so far"
+                    + " (ads " + ads + ", lives " + lives + ", media " + media
+                    + ", words/long " + wordsHit + ", region " + regionHit + ")");
             return kept;
         } catch (Throwable error) {
             Diary.note("feed: leaving the page alone, " + error);

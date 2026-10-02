@@ -226,22 +226,21 @@ public final class OfflineActions {
                     }
                     if (toSync.isEmpty()) return;
 
-                    int synced = 0;
-                    for (String aid : toSync) {
-                        // In TikTok, opening or pinging like endpoint commits it
-                        try {
-                            sQueuedLikes.remove(aid);
-                            synced++;
-                            Thread.sleep(300);
-                        } catch (Throwable ignored) {}
-                    }
+                    // Honest queue: there is no public like endpoint reachable
+                    // from here, so likes stay queued instead of pretending.
+                    // Opening each video in TikTok is still the only way that
+                    // actually commits a like on the server.
+                    Diary.note("offline likes: " + toSync.size()
+                            + " queued, no like endpoint on this build -- kept");
                     saveLikes(context);
 
-                    final int count = synced;
+                    final int count = toSync.size();
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(context, "✓ Синхронізовано " + count + " офлайн-лайків", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context,
+                                    "Черга: " + count + " лайків збережено. Відкрийте відео в TikTok щоб лайк застався.",
+                                    Toast.LENGTH_LONG).show();
                         }
                     });
                 } catch (Throwable error) {

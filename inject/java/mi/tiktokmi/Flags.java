@@ -35,8 +35,10 @@ public final class Flags {
     // the groups, each with a switch on the mod's screen
     public static final int ADS = 0;
     public static final int VOICE = 1;
+    public static final int BANNERS = 2;
 
     public static final String KEY_VOICE = "flag_voice";
+    public static final String KEY_BANNERS = "flag_banners";
 
     private static final class Override {
         final int group;
@@ -63,6 +65,23 @@ public final class Flags {
                 "commerce_enable");
 
         put(VOICE, Integer.valueOf(1), "audio_comment_publish");
+
+        // Profile / post banners and the new profile layout (rolled out since
+        // July 2026 as an A/B test, so most accounts never see the switch).
+        // Exact names first -- every one below was collected from TikTok's own
+        // naming conventions (enable_*, *_enable, *_v2); a name a later release
+        // drops is simply never asked for. Anything else with "banner" in it
+        // is caught by containsBanner() below, so an unknown rename still opens.
+        put(BANNERS, Boolean.TRUE,
+                "enable_profile_banner", "profile_banner_enable", "profile_banner",
+                "profile_banner_edit", "edit_profile_banner", "profile_cover_banner",
+                "profile_header_banner", "profile_banner_v2", "new_profile_banner",
+                "enable_banners", "banners_enable", "banner_enable",
+                "post_banner_enable", "video_banner_enable", "composer_banner_enable",
+                "banner_sticker_enable", "banner_label_enable",
+                "new_profile_layout", "profile_layout_v2", "profile_v2_enable",
+                "enable_new_profile", "enable_new_profile_ui", "profile_redesign_enable",
+                "profile_revamp_enable", "profile_cover_enable");
     }
 
     // ------------------------------------------------------------ the switches
@@ -74,6 +93,7 @@ public final class Flags {
 
     private static String keyOf(int group) {
         switch (group) {
+            case BANNERS: return KEY_BANNERS;
             default: return KEY_VOICE;
         }
     }
@@ -109,10 +129,41 @@ public final class Flags {
         Boolean plugin = Plugins.flag(key);
         if (plugin != null) return plugin;
         Override override = OVERRIDES.get(key);
-        if (override == null) return null;
+        if (override == null) {
+            // Unknown rename of the same feature: anything with "banner" in
+            // the name opens with the banner switch, so the list above does
+            // not have to spell every release exactly. Profile redesign flags
+            // ride along because the banner editor lives inside the new layout.
+            if (key != null && isOn(BANNERS) && containsBanner(key)) {
+                prove(key, Boolean.TRUE);
+                return Boolean.TRUE;
+            }
+            return null;
+        }
         if (!isOn(override.group)) return null;
         prove(key, override.value);
         return override.value;
+    }
+
+    /** Whether a flag name looks like the banner / new-profile feature. */
+    private static boolean containsBanner(String key) {
+        String lower;
+        try {
+            lower = key.toLowerCase(java.util.Locale.US);
+        } catch (Throwable ignored) {
+            return false;
+        }
+        if (lower.contains("banner")) return true;
+        // the banner editor ships inside the redesigned profile, so those
+        // flags open together; both halves are matched by substring, never by
+        // an obfuscated name that moves every release
+        if (lower.contains("profile") && (lower.contains("redesign")
+                || lower.contains("revamp") || lower.contains("cover")
+                || lower.contains("header") || lower.contains("v2")
+                || lower.contains("new_profile") || lower.contains("newprofile"))) return true;
+        if (lower.contains("composer") && (lower.contains("banner")
+                || lower.contains("label"))) return true;
+        return false;
     }
 
     /**
@@ -152,6 +203,7 @@ public final class Flags {
     public static long flag(String key, long fallback) {
         Object value = of(key);
         if (value instanceof Integer) return ((Integer) value).intValue();
+        if (value instanceof Boolean) return ((Boolean) value).booleanValue() ? 1L : 0L;
         return SettingsManager.LJFF(key, fallback);
     }
 
@@ -164,12 +216,14 @@ public final class Flags {
     public static float flag(String key, float fallback) {
         Object value = of(key);
         if (value instanceof Integer) return ((Integer) value).intValue();
+        if (value instanceof Boolean) return ((Boolean) value).booleanValue() ? 1f : 0f;
         return SettingsManager.LIZJ(key, fallback);
     }
 
     public static double flag(String key, double fallback) {
         Object value = of(key);
         if (value instanceof Integer) return ((Integer) value).intValue();
+        if (value instanceof Boolean) return ((Boolean) value).booleanValue() ? 1.0 : 0.0;
         return SettingsManager.LIZIZ(key, fallback);
     }
 }

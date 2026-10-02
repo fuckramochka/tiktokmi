@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.3.7",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.3.7/tiktokmi.apk",
-  "notes": "TikTok MI v0.3.7: Base updated to TikTok 47.1.4 universal nodpi. Fixed smali 64K method pool overflow on classes2.dex. Updated auto-streaks scanner and streak service method bindings for 47.1.4.",
-  "notes_ru": "TikTok MI v0.3.7: База обновлена до TikTok 47.1.4 universal nodpi. Исправлено переполнение пула методов 64K в classes2.dex. Обновлён автосканер огоньков и привязки сервиса стриков под 47.1.4.",
-  "notes_uk": "TikTok MI v0.3.7: Базу оновлено до TikTok 47.1.4 universal nodpi. Виправлено переповнення пулу методів 64K у classes2.dex. Оновлено автосканер вогників та прив'язки сервісу стріків під 47.1.4."
+  "version": "0.4.0",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.4.0/tiktokmi.apk",
+  "notes": "TikTok MI v0.4.0 PRO: fixed OLED/Themes tag collision, honest offline-likes queue, WatchHistory toggle respected, Ghost view-recycling leak + wider recall detection, Feed single-pass filter with per-reason diary, Diary 150 lines with dates, Updater v10+ support, Streaks mode (sticker/text) + no fake id=0 sends. Base TikTok 47.1.4 universal nodpi.",
+  "notes_ru": "TikTok MI v0.4.0 PRO: исправлена коллизия тегов OLED/Themes, честная офлайн-очередь лайков, тумблер истории соблюдается, утечка Ghost при ресайкле + шире детект отзыва, фильтр ленты за один проход с причинами в дневнике, дневник 150 строк с датами, апдейтер v10+, стрики: режим стикер/текст, без фейковых id=0. База TikTok 47.1.4 universal nodpi.",
+  "notes_uk": "TikTok MI v0.4.0 PRO: виправлено колізію тегів OLED/Themes, чесна офлайн-черга лайків, тумблер історії поважається, витік Ghost при ресайклі + ширший детект відкликання, фільтр стрічки за один прохід з причинами в щоденнику, щоденник 150 рядків з датами, апдейтер v10+, стріки: режим стікер/текст, без фейкових id=0. База TikTok 47.1.4 universal nodpi."
 }

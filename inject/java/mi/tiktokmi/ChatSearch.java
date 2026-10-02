@@ -59,6 +59,33 @@ public final class ChatSearch {
     private static boolean sLoaded = false;
     private static volatile boolean sDirty = false;
     private static final Object LOCK = new Object();
+    private static final android.os.Handler sFlushHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final Runnable sFlushTask = new Runnable() {
+        @Override
+        public void run() {
+            Net.away("chat-search-flush", new Runnable() {
+                @Override
+                public void run() {
+                    flush();
+                }
+            });
+        }
+    };
+
+    private static void scheduleFlush() {
+        try {
+            sFlushHandler.removeCallbacks(sFlushTask);
+            sFlushHandler.postDelayed(sFlushTask, 2000);
+        } catch (Throwable ignored) {
+            Net.away("chat-search-flush", new Runnable() {
+                @Override
+                public void run() {
+                    flush();
+                }
+            });
+        }
+    }
 
     private static void ensureLoaded() {
         if (sLoaded) return;
@@ -156,12 +183,7 @@ public final class ChatSearch {
             sDirty = true;
         }
 
-        Net.away("chat-search-flush", new Runnable() {
-            @Override
-            public void run() {
-                flush();
-            }
-        });
+        scheduleFlush();
 
         // Also notify Localizer
         Localizer.onChatMessage(convId, sender, text, isDeleted, time);

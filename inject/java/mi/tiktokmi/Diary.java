@@ -27,7 +27,7 @@ public final class Diary {
     private Diary() {}
 
     private static final String KEY = "diary";
-    private static final int KEEP = 40;
+    private static final int KEEP = 150;
 
     private static final List<String> LINES = new ArrayList<String>();
     private static boolean loaded;
@@ -37,11 +37,16 @@ public final class Diary {
         synchronized (LINES) {
             load();
             String last = LINES.isEmpty() ? "" : LINES.get(LINES.size() - 1);
-            if (last.length() > 10 && last.substring(10).equals(stamped.substring(10))) return;
+            if (!last.isEmpty() && body(last).equals(body(stamped))) return;
             LINES.add(stamped);
             while (LINES.size() > KEEP) LINES.remove(0);
             save();
         }
+    }
+
+    private static String body(String stamped) {
+        int at = stamped.indexOf("  ");
+        return at < 0 ? stamped : stamped.substring(at + 2);
     }
 
     public static List<String> lines() {
@@ -92,6 +97,6 @@ public final class Diary {
     }
 
     private static String stamp() {
-        return new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
+        return new SimpleDateFormat("dd.MM HH:mm:ss", Locale.US).format(new Date());
     }
 }

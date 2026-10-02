@@ -64,6 +64,28 @@ public final class WatchHistory {
     private static final String FILE_NAME = "tiktokmi_watch_history.json";
     private static final int MAX_ENTRIES = 1000;
 
+    public static boolean isEnabled() {
+        try {
+            android.content.Context ctx = Margy.context();
+            if (ctx == null) return true;
+            return ctx.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                    .getBoolean(KEY_ENABLED, true);
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    public static void setEnabled(boolean on) {
+        try {
+            android.content.Context ctx = Margy.context();
+            if (ctx != null) {
+                ctx.getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE)
+                        .edit().putBoolean(KEY_ENABLED, on).apply();
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
     public static final class Entry {
         public String aid;
         public String desc;
@@ -209,6 +231,7 @@ public final class WatchHistory {
 
     public static void onVideoWatched(Aweme aweme) {
         if (aweme == null) return;
+        if (!isEnabled()) return;
         try {
             String aid = aweme.getAid();
             if (aid == null || aid.isEmpty()) return;

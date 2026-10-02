@@ -296,6 +296,9 @@ public class SettingsActivity extends Activity {
         LinearLayout hidden = card();
         hidden.addView(toggleRow("mic", Text.VOICE, Flags.isOn(Flags.KEY_VOICE),
                 on -> Flags.set(Flags.KEY_VOICE, on)));
+        hidden.addView(line());
+        hidden.addView(toggleRow("image", Text.BANNERS, Flags.isOn(Flags.KEY_BANNERS),
+                on -> Flags.set(Flags.KEY_BANNERS, on)));
         column.addView(wrap(hidden));
         column.addView(caption(Text.HIDDEN_NOTE));
 
@@ -453,6 +456,22 @@ public class SettingsActivity extends Activity {
         streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(),
                 Streaks::setEnabled));
         streaks.addView(line());
+        streaks.addView(actionRow("swap_horiz", Text.STREAK_MODE,
+                Streaks.BY_TEXT.equals(Streaks.mode()) ? Text.STREAK_MODE_TEXT : Text.STREAK_MODE_STICKER,
+                () -> {
+                    boolean byText = Streaks.BY_TEXT.equals(Streaks.mode());
+                    Streaks.setMode(byText ? Streaks.BY_STICKER : Streaks.BY_TEXT);
+                    markChanged();
+                }));
+        if (Streaks.BY_TEXT.equals(Streaks.mode())) {
+            streaks.addView(line());
+            streaks.addView(actionRow("edit", Text.STREAK_TEXT_TITLE, Streaks.text(),
+                    () -> askText(Text.STREAK_TEXT_TITLE, Streaks.text(), Streaks.DEFAULT_TEXT, value -> {
+                        Streaks.setText(value);
+                        rebuild();
+                    })));
+        }
+        streaks.addView(line());
         streaks.addView(stickerHead());
         if (streakOpen) {
             streaks.addView(line());
@@ -461,7 +480,8 @@ public class SettingsActivity extends Activity {
         streaks.addView(line());
         streaks.addView(actionRow("play_circle", Text.STREAK_TEST, Text.STREAK_TEST_NOTE,
                 () -> {
-                    if (Streaks.offered().isEmpty() && Streaks.chosen().isEmpty()) {
+                    if (!Streaks.BY_TEXT.equals(Streaks.mode())
+                            && Streaks.offered().isEmpty() && Streaks.chosen().isEmpty()) {
                         Toast.makeText(this, Text.STREAK_NEED_STICKER, Toast.LENGTH_LONG).show();
                     } else {
                         Streaks.test(this);
@@ -584,7 +604,7 @@ public class SettingsActivity extends Activity {
         String[] current = Margy.current();
         LinearLayout row = row();
         row.addView(icon("place"));
-        row.setAlpha(Margy.isEnabled() ? 1f : 0.4f);
+        if (!Margy.isEnabled()) row.setAlpha(0.6f);
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
@@ -599,12 +619,10 @@ public class SettingsActivity extends Activity {
         chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         row.addView(chevron);
 
-        if (Margy.isEnabled()) {
-            row.setOnClickListener(v -> {
-                countriesOpen = !countriesOpen;
-                rebuild();
-            });
-        }
+        row.setOnClickListener(v -> {
+            countriesOpen = !countriesOpen;
+            rebuild();
+        });
         return sized(row, 64);
     }
 

@@ -111,6 +111,8 @@ public final class Ghost {
     }
 
     private static final int GHOST_TAG = 0x54544748; // "TTGH"
+    private static final int GHOST_LISTEN_TAG = 0x5454474C; // "TTGL"
+    private static final long GHOST_TTL = 10 * 60 * 1000L;
 
     // ------------------------------------------------- Message Interception
 
@@ -123,16 +125,19 @@ public final class Ghost {
 
         String raw = text.toString().trim();
         if (raw.isEmpty()) return text;
+        // Never feed badge/mention/system views into the DM index: only short
+        // chat-like texts are eligible, long captions stay out.
+        if (raw.length() > 1000) return text;
 
         if (isRecallNotice(raw)) {
-            Object tag = view.getTag(GHOST_TAG);
-            String saved = (tag instanceof String) ? (String) tag : null;
-            if (saved != null && !isRecallNotice(saved)) {
-                ChatSearch.indexMessage("dm", "Співрозмовник", saved, true, System.currentTimeMillis());
+            Saved saved = savedOf(view);
+            if (saved != null && !isRecallNotice(saved.text)
+                    && System.currentTimeMillis() - saved.at < GHOST_TTL) {
+                ChatSearch.indexMessage("dm", "Співрозмовник", saved.text, true, System.currentTimeMillis());
                 SpannableStringBuilder builder = new SpannableStringBuilder();
                 builder.append("👻 [Видалено]: ");
                 int start = builder.length();
-                builder.append(saved);
+                builder.append(saved.text);
                 // Subtle highlight for deleted message
                 builder.setSpan(new ForegroundColorSpan(0xFFFF4D4D), 0, start,
                         SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -140,8 +145,8 @@ public final class Ghost {
             }
         } else {
             // Normal message: remember it in case it gets recalled in this view
-            if (raw.length() > 0 && raw.length() < 1000) {
-                view.setTag(GHOST_TAG, raw);
+            remember(view, raw);
+            if (looksLikeChat(raw)) {
                 ChatSearch.indexMessage("dm", "Співрозмовник", raw, false, System.currentTimeMillis());
             }
         }
@@ -149,19 +154,84 @@ public final class Ghost {
         return text;
     }
 
+    private static final class Saved {
+        final String text;
+        final long at;
+
+        Saved(String text, long at) {
+            this.text = text;
+            this.at = at;
+        }
+    }
+
+    private static Saved savedOf(TextView view) {
+        try {
+            Object tag = view.getTag(GHOST_TAG);
+            if (tag instanceof Saved) return (Saved) tag;
+            // legacy plain-String tag from older builds
+            if (tag instanceof String) {
+                return new Saved((String) tag, System.currentTimeMillis());
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    private static void remember(final TextView view, String raw) {
+        try {
+            view.setTag(GHOST_TAG, new Saved(raw, System.currentTimeMillis()));
+            synchronized (messageCache) {
+                messageCache.put(System.identityHashCode(view), raw);
+            }
+            // RecyclerView reuses views across chats: drop the saved text when
+            // the view leaves the window so a recall in another chat cannot
+            // pick up someone else's message.
+            if (view.getTag(GHOST_LISTEN_TAG) == null) {
+                view.setTag(GHOST_LISTEN_TAG, Boolean.TRUE);
+                view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+                    @Override
+                    public void onViewAttachedToWindow(View v) {
+                    }
+
+                    @Override
+                    public void onViewDetachedFromWindow(View v) {
+                        try {
+                            v.setTag(GHOST_TAG, null);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                });
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** Cheap guard so nicknames/buttons/captions do not flood the DM index. */
+    private static boolean looksLikeChat(String raw) {
+        if (raw.length() > 500) return false;
+        if (raw.contains("\n\n\n")) return false;
+        return true;
+    }
+
     /**
      * Checks whether the string matches a recall or deletion notice.
      */
     private static boolean isRecallNotice(String text) {
-        if (text == null || text.length() > 65) return false;
+        if (text == null || text.length() > 140) return false;
         String lower = text.toLowerCase(java.util.Locale.US);
         return lower.contains("recalled")
-                || lower.contains("message recalled")
+                || lower.contains("unsent")
+                || lower.contains("message deleted")
                 || lower.contains("this message was deleted")
+                || lower.contains("message no longer available")
+                || lower.contains("deleted this message")
                 || lower.contains("повідомлення видалено")
                 || lower.contains("повідомлення відкликано")
+                || lower.contains("повідомлення видалене")
                 || lower.contains("сообщение удалено")
-                || lower.contains("сообщение отозвано");
+                || lower.contains("сообщение отозвано")
+                || lower.contains("видалив повідомлення")
+                || lower.contains("видалила повідомлення");
     }
 
     // -------------------------------------------------------------- Storage

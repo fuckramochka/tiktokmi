@@ -233,7 +233,7 @@ public final class Updater {
             int firstDot = cleaned.indexOf('.');
             if (firstDot > 0) {
                 int major = Integer.parseInt(cleaned.substring(0, firstDot));
-                if (major >= 10) return "";
+                if (major >= 100) return "";
             }
         } catch (Throwable ignored) {
         }
