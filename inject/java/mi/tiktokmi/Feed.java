@@ -358,7 +358,7 @@ public final class Feed {
                         if (view.getTag(OLED_ALPHA_TAG) == null) {
                             try {
                                 view.setTag(OLED_ALPHA_TAG, Float.valueOf(view.getAlpha()));
-                            } catch (Throwable ignored) {
+                            } catch (Throwable skip) {
                             }
                         }
                         view.setAlpha(0.6f);
@@ -370,10 +370,10 @@ public final class Feed {
                     Object saved = view.getTag(OLED_ALPHA_TAG);
                     float back = (saved instanceof Float) ? ((Float) saved).floatValue() : 1.0f;
                     view.setAlpha(back);
-                } catch (Throwable ignored) {
+                } catch (Throwable restore) {
                     try {
                         view.setAlpha(1.0f);
-                    } catch (Throwable ignored) {
+                    } catch (Throwable last) {
                     }
                 }
                 view.setTag(OLED_TAG, null);
