@@ -439,10 +439,24 @@ public final class Streaks {
         return service;
     }
 
+    public static boolean isValidConversationId(String id) {
+        if (id == null || id.length() < 3) return false;
+        String lower = id.toLowerCase(java.util.Locale.US);
+        if (lower.contains("banner") || lower.contains("pet") || lower.contains("invite")
+                || lower.contains("guide") || lower.contains("notice")) {
+            return false;
+        }
+        if (id.contains(":")) return true;
+        for (int i = 0; i < id.length(); i++) {
+            if (Character.isDigit(id.charAt(i))) return true;
+        }
+        return false;
+    }
+
     private static void note(IStreakService from, String conversation) {
         try {
             if (from != null) service = from;
-            if (conversation == null || conversation.length() == 0) return;
+            if (!isValidConversationId(conversation)) return;
             synchronized (asked) {
                 if (asked.size() > 200) {
                     asked.remove(asked.keySet().iterator().next());
@@ -455,13 +469,17 @@ public final class Streaks {
     }
 
     private static void saveConversation(String conversation) {
-        if (conversation == null || conversation.isEmpty()) return;
+        if (!isValidConversationId(conversation)) return;
         try {
             SharedPreferences prefs = prefs();
             if (prefs == null) return;
             java.util.Set<String> set = prefs.getStringSet(KEY_CONVERSATIONS, null);
             java.util.Set<String> updated = new java.util.HashSet<String>();
-            if (set != null) updated.addAll(set);
+            if (set != null) {
+                for (String s : set) {
+                    if (isValidConversationId(s)) updated.add(s);
+                }
+            }
             if (updated.add(conversation)) {
                 prefs.edit().putStringSet(KEY_CONVERSATIONS, updated).apply();
             }
@@ -612,13 +630,15 @@ public final class Streaks {
         }
         sLastRoundAt = System.currentTimeMillis();
         final boolean byText = BY_TEXT.equals(mode());
-        StickerItem sticker = byText ? null : sticker(chosen());
-        if (!byText && sticker == null && !seenStickers.isEmpty()) {
+        StickerItem sticker = sticker(chosen());
+        if (sticker == null && !seenStickers.isEmpty()) {
             sticker = seenStickers.values().iterator().next();
         }
-        // Never send a fabricated sticker: a fake id=0 is a "successful" call
-        // that the server drops, which looks exactly like "auto-streak broken".
-        if (!byText && sticker == null) {
+        if (sticker == null) {
+            sticker = makeFallbackSticker();
+        }
+        // Never send an empty sticker if sending by sticker
+        if (!byText && (sticker == null || !isRealSticker(sticker))) {
             Diary.note("streaks: no sticker chosen/seen yet, open stickers in a chat first");
             List<String> probe = conversations();
             if (probe.isEmpty()) {
@@ -742,9 +762,12 @@ public final class Streaks {
      */
     public static void test(final Context context) {
         final boolean byText = BY_TEXT.equals(mode());
-        StickerItem sticker = byText ? null : sticker(chosen());
-        if (!byText && sticker == null && !seenStickers.isEmpty()) {
+        StickerItem sticker = sticker(chosen());
+        if (sticker == null && !seenStickers.isEmpty()) {
             sticker = seenStickers.values().iterator().next();
+        }
+        if (sticker == null) {
+            sticker = makeFallbackSticker();
         }
         final List<String> all = conversations();
         Diary.note("streak test: " + all.size() + " conversation(s) known, sending "
@@ -757,7 +780,7 @@ public final class Streaks {
             Screen.say(Text.STREAK_TEST_NONE);
             return;
         }
-        if (!byText && sticker == null) {
+        if (!byText && (sticker == null || !isRealSticker(sticker))) {
             Diary.note("streak test: no sticker to send (open stickers in a chat first)");
             Screen.say(Text.STREAK_NEED_STICKER);
             return;
@@ -786,18 +809,30 @@ public final class Streaks {
     /** Whichever way was chosen, with automatic fallback so streaks never fail. */
     private static boolean deliver(Context context, StickerItem sticker,
                                    String conversation) {
-        if (context == null || conversation == null || conversation.isEmpty()) return false;
+        if (context == null || conversation == null || !isValidConversationId(conversation)) return false;
+        if (sticker == null || !isRealSticker(sticker)) {
+            sticker = sticker(chosen());
+            if (sticker == null && !seenStickers.isEmpty()) {
+                sticker = seenStickers.values().iterator().next();
+            }
+            if (sticker == null) {
+                sticker = makeFallbackSticker();
+            }
+        }
         if (BY_TEXT.equals(mode())) {
             boolean ok = sendText(context, conversation, text());
             if (!ok && sticker != null && isRealSticker(sticker)) {
                 ok = send(context, sticker, conversation);
+                if (ok) {
+                    Diary.note("streak: fallback to sticker kept streak with " + conversation);
+                }
             }
             return ok;
         } else {
-            if (sticker == null || !isRealSticker(sticker)) {
-                return sendText(context, conversation, text());
+            boolean ok = false;
+            if (sticker != null && isRealSticker(sticker)) {
+                ok = send(context, sticker, conversation);
             }
-            boolean ok = send(context, sticker, conversation);
             if (!ok) {
                 ok = sendText(context, conversation, text());
             }
@@ -847,7 +882,7 @@ public final class Streaks {
      * Send streak text/nudge into conversation.
      */
     private static boolean sendText(Context context, String conversation, String words) {
-        if (context == null || conversation == null) return false;
+        if (context == null || conversation == null || !isValidConversationId(conversation)) return false;
         String msg = (words != null && !words.trim().isEmpty()) ? words.trim() : DEFAULT_TEXT;
 
         // Try IIMNudgeAndStreakService first
@@ -876,28 +911,32 @@ public final class Streaks {
             Diary.note("streak sendText via nudge: " + error);
         }
 
-        // Try IStreakService methods taking (String, String, ...)
-        IStreakService svc = getService();
-        if (svc != null) {
-            try {
-                for (Method m : svc.getClass().getMethods()) {
-                    Class<?>[] params = m.getParameterTypes();
-                    if (params.length >= 2 && params[0] == String.class && params[1] == String.class) {
-                        m.setAccessible(true);
-                        Object[] args = new Object[params.length];
-                        args[0] = conversation;
-                        args[1] = msg;
-                        for (int i = 2; i < params.length; i++) {
-                            args[i] = maybe(params[i]);
+        // Try IIMService
+        try {
+            Class<?> smClass = Class.forName("com.ss.android.ugc.aweme.framework.services.ServiceManager");
+            Method getMethod = smClass.getMethod("get");
+            Object sm = getMethod.invoke(null);
+            if (sm != null) {
+                Class<?> imClass = Class.forName("com.ss.android.ugc.aweme.im.service.IIMService");
+                Method getServiceMethod = sm.getClass().getMethod("getService", Class.class);
+                Object imService = getServiceMethod.invoke(sm, imClass);
+                if (imService != null) {
+                    for (Method m : imService.getClass().getMethods()) {
+                        Class<?>[] params = m.getParameterTypes();
+                        if (params.length == 2 && params[0] == String.class && params[1] == String.class) {
+                            String name = m.getName().toLowerCase(java.util.Locale.US);
+                            if (name.contains("send") || name.contains("msg") || name.contains("text")) {
+                                m.setAccessible(true);
+                                m.invoke(imService, conversation, msg);
+                                Diary.note("streak text sent via IIMService." + m.getName() + ": " + conversation);
+                                return true;
+                            }
                         }
-                        m.invoke(svc, args);
-                        Diary.note("streak text sent via IStreakService." + m.getName() + " for " + conversation);
-                        return true;
                     }
                 }
-            } catch (Throwable error) {
-                Diary.note("streak sendText via IStreakService: " + error);
             }
+        } catch (Throwable error) {
+            Diary.note("streak sendText via IIMService: " + error);
         }
 
         return false;
@@ -916,7 +955,7 @@ public final class Streaks {
                         Map<?, ?> map = (Map<?, ?>) m.invoke(svc);
                         if (map != null) {
                             for (Object k : map.keySet()) {
-                                if (k instanceof String) {
+                                if (k instanceof String && isValidConversationId((String) k)) {
                                     all.add((String) k);
                                     saveConversation((String) k);
                                 }
@@ -927,18 +966,33 @@ public final class Streaks {
             } catch (Throwable ignored) {}
         }
 
-        // 2. Query persistent storage
+        // 2. Query persistent storage and prune invalid IDs
         try {
             SharedPreferences prefs = prefs();
             if (prefs != null) {
                 java.util.Set<String> saved = prefs.getStringSet(KEY_CONVERSATIONS, null);
-                if (saved != null) all.addAll(saved);
+                if (saved != null) {
+                    java.util.Set<String> validSet = new java.util.HashSet<String>();
+                    for (String s : saved) {
+                        if (isValidConversationId(s)) {
+                            all.add(s);
+                            validSet.add(s);
+                        }
+                    }
+                    if (validSet.size() != saved.size()) {
+                        prefs.edit().putStringSet(KEY_CONVERSATIONS, validSet).apply();
+                    }
+                }
             }
         } catch (Throwable ignored) {}
 
         // 3. Query memory
         synchronized (asked) {
-            all.addAll(asked.keySet());
+            for (String k : asked.keySet()) {
+                if (isValidConversationId(k)) {
+                    all.add(k);
+                }
+            }
         }
 
         List<String> out = new ArrayList<String>(all);

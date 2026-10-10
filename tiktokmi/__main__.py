@@ -64,8 +64,16 @@ def main(argv=None) -> int:
         except ValueError:
             parser.error("--accent wants six hex digits, like 8DD1B0")
 
+    keystore = args.keystore
+    if not keystore:
+        for candidate in ("tiktokmi.keystore", "tiktokmi.jks", "release.keystore", "release.jks"):
+            path = os.path.join(ROOT, candidate)
+            if os.path.exists(path):
+                keystore = path
+                break
+
     tools = Toolchain(args.tools)
-    build = Build(args.apk, args.out, ROOT, tools, args.work, args.keystore, accent)
+    build = Build(args.apk, args.out, ROOT, tools, args.work, keystore, accent)
     try:
         build.run()
     except Exception as error:  # a build failure is a message, not a traceback

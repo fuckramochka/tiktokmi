@@ -576,9 +576,6 @@ public class SettingsActivity extends Activity {
         video.addView(toggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(), Seekbar::setEnabled));
         video.addView(line());
         video.addView(toggleRow("play_circle", Text.SPEED_LOCK_SETTING, SpeedOverlay.isEnabled(), SpeedOverlay::setEnabled));
-        video.addView(line());
-        video.addView(actionRow("play_circle", "Пример оверлея 2×", "Показать оверлей",
-                () -> SpeedOverlay.show(this)));
         column.addView(wrap(video));
         column.addView(caption(Text.SPEED_LOCK_SUB));
 
@@ -590,7 +587,7 @@ public class SettingsActivity extends Activity {
         hidden.addView(toggleRow("image", Text.BANNERS, Flags.isOn(Flags.KEY_BANNERS),
                 on -> Flags.set(Flags.KEY_BANNERS, on)));
         column.addView(wrap(hidden));
-        column.addView(caption(Text.HIDDEN_NOTE));
+        column.addView(caption(Text.BANNERS_SUB));
     }
 
     private void buildFriendsCategory() {
@@ -1005,9 +1002,6 @@ public class SettingsActivity extends Activity {
             if (found) results.addView(line());
             found = true;
             results.addView(toggleRow("play_circle", Text.SPEED_LOCK_SETTING, SpeedOverlay.isEnabled(), SpeedOverlay::setEnabled));
-            results.addView(line());
-            results.addView(actionRow("play_circle", "Пример оверлея 2×", "Показать оверлей",
-                    () -> SpeedOverlay.show(this)));
         }
         if (match(q, "история", "history", "просмотры", "продо", "прода", "часть 2")) {
             if (found) results.addView(line());

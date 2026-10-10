@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.4.0",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/v0.4.0/tiktokmi.apk",
-  "notes": "TikTok MI v0.4.0 PRO: fixed OLED/Themes tag collision, honest offline-likes queue, WatchHistory toggle respected, Ghost view-recycling leak + wider recall detection, Feed single-pass filter with per-reason diary, Diary 150 lines with dates, Updater v10+ support, Streaks mode (sticker/text) + no fake id=0 sends. Base TikTok 47.1.4 universal nodpi.",
-  "notes_ru": "TikTok MI v0.4.0 PRO: исправлена коллизия тегов OLED/Themes, честная офлайн-очередь лайков, тумблер истории соблюдается, утечка Ghost при ресайкле + шире детект отзыва, фильтр ленты за один проход с причинами в дневнике, дневник 150 строк с датами, апдейтер v10+, стрики: режим стикер/текст, без фейковых id=0. База TikTok 47.1.4 universal nodpi.",
-  "notes_uk": "TikTok MI v0.4.0 PRO: виправлено колізію тегів OLED/Themes, чесна офлайн-черга лайків, тумблер історії поважається, витік Ghost при ресайклі + ширший детект відкликання, фільтр стрічки за один прохід з причинами в щоденнику, щоденник 150 рядків з датами, апдейтер v10+, стріки: режим стікер/текст, без фейкових id=0. База TikTok 47.1.4 universal nodpi."
+  "version": "0.4.1",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/0.4.1/tiktokmi.apk",
+  "notes": "TikTok MI v0.4.1: fixed streaks delivery and conversation filtering with reliable sticker fallback, fixed banner flags suppression, removed speed overlay mock preview, updated documentation and keystore handling. Base TikTok 47.1.4 universal nodpi.",
+  "notes_ru": "TikTok MI v0.4.1: исправлена доставка серий (стриков) и фильтрация диалогов с надежным фолбеком на стикеры, исправлено подавление флагов баннеров, удален мок оверлея скорости, обновлена документация и автоопределение keystore. База TikTok 47.1.4 universal nodpi.",
+  "notes_uk": "TikTok MI v0.4.1: виправлено доставку серій (стріків) та фільтрацію діалогів з надійним фолбеком на стікери, виправлено придушення прапорців банерів, видалено демо оверлею швидкості, оновлено документацію та автовизначення keystore. База TikTok 47.1.4 universal nodpi."
 }

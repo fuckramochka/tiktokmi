@@ -149,6 +149,11 @@ final class Text {
             "Баннеры профиля и новый профиль", "Банери профілю та новий профіль",
             "Profile banners and the new profile");
 
+    static final String BANNERS_SUB = pick(
+            "A/B флаги профиля. Отображение зависит от поддержки сервером и наличия баннера у аккаунта",
+            "A/B прапорці профілю. Відображення залежить від підтримки сервером і наявності банера в акаунта",
+            "Profile A/B flags. Display depends on server support and account banner data");
+
     static final String THEME_STRENGTH = pick(
             "Насыщенность фона", "Насиченість тла", "How much of that background");
 
@@ -726,8 +731,8 @@ final class Text {
     static final String SPEED_DOWN_LOCK = pick("Вниз · закрепить 2×", "Вниз · закріпити 2×", "Down · lock 2×");
     static final String SPEED_INDICATOR = pick("Скорость: 2х", "Швидкість: 2х", "Speed: 2x");
     static final String SPEED_LOCKED = pick("2× закреплено · Нажмите для сброса", "2× закріплено · Натисніть для скидання", "2× locked · Tap to reset");
-    static final String SPEED_LOCK_SETTING = pick("Закрепление скорости 2×", "Закріплення швидкості 2×", "Lock 2x speed");
-    static final String SPEED_LOCK_SUB = pick("Жест вниз для удержания ускорения без касания", "Жест вниз для утримання прискорення без торкання", "Swipe down to keep playback fast without holding");
+    static final String SPEED_LOCK_SETTING = pick("Закрепление скорости 2× (в разработке)", "Закріплення швидкості 2× (в розробці)", "Lock 2x speed (in progress)");
+    static final String SPEED_LOCK_SUB = pick("Оверлей удержания 2× без касания экрана (функция в разработке)", "Оверлей утримання 2× без торкання екрана (функція в розробці)", "Overlay to keep playback fast without holding (work in progress)");
     static final String QUALITY_SHEET_SETTING = pick("Диалог выбора качества", "Діалог вибору якості", "Quality selection dialog");
     static final String QUALITY_SHEET_SUB = pick("Предлагать выбор качества и аудио перед скачиванием", "Пропонувати вибір якості та аудіо перед завантаженням", "Offer quality and audio choice before download");
     static final String TIME_INFO_SETTING = pick("Точное время публикации", "Точний час публікації", "Exact publication time");

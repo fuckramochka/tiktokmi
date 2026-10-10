@@ -153,6 +153,14 @@ public final class Flags {
         } catch (Throwable ignored) {
             return false;
         }
+        // Exclude suppression / negative flags that dismiss, timeout, or deactivate banners!
+        if (lower.contains("inactive") || lower.contains("dismiss")
+                || lower.contains("timeout") || lower.contains("takedown")
+                || lower.contains("bypass") || lower.contains("disable")
+                || lower.contains("hide") || lower.contains("close")
+                || lower.contains("pet")) {
+            return false;
+        }
         if (lower.contains("banner")) return true;
         // the banner editor ships inside the redesigned profile, so those
         // flags open together; both halves are matched by substring, never by
