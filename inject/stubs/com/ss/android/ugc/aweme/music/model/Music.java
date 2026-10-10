@@ -23,4 +23,16 @@ public class Music {
     public int getMuteType() {
         throw new UnsupportedOperationException("stub");
     }
+
+    public com.ss.android.ugc.aweme.base.model.UrlModel getPlayUrl() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public String getTitle() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public String getAuthorName() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

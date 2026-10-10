@@ -21,3 +21,5 @@ vendor/
 __pycache__/
 *.pyc
 tools/jadx/
+photo_*.jpg
+video_*.mp4

@@ -119,6 +119,13 @@ public final class WatchHistory {
     }
 
     private static final Map<String, Entry> sEntries = new LinkedHashMap<String, Entry>(128, 0.75f, true);
+    private static final Map<String, Bitmap> sThumbCache =
+            java.util.Collections.synchronizedMap(new LinkedHashMap<String, Bitmap>(32, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Bitmap> eldest) {
+                    return size() > 80;
+                }
+            });
     private static boolean sLoaded = false;
     private static volatile boolean sDirty = false;
     private static final Object LOCK = new Object();
@@ -227,7 +234,8 @@ public final class WatchHistory {
         sFlushHandler.postDelayed(sFlushRunnable, 2000);
     }
 
-    // ------------------------------------------------------------- Recording
+    private static volatile String sLastRecordedAid = null;
+    private static volatile long sLastRecordedTime = 0;
 
     public static void onVideoWatched(Aweme aweme) {
         if (aweme == null) return;
@@ -235,6 +243,13 @@ public final class WatchHistory {
         try {
             String aid = aweme.getAid();
             if (aid == null || aid.isEmpty()) return;
+
+            long now = System.currentTimeMillis();
+            if (aid.equals(sLastRecordedAid) && (now - sLastRecordedTime) < 5000) {
+                return;
+            }
+            sLastRecordedAid = aid;
+            sLastRecordedTime = now;
 
             ensureLoaded();
 
@@ -480,24 +495,32 @@ public final class WatchHistory {
                         thumbLp.rightMargin = dp12;
                         card.addView(coverView, thumbLp);
 
-                        // Async load cover
+                        // Async load cover with memory cache
                         if (item.coverUrl != null && !item.coverUrl.isEmpty()) {
                             final String cUrl = item.coverUrl;
-                            Net.away("history-thumb", new Runnable() {
-                                @Override
-                                public void run() {
-                                    final byte[] b = Net.bytes(cUrl);
-                                    if (b != null) {
-                                        final Bitmap bmp = BitmapFactory.decodeByteArray(b, 0, b.length);
-                                        new Handler(Looper.getMainLooper()).post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                if (bmp != null) coverView.setImageBitmap(bmp);
+                            Bitmap cachedBmp = sThumbCache.get(cUrl);
+                            if (cachedBmp != null) {
+                                coverView.setImageBitmap(cachedBmp);
+                            } else {
+                                Net.away("history-thumb", new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        final byte[] b = Net.bytes(cUrl);
+                                        if (b != null) {
+                                            final Bitmap bmp = BitmapFactory.decodeByteArray(b, 0, b.length);
+                                            if (bmp != null) {
+                                                sThumbCache.put(cUrl, bmp);
+                                                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        coverView.setImageBitmap(bmp);
+                                                    }
+                                                });
                                             }
-                                        });
+                                        }
                                     }
-                                }
-                            });
+                                });
+                            }
                         }
 
                         // Text details

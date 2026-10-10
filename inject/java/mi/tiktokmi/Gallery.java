@@ -87,7 +87,7 @@ public final class Gallery {
         try {
             return Build.VERSION.SDK_INT >= 29
                     ? modern(context, data, name, mime)
-                    : older(data, name);
+                    : older(data, name, mime);
         } catch (Throwable error) {
             Diary.note("gallery: " + error);
             return null;
@@ -100,13 +100,18 @@ public final class Gallery {
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
         values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+        String dirName = mime.startsWith("audio")
+                ? Environment.DIRECTORY_MUSIC
+                : Environment.DIRECTORY_PICTURES;
         values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES + File.separator + folder());
+                dirName + File.separator + folder());
         values.put(MediaStore.MediaColumns.IS_PENDING, 1);
 
         Uri collection = mime.startsWith("video")
                 ? MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                : MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                : (mime.startsWith("audio")
+                    ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                    : MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY));
         Uri item = resolver.insert(collection, values);
         if (item == null) return null;
 
@@ -121,12 +126,15 @@ public final class Gallery {
         values.clear();
         values.put(MediaStore.MediaColumns.IS_PENDING, 0);
         resolver.update(item, values, null, null);
-        return Environment.DIRECTORY_PICTURES + "/" + folder() + "/" + name;
+        return dirName + "/" + folder() + "/" + name;
     }
 
-    private static String older(byte[] data, String name) throws Exception {
+    private static String older(byte[] data, String name, String mime) throws Exception {
+        String dirName = (mime != null && mime.startsWith("audio"))
+                ? Environment.DIRECTORY_MUSIC
+                : Environment.DIRECTORY_PICTURES;
         File folder = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), folder());
+                dirName), folder());
         if (!folder.isDirectory()) folder.mkdirs();
         File file = new File(folder, name);
         if (!Net.save(file, data)) return null;

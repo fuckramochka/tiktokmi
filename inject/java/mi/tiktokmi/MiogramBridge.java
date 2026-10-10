@@ -119,8 +119,11 @@ public final class MiogramBridge {
         }
 
         try {
-            Uri uri = androidx.core.content.FileProvider.getUriForFile(
-                    context, context.getPackageName() + ".fileprovider", file);
+            Uri uri = MargyProvider.share(context, file);
+            if (uri == null) {
+                shareMedia(context, file, "video/mp4", caption != null ? caption : "Story from TikTok MI");
+                return;
+            }
 
             String targetPkg = getPreferredPackage(context);
             Intent storyIntent = new Intent(ACTION_POST_STORY);

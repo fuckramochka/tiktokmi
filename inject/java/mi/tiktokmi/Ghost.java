@@ -1,5 +1,6 @@
 package mi.tiktokmi;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.SpannableStringBuilder;
@@ -114,7 +115,39 @@ public final class Ghost {
     private static final int GHOST_LISTEN_TAG = 0x5454474C; // "TTGL"
     private static final long GHOST_TTL = 10 * 60 * 1000L;
 
-    // ------------------------------------------------- Message Interception
+    /**
+     * Checks whether the given view is hosted inside a chat/DM activity or message container.
+     */
+    public static boolean isChatContext(View view) {
+        if (view == null) return false;
+        try {
+            Context ctx = view.getContext();
+            while (ctx instanceof android.content.ContextWrapper) {
+                if (ctx instanceof Activity) break;
+                ctx = ((android.content.ContextWrapper) ctx).getBaseContext();
+            }
+            String actName = (ctx instanceof Activity) ? ctx.getClass().getName() : null;
+            if (actName == null && Screen.now() != null) {
+                actName = Screen.now().getClass().getName();
+            }
+            if (actName != null) {
+                String lower = actName.toLowerCase(java.util.Locale.US);
+                if (lower.contains("chat") || lower.contains("message")
+                        || lower.contains(".im.") || lower.contains("conversation")) {
+                    return true;
+                }
+            }
+            int id = view.getId();
+            if (id != View.NO_ID) {
+                String resName = view.getResources().getResourceEntryName(id).toLowerCase(java.util.Locale.US);
+                if (resName.contains("msg") || resName.contains("message") || resName.contains("chat_text")) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
 
     /**
      * Intercepts message text on its way to a TextView in Direct Messages.
@@ -125,9 +158,13 @@ public final class Ghost {
 
         String raw = text.toString().trim();
         if (raw.isEmpty()) return text;
-        // Never feed badge/mention/system views into the DM index: only short
-        // chat-like texts are eligible, long captions stay out.
+        // Never feed non-chat or excessively long texts into the DM index
         if (raw.length() > 1000) return text;
+
+        // ONLY process messages when we are genuinely inside a chat / DM screen
+        if (!isChatContext(view)) {
+            return text;
+        }
 
         if (isRecallNotice(raw)) {
             Saved saved = savedOf(view);

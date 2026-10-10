@@ -59,4 +59,8 @@ public class Aweme {
     public long getCreateTime() {
         throw new UnsupportedOperationException("stub");
     }
+
+    public com.ss.android.ugc.aweme.music.model.Music getMusic() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

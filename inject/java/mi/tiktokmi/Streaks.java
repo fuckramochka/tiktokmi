@@ -61,12 +61,18 @@ public final class Streaks {
     public static final String KEY_MODE = "streak_mode";
     public static final String KEY_TEXT = "streak_text";
     public static final String KEY_CONVERSATIONS = "streak_saved_conversations";
+    public static final String KEY_SCHEDULE_HOUR = "streak_schedule_hour";
+    public static final String KEY_SCHEDULE_MINUTE = "streak_schedule_minute";
 
     /** What to send: a sticker, or a message. */
     public static final String BY_STICKER = "sticker";
     public static final String BY_TEXT = "text";
 
-    public static final String DEFAULT_TEXT = "🔥 Авто-стрік!";
+    public static final String DEFAULT_TEXT = "tiktokmi";
+
+    /** Default hour is 12 (12 дня / noon). */
+    public static final int DEFAULT_HOUR = 12;
+    public static final int DEFAULT_MINUTE = 0;
 
     /**
      * The status TikTok gives a streak whose flame has gone grey.
@@ -106,7 +112,7 @@ public final class Streaks {
 
     public static String mode() {
         SharedPreferences prefs = prefs();
-        return prefs == null ? BY_STICKER : prefs.getString(KEY_MODE, BY_STICKER);
+        return prefs == null ? BY_TEXT : prefs.getString(KEY_MODE, BY_TEXT);
     }
 
     public static void setMode(String mode) {
@@ -126,6 +132,43 @@ public final class Streaks {
                     value == null || value.trim().length() == 0 ? DEFAULT_TEXT : value.trim())
                     .apply();
         }
+    }
+
+    public static int scheduleHour() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? DEFAULT_HOUR : prefs.getInt(KEY_SCHEDULE_HOUR, DEFAULT_HOUR);
+    }
+
+    public static int scheduleMinute() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? DEFAULT_MINUTE : prefs.getInt(KEY_SCHEDULE_MINUTE, DEFAULT_MINUTE);
+    }
+
+    public static void setScheduleTime(int hour, int minute) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) {
+            prefs.edit().putInt(KEY_SCHEDULE_HOUR, hour)
+                    .putInt(KEY_SCHEDULE_MINUTE, minute).apply();
+        }
+    }
+
+    public static String formatScheduleTime() {
+        int h = scheduleHour();
+        int m = scheduleMinute();
+        return String.format(java.util.Locale.US, "%02d:%02d", h, m);
+    }
+
+    public static String todayKey() {
+        return new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date());
+    }
+
+    public static boolean isTimeDue() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int curHour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+        int curMin = cal.get(java.util.Calendar.MINUTE);
+        int schedHour = scheduleHour();
+        int schedMin = scheduleMinute();
+        return (curHour > schedHour) || (curHour == schedHour && curMin >= schedMin);
     }
 
     public static String chosen() {
@@ -525,22 +568,22 @@ public final class Streaks {
         final Handler handler = new Handler(Looper.getMainLooper());
         final Context application = context.getApplicationContext();
 
-        // 1. Initial quick scan 8 seconds after start once TikTok services have initialized
+        // 1. Initial quick scan 5 seconds after start once TikTok services have initialized
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 round(application);
             }
-        }, 8000L);
+        }, 5000L);
 
-        // 2. Periodic background scan every 10 minutes
+        // 2. Periodic background scan every 2 minutes
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 round(application);
-                handler.postDelayed(this, 10 * 60 * 1000L);
+                handler.postDelayed(this, 2 * 60 * 1000L);
             }
-        }, 10 * 60 * 1000L);
+        }, 2 * 60 * 1000L);
     }
 
     /**
@@ -549,20 +592,24 @@ public final class Streaks {
     public static void onResumed(android.app.Activity activity) {
         if (activity == null || !isEnabled()) return;
         long now = System.currentTimeMillis();
-        if (now - sLastRoundAt > 2 * 60 * 1000L) {
+        if (now - sLastRoundAt > 60 * 1000L) {
             final Context app = activity.getApplicationContext();
             new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     round(app);
                 }
-            }, 1500L);
+            }, 1000L);
         }
     }
 
-    /** One pass over what is known, automatically scanning and sending where grey. */
+    /** One pass over what is known, automatically scanning and sending where grey or scheduled. */
     public static void round(final Context context) {
         if (!isEnabled() || context == null) return;
+        if (!isTimeDue()) {
+            Diary.note("streaks: scheduled for " + formatScheduleTime() + ", time not reached yet today");
+            return;
+        }
         sLastRoundAt = System.currentTimeMillis();
         final boolean byText = BY_TEXT.equals(mode());
         StickerItem sticker = byText ? null : sticker(chosen());
@@ -592,20 +639,21 @@ public final class Streaks {
         int grey = 0, lit = 0, gone = 0, unknown = 0, already = 0;
         long now = System.currentTimeMillis();
         for (String conversation : all) {
-            StreakData data = ask(conversation);
-            if (data == null) {
-                unknown++;
+            if (sentToday(conversation, now)) {
+                already++;
                 continue;
             }
-            String state = statusOf(data);
+            StreakData data = ask(conversation);
+            String state = data != null ? statusOf(data) : null;
             if (GREY.equals(state)) {
                 grey++;
-                if (sentToday(conversation, now)) already++;
-                else due.add(conversation);
+                due.add(conversation);
             } else if ("ACTIVE".equals(state)) {
                 lit++;
+                due.add(conversation);
             } else if (state == null) {
                 unknown++;
+                due.add(conversation);
             } else {
                 gone++;
             }
@@ -925,6 +973,9 @@ public final class Streaks {
         SharedPreferences prefs = prefs();
         if (prefs == null) return false;
         try {
+            String today = todayKey();
+            String recorded = prefs.getString("streak_sent_date_" + conversation, "");
+            if (today.equals(recorded)) return true;
             return now - prefs.getLong("streak_at_" + conversation, 0) < DAY;
         } catch (Throwable ignored) {
             return false;
@@ -934,8 +985,11 @@ public final class Streaks {
     private static void remember(String conversation) {
         SharedPreferences prefs = prefs();
         if (prefs != null) {
-            prefs.edit().putLong("streak_at_" + conversation,
-                    System.currentTimeMillis()).apply();
+            String today = todayKey();
+            prefs.edit()
+                    .putString("streak_sent_date_" + conversation, today)
+                    .putLong("streak_at_" + conversation, System.currentTimeMillis())
+                    .apply();
         }
     }
 

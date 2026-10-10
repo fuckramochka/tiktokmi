@@ -425,6 +425,14 @@ final class Text {
     static final String STREAK_AUTO = pick(
             "Продлевать серии автоматически", "Продовжувати серії автоматично", "Keep streaks automatically");
 
+    static final String STREAK_SCHEDULE_TIME = pick(
+            "Время отправки", "Час надсилання", "Sending time");
+
+    static final String STREAK_SCHEDULE_SUB = pick(
+            "Ежедневно в выбранное время (по стандарту 12:00 дня)",
+            "Щодня в обраний час (за стандартом 12:00 дня)",
+            "Daily at scheduled time (12:00 default)");
+
     static final String BETA = pick("авто", "авто", "auto");
 
     static final String STREAK_NOTE = pick(
@@ -662,6 +670,68 @@ final class Text {
     static final String BADGE_VARIANT_TITLE = pick("Стиль значка Amegram", "Стиль значка Amegram", "Amegram Badge Style");
     static final String BADGE_VARIANT_TG = "Amegram ໒꒱ (Telegram)";
     static final String BADGE_VARIANT_TT = "TikTok MI (Mint)";
+
+    // ------------------------------------------------ MD3 Categories & Search
+    static final String CAT_APPEARANCE_TITLE = pick("Оформление", "Оформлення", "Appearance");
+    static final String CAT_APPEARANCE_SUB = pick("Акцент, тема, шрифты и текстуры", "Акцент, тема, шрифти та текстури", "Accent, theme, fonts & textures");
+
+    static final String CAT_PROFILE_TITLE = pick("Профиль", "Профіль", "Profile");
+    static final String CAT_PROFILE_SUB = pick("Ник, значки и аккаунт", "Нік, значки та акаунт", "Nickname, badges & account");
+
+    static final String CAT_FEED_TITLE = pick("Лента и видео", "Стрічка та відео", "Feed & Video");
+    static final String CAT_FEED_SUB = pick("Музыка, просмотр видео и регион", "Музика, перегляд відео та регіон", "Music, playback & region");
+
+    static final String CAT_FRIENDS_TITLE = pick("Друзья и чаты", "Друзі та чати", "Friends & Chats");
+    static final String CAT_FRIENDS_SUB = pick("Друзья, серии и уведомления", "Друзі, серії та сповіщення", "Friends, streaks & notifications");
+
+    static final String CAT_TOOLS_TITLE = pick("Инструменты", "Інструменти", "Tools");
+    static final String CAT_TOOLS_SUB = pick("Скачивание, копии и диагностика", "Завантаження, копії та діагностика", "Downloads, backups & diagnostics");
+
+    static final String CAT_PLUGINS_TITLE = pick("Плагины", "Плагіни", "Plugins");
+    static final String CAT_PLUGINS_SUB = pick("Магазин и установленные", "Магазин та встановлені", "Store & installed");
+
+    static final String CAT_ABOUT_TITLE = pick("О проекте", "Про проєкт", "About");
+    static final String CAT_ABOUT_SUB = pick("Версия, обновления и участники", "Версія, оновлення та учасники", "Version, updates & contributors");
+
+    static final String SEARCH_HINT = pick("Поиск по настройкам", "Пошук за налаштуваннями", "Search settings");
+    static final String SEARCH_BUTTON = pick("Найти", "Знайти", "Search");
+    static final String SEARCH_RESULTS = pick("Результаты поиска", "Результати пошуку", "Search results");
+    static final String SEARCH_EMPTY = pick("По вашему запросу ничего не найдено", "За вашим запитом нічого не знайдено", "Nothing found for your query");
+    static final String SEARCH_RESET = pick("Сбросить поиск", "Скинути пошук", "Clear search");
+
+    // Quality Selector Sheet
+    static final String QUALITY_CHOOSE = pick("Выберите качество", "Виберіть якість", "Choose quality");
+    static final String QUALITY_BEST = pick("Лучшее качество", "Краща якість", "Best quality");
+    static final String QUALITY_WORST = pick("Худшее качество", "Гірша якість", "Lowest quality");
+    static final String QUALITY_AUDIO_ONLY = pick("Только звук", "Лише звук", "Audio only");
+    static final String GOT_IT = pick("Понятно", "Зрозуміло", "Got it");
+    static final String DOWNLOAD_FAILED = pick("Не удалось скачать", "Не вдалося завантажити", "Download failed");
+    static final String DOWNLOAD_SAVED = pick("Видео сохранено", "Відео збережено", "Video saved");
+    static final String AUDIO_SAVED = pick("Аудио сохранено", "Аудіо збережено", "Audio saved");
+
+    // Publication Time Sheet
+    static final String EXACT_TIME_HEADER = pick("Точное время", "Точний час", "Exact time");
+    static final String DATE_TIME_PUB = pick("Дата и время публикации", "Дата й час публікації", "Date & time of publication");
+    static final String TIME_TO_SECOND = pick("Время до секунды", "Час до секунди", "Time to second");
+    static final String DAY_OF_WEEK = pick("День недели", "День тижня", "Day of the week");
+    static final String TIMEZONE = pick("Часовой пояс", "Часовий пояс", "Time zone");
+    static final String GMT_TIME = pick("По Гринвичу", "За Гринвічем", "GMT / UTC");
+    static final String TECH_DATA = pick("Технические данные", "Технічні данные", "Technical data");
+    static final String PUB_ID = pick("ID публикации (Aweme ID)", "ID публікації (Aweme ID)", "Publication ID (Aweme ID)");
+    static final String UNIX_TIMESTAMP = pick("Unix Timestamp (секунды)", "Unix Timestamp (секунди)", "Unix Timestamp (seconds)");
+    static final String COPY_ALL = pick("Скопировать всё", "Скопіювати все", "Copy all");
+    static final String COPIED_TO_CLIPBOARD = pick("Скопировано в буфер обмена", "Скопійовано в буфер обміну", "Copied to clipboard");
+
+    // Speed Lock Overlay
+    static final String SPEED_DOWN_LOCK = pick("Вниз · закрепить 2×", "Вниз · закріпити 2×", "Down · lock 2×");
+    static final String SPEED_INDICATOR = pick("Скорость: 2х", "Швидкість: 2х", "Speed: 2x");
+    static final String SPEED_LOCKED = pick("2× закреплено · Нажмите для сброса", "2× закріплено · Натисніть для скидання", "2× locked · Tap to reset");
+    static final String SPEED_LOCK_SETTING = pick("Закрепление скорости 2×", "Закріплення швидкості 2×", "Lock 2x speed");
+    static final String SPEED_LOCK_SUB = pick("Жест вниз для удержания ускорения без касания", "Жест вниз для утримання прискорення без торкання", "Swipe down to keep playback fast without holding");
+    static final String QUALITY_SHEET_SETTING = pick("Диалог выбора качества", "Діалог вибору якості", "Quality selection dialog");
+    static final String QUALITY_SHEET_SUB = pick("Предлагать выбор качества и аудио перед скачиванием", "Пропонувати вибір якості та аудіо перед завантаженням", "Offer quality and audio choice before download");
+    static final String TIME_INFO_SETTING = pick("Точное время публикации", "Точний час публікації", "Exact publication time");
+    static final String TIME_INFO_SUB = pick("Детальная дата, время и часовой пояс видео", "Детальна дата, час і часовий пояс відео", "Detailed date, time & timezone of video");
 
     private static String language() {
         try {

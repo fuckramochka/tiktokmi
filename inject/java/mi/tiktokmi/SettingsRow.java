@@ -60,7 +60,11 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         String lowerName = name.toLowerCase(Locale.US);
         boolean isAuth = lowerName.contains("passport") || lowerName.contains("login")
                 || lowerName.contains("authorize") || lowerName.contains("verification")
-                || lowerName.contains("bindphone") || lowerName.contains("bindemail");
+                || lowerName.contains("bindphone") || lowerName.contains("bindemail")
+                || lowerName.contains("account") || lowerName.contains("auth")
+                || lowerName.contains("security") || lowerName.contains("verify")
+                || lowerName.contains("bind") || lowerName.contains("email")
+                || lowerName.contains("phone");
         AccountFix.setAuthInProgress(isAuth);
         Streaks.onResumed(activity);
 

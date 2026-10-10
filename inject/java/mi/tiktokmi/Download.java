@@ -37,9 +37,25 @@ public final class Download {
 
     public static final String KEY = "download_no_watermark";
     public static final String KEY_ALWAYS = "download_always";
+    public static final String KEY_QUALITY = "download_quality_sheet";
 
     private static volatile Boolean cached;
     private static volatile Boolean cachedAlways;
+    private static volatile Boolean cachedQuality;
+
+    public static boolean isQualitySheetEnabled() {
+        Boolean known = cachedQuality;
+        if (known != null) return known;
+        Boolean read = read(KEY_QUALITY);
+        if (read == null) return true;  // default true on install
+        cachedQuality = read;
+        return read;
+    }
+
+    public static void setQualitySheetEnabled(boolean enabled) {
+        cachedQuality = enabled;
+        write(KEY_QUALITY, enabled);
+    }
 
     public static boolean isEnabled() {
         Boolean known = cached;

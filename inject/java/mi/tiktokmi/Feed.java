@@ -298,15 +298,19 @@ public final class Feed {
         }
     }
 
+    private static volatile boolean sInFilter = false;
+
     /**
      * Where rewritten calls to Aweme.getDesc() land.
      * Records watched video in local history (which dispatches to Continuation, Localizer, and OfflineActions).
      */
     public static String getDesc(Aweme aweme) {
         if (aweme == null) return null;
-        try {
-            WatchHistory.onVideoWatched(aweme);
-        } catch (Throwable ignored) {}
+        if (!sInFilter) {
+            try {
+                WatchHistory.onVideoWatched(aweme);
+            } catch (Throwable ignored) {}
+        }
         return aweme.getDesc();
     }
 
@@ -448,6 +452,7 @@ public final class Feed {
         if (!dropAds && !dropLives && !dropPhotos && !dropStories
                 && words.length == 0 && captionMax <= 0 && mine == null) return items;
 
+        sInFilter = true;
         try {
             int n = items.size();
             boolean[] out = new boolean[n];
@@ -486,6 +491,8 @@ public final class Feed {
         } catch (Throwable error) {
             Diary.note("feed: leaving the page alone, " + error);
             return items;
+        } finally {
+            sInFilter = false;
         }
     }
 

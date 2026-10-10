@@ -43,4 +43,20 @@ public class Video {
     public String getSourceId() {
         throw new UnsupportedOperationException("stub");
     }
+
+    public int getWidth() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public int getHeight() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public VideoUrlModel getPlayAddrH264() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public VideoUrlModel getPlayAddrBytevc1() {
+        throw new UnsupportedOperationException("stub");
+    }
 }

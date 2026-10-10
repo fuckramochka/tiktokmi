@@ -333,22 +333,30 @@ public final class OfflineActions {
                         return;
                     }
 
-                    File outDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
-                    File target = new File(outDir, "TikTokMI/offline_" + (aid != null ? aid : System.currentTimeMillis()) + ".mp4");
-                    if (!target.getParentFile().exists()) target.getParentFile().mkdirs();
-
-                    copyFile(cached, target);
-
-                    // Scan file so it shows in Gallery
-                    try {
-                        android.media.MediaScannerConnection.scanFile(
-                                context, new String[]{target.getAbsolutePath()}, new String[]{"video/mp4"}, null);
-                    } catch (Throwable ignored) {}
+                    byte[] data = Net.read(cached);
+                    String fileName = "offline_" + (aid != null ? aid : System.currentTimeMillis()) + ".mp4";
+                    String savedPath = null;
+                    if (data != null && data.length > 0) {
+                        savedPath = Gallery.save(context, data, fileName, "video/mp4");
+                    }
+                    if (savedPath == null) {
+                        try {
+                            File outDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
+                            File target = new File(outDir, "TikTokMI/" + fileName);
+                            if (target.getParentFile() != null && !target.getParentFile().exists()) {
+                                target.getParentFile().mkdirs();
+                            }
+                            copyFile(cached, target);
+                            savedPath = target.getAbsolutePath();
+                            android.media.MediaScannerConnection.scanFile(
+                                    context, new String[]{target.getAbsolutePath()}, new String[]{"video/mp4"}, null);
+                        } catch (Throwable ignored) {}
+                    }
 
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(context, "✓ Відео вилучено з кэшу (офлайн) у Movies/TikTokMI", Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, "✓ Відео вилучено з кешу в галерею!", Toast.LENGTH_LONG).show();
                         }
                     });
                 } catch (Throwable error) {

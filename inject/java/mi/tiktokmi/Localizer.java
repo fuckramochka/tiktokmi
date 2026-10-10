@@ -431,12 +431,20 @@ public final class Localizer {
         try {
             File dir = getArchiveDir(context);
             if (!dir.exists()) dir.mkdirs();
+            Uri uri = MargyProvider.share(context, dir);
             Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.fromFile(dir), "*/*");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (uri != null) {
+                intent.setDataAndType(uri, "*/*");
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            } else {
+                intent.setDataAndType(Uri.parse("file://" + dir.getAbsolutePath()), "*/*");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
             context.startActivity(Intent.createChooser(intent, "Відкрити архів"));
-        } catch (Throwable ignored) {
-            Toast.makeText(context, "Папка: " + getArchiveDir(context).getAbsolutePath(), Toast.LENGTH_LONG).show();
+        } catch (Throwable error) {
+            try {
+                Toast.makeText(context, "Папка: " + getArchiveDir(context).getAbsolutePath(), Toast.LENGTH_LONG).show();
+            } catch (Throwable ignored) {}
         }
     }
 }

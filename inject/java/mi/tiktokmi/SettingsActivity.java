@@ -68,6 +68,17 @@ public class SettingsActivity extends Activity {
     private static final String DOCS =
             "https://github.com/fuckramochka/tiktokmi/blob/main/docs/plugins.md";
 
+    public static final String CAT_APPEARANCE = "appearance";
+    public static final String CAT_PROFILE = "profile";
+    public static final String CAT_FEED = "feed";
+    public static final String CAT_FRIENDS = "friends";
+    public static final String CAT_TOOLS = "tools";
+    public static final String CAT_PLUGINS = "plugins";
+    public static final String CAT_ABOUT = "about";
+
+    private String currentCategory = null;
+    private String searchQuery = null;
+
     private boolean countriesOpen;
     private boolean accentOpen;
     private boolean textOpen;
@@ -86,6 +97,11 @@ public class SettingsActivity extends Activity {
         skin = Skin.remembered(this);
         dressTheWindow();
 
+        if (state != null) {
+            currentCategory = state.getString("mi_current_category");
+            searchQuery = state.getString("mi_search_query");
+        }
+
         ScrollView scroll = page = new ScrollView(this);
         scroll.setBackgroundColor(skin.page);
         scroll.setFillViewport(true);
@@ -102,6 +118,32 @@ public class SettingsActivity extends Activity {
 
         setContentView(root);
         rebuild();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (currentCategory != null) {
+            outState.putString("mi_current_category", currentCategory);
+        }
+        if (searchQuery != null) {
+            outState.putString("mi_search_query", searchQuery);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (searchQuery != null && !searchQuery.isEmpty()) {
+            searchQuery = null;
+            if (page != null) page.scrollTo(0, 0);
+            rebuild();
+        } else if (currentCategory != null) {
+            currentCategory = null;
+            if (page != null) page.scrollTo(0, 0);
+            rebuild();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -129,25 +171,234 @@ public class SettingsActivity extends Activity {
 
     private void rebuild() {
         column.removeAllViews();
-        column.addView(backArrow());
-        column.addView(title("TikTok MI"));
-
-        column.addView(section(Text.REGION));
-        LinearLayout head = card();
-        head.addView(switchRow());
-        column.addView(wrap(head));
-
-        column.addView(section(Text.COUNTRY));
-        LinearLayout countries = card();
-        countries.addView(countryHead());
-        if (countriesOpen) {
-            countries.addView(line());
-            for (String[] country : Margy.COUNTRIES) {
-                countries.addView(countryRow(country));
+        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            column.addView(subBackArrow());
+            column.addView(title(Text.SEARCH_RESULTS));
+            column.addView(searchBar());
+            buildSearch(searchQuery.trim());
+        } else if (currentCategory != null) {
+            column.addView(subBackArrow());
+            column.addView(title(getCategoryTitle(currentCategory)));
+            if (CAT_APPEARANCE.equals(currentCategory)) {
+                buildAppearanceCategory();
+            } else if (CAT_PROFILE.equals(currentCategory)) {
+                buildProfileCategory();
+            } else if (CAT_FEED.equals(currentCategory)) {
+                buildFeedCategory();
+            } else if (CAT_FRIENDS.equals(currentCategory)) {
+                buildFriendsCategory();
+            } else if (CAT_TOOLS.equals(currentCategory)) {
+                buildToolsCategory();
+            } else if (CAT_PLUGINS.equals(currentCategory)) {
+                buildPluginsCategory();
+            } else if (CAT_ABOUT.equals(currentCategory)) {
+                buildAboutCategory();
             }
-        }
-        column.addView(wrap(countries));
+        } else {
+            column.addView(backArrow());
+            column.addView(title("TikTok MI"));
+            column.addView(searchBar());
 
+            column.addView(categoryCard("palette", Text.CAT_APPEARANCE_TITLE,
+                    Text.CAT_APPEARANCE_SUB, CAT_APPEARANCE));
+            column.addView(categoryCard("group", Text.CAT_PROFILE_TITLE,
+                    Text.CAT_PROFILE_SUB, CAT_PROFILE));
+            column.addView(categoryCard("play_circle", Text.CAT_FEED_TITLE,
+                    Text.CAT_FEED_SUB, CAT_FEED));
+            column.addView(categoryCard("article", Text.CAT_FRIENDS_TITLE,
+                    Text.CAT_FRIENDS_SUB, CAT_FRIENDS));
+            column.addView(categoryCard("tune", Text.CAT_TOOLS_TITLE,
+                    Text.CAT_TOOLS_SUB, CAT_TOOLS));
+            column.addView(categoryCard("extension", Text.CAT_PLUGINS_TITLE,
+                    Text.CAT_PLUGINS_SUB, CAT_PLUGINS));
+            column.addView(categoryCard("info", Text.CAT_ABOUT_TITLE,
+                    Text.CAT_ABOUT_SUB, CAT_ABOUT));
+
+            column.addView(versions());
+        }
+
+        showRestartBar();
+    }
+
+    private String getCategoryTitle(String cat) {
+        if (CAT_APPEARANCE.equals(cat)) return Text.CAT_APPEARANCE_TITLE;
+        if (CAT_PROFILE.equals(cat)) return Text.CAT_PROFILE_TITLE;
+        if (CAT_FEED.equals(cat)) return Text.CAT_FEED_TITLE;
+        if (CAT_FRIENDS.equals(cat)) return Text.CAT_FRIENDS_TITLE;
+        if (CAT_TOOLS.equals(cat)) return Text.CAT_TOOLS_TITLE;
+        if (CAT_PLUGINS.equals(cat)) return Text.CAT_PLUGINS_TITLE;
+        if (CAT_ABOUT.equals(cat)) return Text.CAT_ABOUT_TITLE;
+        return "TikTok MI";
+    }
+
+    private View subBackArrow() {
+        TextView arrow = new TextView(this);
+        arrow.setText("←");
+        arrow.setTextColor(skin.text);
+        arrow.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        arrow.setPadding(skin.margin, dp(12), skin.margin, dp(12));
+        arrow.setOnClickListener(v -> {
+            if (searchQuery != null) {
+                searchQuery = null;
+            } else {
+                currentCategory = null;
+            }
+            if (page != null) page.scrollTo(0, 0);
+            rebuild();
+        });
+        return arrow;
+    }
+
+    private View searchBar() {
+        LinearLayout pill = new LinearLayout(this);
+        pill.setOrientation(LinearLayout.HORIZONTAL);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(skin.card);
+        bg.setCornerRadius(dp(26));
+        bg.setStroke(dp(1), (skin.text & 0x00FFFFFF) | 0x14000000);
+        pill.setBackground(bg);
+        pill.setPadding(dp(14), dp(4), dp(5), dp(4));
+
+        SearchGlassView glass = new SearchGlassView(this, skin.muted());
+        LinearLayout.LayoutParams glassParams = new LinearLayout.LayoutParams(dp(22), dp(22));
+        glassParams.rightMargin = dp(8);
+        pill.addView(glass, glassParams);
+
+        final EditText input = new EditText(this);
+        input.setHint(Text.SEARCH_HINT);
+        input.setHintTextColor(skin.muted());
+        input.setTextColor(skin.text);
+        input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        input.setBackground(null);
+        input.setSingleLine(true);
+        input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        if (searchQuery != null) {
+            input.setText(searchQuery);
+            input.setSelection(searchQuery.length());
+        }
+        pill.addView(input, grow());
+
+        if (searchQuery != null && !searchQuery.isEmpty()) {
+            TextView clear = new TextView(this);
+            clear.setText("✕");
+            clear.setTextColor(skin.muted());
+            clear.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            clear.setPadding(dp(6), dp(6), dp(8), dp(6));
+            clear.setOnClickListener(v -> {
+                searchQuery = null;
+                if (page != null) page.scrollTo(0, 0);
+                rebuild();
+            });
+            pill.addView(clear);
+        }
+
+        TextView btn = new TextView(this);
+        btn.setText(Text.SEARCH_BUTTON);
+        btn.setTextColor(onAccent());
+        btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f);
+        btn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        btn.setPadding(dp(16), dp(8), dp(16), dp(8));
+        GradientDrawable btnBg = new GradientDrawable();
+        btnBg.setColor(Accent.colour());
+        btnBg.setCornerRadius(dp(20));
+        btn.setBackground(btnBg);
+        btn.setOnClickListener(v -> {
+            String q = input.getText() != null ? input.getText().toString().trim() : "";
+            if (!q.isEmpty()) {
+                searchQuery = q;
+                if (page != null) page.scrollTo(0, 0);
+                rebuild();
+            }
+        });
+        input.setOnEditorActionListener((v, actionId, event) -> {
+            String q = input.getText() != null ? input.getText().toString().trim() : "";
+            if (!q.isEmpty()) {
+                searchQuery = q;
+                if (page != null) page.scrollTo(0, 0);
+                rebuild();
+                return true;
+            }
+            return false;
+        });
+        pill.addView(btn);
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(skin.margin, dp(2), skin.margin, dp(12));
+        container.addView(pill, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return container;
+    }
+
+    private View categoryCard(String iconName, String title, String subtitle, final String categoryKey) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(skin.card);
+        bg.setCornerRadius(dp(16));
+        card.setBackground(bg);
+        card.setPadding(dp(16), dp(14), dp(16), dp(14));
+
+        FrameLayout badge = new FrameLayout(this);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setColor((Accent.colour() & 0x00FFFFFF) | 0x24000000);
+        badgeBg.setCornerRadius(dp(14));
+        badge.setBackground(badgeBg);
+
+        ImageView iconView = new ImageView(this);
+        Bitmap bitmap = iconBitmap(iconName);
+        if (bitmap != null) {
+            iconView.setImageBitmap(bitmap);
+            iconView.setColorFilter(Accent.colour(), android.graphics.PorterDuff.Mode.SRC_IN);
+        }
+        FrameLayout.LayoutParams iconParams =
+                new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER);
+        badge.addView(iconView, iconParams);
+        card.addView(badge, new LinearLayout.LayoutParams(dp(46), dp(46)));
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.setPadding(dp(14), 0, dp(8), 0);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextColor(skin.text);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        text.addView(titleView);
+
+        TextView subView = new TextView(this);
+        subView.setText(subtitle);
+        subView.setTextColor(skin.muted());
+        subView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
+        subView.setPadding(0, dp(3), 0, 0);
+        text.addView(subView);
+        card.addView(text, grow());
+
+        TextView chevron = new TextView(this);
+        chevron.setText("›");
+        chevron.setTextColor(skin.muted());
+        chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        chevron.setGravity(Gravity.CENTER);
+        card.addView(chevron);
+
+        card.setOnClickListener(v -> {
+            currentCategory = categoryKey;
+            if (page != null) page.scrollTo(0, 0);
+            rebuild();
+        });
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(skin.margin, dp(4), skin.margin, dp(4));
+        container.addView(card, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return container;
+    }
+
+    private void buildAppearanceCategory() {
         column.addView(section(Text.ACCENT));
         LinearLayout accent = card();
         accent.addView(accentHead());
@@ -215,6 +466,81 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(icons));
 
+        column.addView(section(Text.UI_CLEAN));
+        LinearLayout visual = card();
+        visual.addView(toggleRow("block", Text.UI_CLEAN, Ui.isEnabled(), Ui::setEnabled));
+        visual.addView(line());
+        visual.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
+        column.addView(wrap(visual));
+        column.addView(caption(Text.OLED_NOTE));
+        column.addView(caption(Text.UI_CLEAN_NOTE));
+    }
+
+    private void buildProfileCategory() {
+        column.addView(section(Text.ACCOUNT));
+        LinearLayout account = card();
+        account.addView(idRow(Text.ACCOUNT_ID, Account.id()));
+        account.addView(line());
+        account.addView(idRow(Text.ACCOUNT_SEC_ID, Account.secId()));
+        column.addView(wrap(account));
+
+        column.addView(section(Text.BADGES_ON));
+        LinearLayout badges = card();
+        badges.addView(toggleRow("favorite_border", Text.BADGES_ON, Badges.isEnabled(), Badges::setEnabled));
+        badges.addView(line());
+        String currentVariant = Badges.getBadgeVariant();
+        badges.addView(actionRow(
+                "extension",
+                Text.BADGE_VARIANT_TITLE,
+                Badges.VARIANT_TT.equals(currentVariant) ? Text.BADGE_VARIANT_TT : Text.BADGE_VARIANT_TG,
+                () -> {
+                    String cur = Badges.getBadgeVariant();
+                    String next = Badges.VARIANT_TT.equals(cur) ? Badges.VARIANT_TG : Badges.VARIANT_TT;
+                    Badges.setBadgeVariant(next);
+                    recreate();
+                }));
+        column.addView(wrap(badges));
+
+        column.addView(section(Text.SAVE_AVATAR));
+        LinearLayout avatar = card();
+        avatar.addView(toggleRow("place", Text.SAVE_AVATARS_ON, Avatars.isEnabled(), Avatars::setEnabled));
+        column.addView(wrap(avatar));
+
+        column.addView(section(Text.ACCOUNT_FIX_SECTION));
+        LinearLayout accFix = card();
+        accFix.addView(toggleRow("fingerprint", Text.PASSPORT_SAFE_TITLE,
+                AccountFix.isPassportSafeModeEnabled(), AccountFix::setPassportSafeModeEnabled));
+        accFix.addView(line());
+        accFix.addView(actionRow("swap_vert", Text.RESET_AUTH_CACHE, Text.RESET_AUTH_SUB,
+                () -> AccountFix.resetAuthCache(this)));
+        accFix.addView(line());
+        accFix.addView(actionRow("link", Text.WEB_PASSPORT_PORTAL, "tiktok.com/setting",
+                () -> AccountFix.openWebPassportPortal(this)));
+        accFix.addView(line());
+        accFix.addView(actionRow("info", Text.EMAIL_FIX_GUIDE,
+                Account.username() != null ? ("@" + Account.username()) : "Інструкція та логін",
+                () -> AccountFix.showEmailFixGuide(this)));
+        column.addView(wrap(accFix));
+        column.addView(caption(Text.PASSPORT_SAFE_SUB));
+    }
+
+    private void buildFeedCategory() {
+        column.addView(section(Text.REGION));
+        LinearLayout head = card();
+        head.addView(switchRow());
+        column.addView(wrap(head));
+
+        column.addView(section(Text.COUNTRY));
+        LinearLayout countries = card();
+        countries.addView(countryHead());
+        if (countriesOpen) {
+            countries.addView(line());
+            for (String[] country : Margy.COUNTRIES) {
+                countries.addView(countryRow(country));
+            }
+        }
+        column.addView(wrap(countries));
+
         column.addView(section(Text.FEED));
         LinearLayout feed = card();
         feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
@@ -241,31 +567,81 @@ public class SettingsActivity extends Activity {
             feed.addView(toggleRow("place", Text.FEED_REGION, Feed.isRegionMatchEnabled(),
                     Feed::setRegionMatchEnabled));
         }
-        feed.addView(line());
-        feed.addView(toggleRow("block", Text.UI_CLEAN, Ui.isEnabled(), Ui::setEnabled));
-        feed.addView(line());
-        feed.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
         column.addView(wrap(feed));
-        column.addView(caption(Text.OLED_NOTE));
-        column.addView(caption(Text.UI_CLEAN_NOTE));
 
         column.addView(section(Text.VIDEO));
         LinearLayout video = card();
         video.addView(toggleRow("volume_up", Text.SOUND, Sound.isEnabled(), Sound::setEnabled));
         video.addView(line());
-        video.addView(toggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(),
-                Seekbar::setEnabled));
+        video.addView(toggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(), Seekbar::setEnabled));
+        video.addView(line());
+        video.addView(toggleRow("play_circle", Text.SPEED_LOCK_SETTING, SpeedOverlay.isEnabled(), SpeedOverlay::setEnabled));
+        video.addView(line());
+        video.addView(actionRow("play_circle", "Пример оверлея 2×", "Показать оверлей",
+                () -> SpeedOverlay.show(this)));
         column.addView(wrap(video));
+        column.addView(caption(Text.SPEED_LOCK_SUB));
 
-        column.addView(section(Text.WATCH_HISTORY_SECTION));
-        LinearLayout history = card();
-        history.addView(actionRow("history", Text.WATCH_HISTORY_TITLE,
-                WatchHistory.getCount() > 0 ? ("" + WatchHistory.getCount() + " відео") : Text.WATCH_HISTORY_SUB,
-                () -> WatchHistory.showHistoryDialog(this)));
-        history.addView(line());
-        history.addView(toggleRow("search", Text.AUTO_PRODA_TITLE, Continuation.isEnabled(), Continuation::setEnabled));
-        column.addView(wrap(history));
-        column.addView(caption(Text.AUTO_PRODA_SUB));
+        column.addView(section(Text.HIDDEN));
+        LinearLayout hidden = card();
+        hidden.addView(toggleRow("mic", Text.VOICE, Flags.isOn(Flags.KEY_VOICE),
+                on -> Flags.set(Flags.KEY_VOICE, on)));
+        hidden.addView(line());
+        hidden.addView(toggleRow("image", Text.BANNERS, Flags.isOn(Flags.KEY_BANNERS),
+                on -> Flags.set(Flags.KEY_BANNERS, on)));
+        column.addView(wrap(hidden));
+        column.addView(caption(Text.HIDDEN_NOTE));
+    }
+
+    private void buildFriendsCategory() {
+        column.addView(section(Text.STREAKS));
+        LinearLayout streaks = card();
+        streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(),
+                Streaks::setEnabled));
+        streaks.addView(line());
+        streaks.addView(actionRow("info", Text.STREAK_SCHEDULE_TIME, Streaks.formatScheduleTime(),
+                () -> {
+                    new android.app.TimePickerDialog(this, (view, hourOfDay, minute) -> {
+                        Streaks.setScheduleTime(hourOfDay, minute);
+                        rebuild();
+                    }, Streaks.scheduleHour(), Streaks.scheduleMinute(), true).show();
+                }));
+        streaks.addView(line());
+        streaks.addView(actionRow("swap_horiz", Text.STREAK_MODE,
+                Streaks.BY_TEXT.equals(Streaks.mode()) ? Text.STREAK_MODE_TEXT : Text.STREAK_MODE_STICKER,
+                () -> {
+                    boolean byText = Streaks.BY_TEXT.equals(Streaks.mode());
+                    Streaks.setMode(byText ? Streaks.BY_STICKER : Streaks.BY_TEXT);
+                    markChanged();
+                }));
+        if (Streaks.BY_TEXT.equals(Streaks.mode())) {
+            streaks.addView(line());
+            streaks.addView(actionRow("edit", Text.STREAK_TEXT_TITLE, Streaks.text(),
+                    () -> askText(Text.STREAK_TEXT_TITLE, Streaks.text(), Streaks.DEFAULT_TEXT, value -> {
+                        Streaks.setText(value);
+                        rebuild();
+                    })));
+        }
+        streaks.addView(line());
+        streaks.addView(stickerHead());
+        if (streakOpen) {
+            streaks.addView(line());
+            streaks.addView(stickerChoices());
+        }
+        streaks.addView(line());
+        streaks.addView(actionRow("play_circle", Text.STREAK_TEST, Text.STREAK_TEST_NOTE,
+                () -> {
+                    if (!Streaks.BY_TEXT.equals(Streaks.mode())
+                            && Streaks.offered().isEmpty() && Streaks.chosen().isEmpty()) {
+                        Toast.makeText(this, Text.STREAK_NEED_STICKER, Toast.LENGTH_LONG).show();
+                    } else {
+                        Streaks.test(this);
+                        Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
+                    }
+                }));
+        column.addView(wrap(streaks));
+        column.addView(caption(Text.STREAK_NOTE));
+        column.addView(caption(Text.STREAK_SCHEDULE_SUB));
 
         column.addView(section(Text.GHOST_TITLE));
         LinearLayout ghost = card();
@@ -292,16 +668,13 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(ghost));
 
-        column.addView(section(Text.HIDDEN));
-        LinearLayout hidden = card();
-        hidden.addView(toggleRow("mic", Text.VOICE, Flags.isOn(Flags.KEY_VOICE),
-                on -> Flags.set(Flags.KEY_VOICE, on)));
-        hidden.addView(line());
-        hidden.addView(toggleRow("image", Text.BANNERS, Flags.isOn(Flags.KEY_BANNERS),
-                on -> Flags.set(Flags.KEY_BANNERS, on)));
-        column.addView(wrap(hidden));
-        column.addView(caption(Text.HIDDEN_NOTE));
+        column.addView(section(Text.SAVE_STICKER));
+        LinearLayout stickers = card();
+        stickers.addView(toggleRow("star", Text.SAVE_STICKERS_ON, Stickers.isEnabled(), Stickers::setEnabled));
+        column.addView(wrap(stickers));
+    }
 
+    private void buildToolsCategory() {
         column.addView(section(Text.DOWNLOADS));
         LinearLayout downloads = card();
         downloads.addView(toggleRow("image", Text.NO_WATERMARK, Download.isEnabled(),
@@ -310,11 +683,14 @@ public class SettingsActivity extends Activity {
         downloads.addView(toggleRow("download", Text.DOWNLOAD_ALWAYS, Download.isAlways(),
                 Download::setAlways));
         downloads.addView(line());
-        downloads.addView(toggleRow("place", Text.SAVE_AVATARS_ON, Avatars.isEnabled(),
-                Avatars::setEnabled));
+        downloads.addView(toggleRow("tune", Text.QUALITY_SHEET_SETTING, Download.isQualitySheetEnabled(),
+                Download::setQualitySheetEnabled));
         downloads.addView(line());
-        downloads.addView(toggleRow("star", Text.SAVE_STICKERS_ON, Stickers.isEnabled(),
-                Stickers::setEnabled));
+        downloads.addView(actionRow("play_circle", "Пример диалога качества", "Выбор 576p / 480p / Звук",
+                () -> QualitySheet.show(this, null)));
+        downloads.addView(line());
+        downloads.addView(actionRow("info", Text.TIME_INFO_SETTING, "Показать точное время",
+                () -> TimeSheet.show(this, null)));
         downloads.addView(line());
         downloads.addView(actionRow("download", Text.SAVE_FOLDER, Gallery.folder(),
                 () -> askText(Text.SAVE_FOLDER, Gallery.folder(), Text.SAVE_FOLDER_HINT, value -> {
@@ -322,6 +698,48 @@ public class SettingsActivity extends Activity {
                     rebuild();
                 })));
         column.addView(wrap(downloads));
+        column.addView(caption(Text.QUALITY_SHEET_SUB));
+
+        column.addView(section(Text.WATCH_HISTORY_SECTION));
+        LinearLayout history = card();
+        history.addView(actionRow("history", Text.WATCH_HISTORY_TITLE,
+                WatchHistory.getCount() > 0 ? ("" + WatchHistory.getCount() + " відео") : Text.WATCH_HISTORY_SUB,
+                () -> WatchHistory.showHistoryDialog(this)));
+        history.addView(line());
+        history.addView(toggleRow("search", Text.AUTO_PRODA_TITLE, Continuation.isEnabled(), Continuation::setEnabled));
+        column.addView(wrap(history));
+        column.addView(caption(Text.AUTO_PRODA_SUB));
+
+        column.addView(section(Text.LOCALIZER_SECTION));
+        LinearLayout localizer = card();
+        localizer.addView(toggleRow("favorite_border", Text.LOCALIZER_AUTO_FAVORITES,
+                Localizer.isAutoFavoritesEnabled(), Localizer::setAutoFavoritesEnabled));
+        localizer.addView(line());
+        localizer.addView(toggleRow("article", Text.LOCALIZER_AUTO_CHATS,
+                Localizer.isAutoChatsEnabled(), Localizer::setAutoChatsEnabled));
+        localizer.addView(line());
+        localizer.addView(actionRow("download", Text.LOCALIZER_SYNC_CLOUD,
+                Localizer.getArchivedVideoCount(this) + " відео в архіві",
+                () -> Localizer.syncAllToAmeoCloud(this)));
+        localizer.addView(line());
+        localizer.addView(actionRow("folder", Text.LOCALIZER_OPEN_DIR,
+                Localizer.getArchiveDir(this).getName(),
+                () -> Localizer.openArchiveFolder(this)));
+        column.addView(wrap(localizer));
+        column.addView(caption(Text.LOCALIZER_NOTE));
+
+        column.addView(section(Text.OFFLINE_SECTION));
+        LinearLayout offline = card();
+        offline.addView(actionRow("link", Text.OFFLINE_COPY_LINK, "В буфер обміну",
+                () -> OfflineActions.copyLinkOffline(this, null)));
+        offline.addView(line());
+        offline.addView(actionRow("download", Text.OFFLINE_EXTRACT_CACHE, "З кешу MP4",
+                () -> OfflineActions.downloadFromCacheOffline(this, null)));
+        offline.addView(line());
+        offline.addView(actionRow("favorite_border", Text.OFFLINE_LIKES_QUEUE, "Авто-синхронізація",
+                () -> OfflineActions.syncOfflineLikes(this)));
+        column.addView(wrap(offline));
+        column.addView(caption(Text.OFFLINE_NOTE));
 
         column.addView(section(Text.ECOSYSTEM));
         LinearLayout ecosystem = card();
@@ -363,76 +781,18 @@ public class SettingsActivity extends Activity {
                     MiogramBridge::setClipVaultEnabled));
             ecosystem.addView(line());
             ecosystem.addView(actionRow(
-                    "refresh",
+                    "swap_vert",
                     Text.SYNC_WITH_AMEGRAM,
                     MiogramBridge.isAmegramLinked(this)
                             ? ("@" + (MiogramBridge.getLinkedTelegramUsername(this) != null ? MiogramBridge.getLinkedTelegramUsername(this) : "Amegram"))
                             : Text.SYNC_WITH_AMEGRAM_SUB,
                     () -> MiogramBridge.syncWithAmegram(this)));
-            ecosystem.addView(line());
-            String currentVariant = Badges.getBadgeVariant();
-            ecosystem.addView(actionRow(
-                    "extension",
-                    Text.BADGE_VARIANT_TITLE,
-                    Badges.VARIANT_TT.equals(currentVariant) ? Text.BADGE_VARIANT_TT : Text.BADGE_VARIANT_TG,
-                    () -> {
-                        String cur = Badges.getBadgeVariant();
-                        String next = Badges.VARIANT_TT.equals(cur) ? Badges.VARIANT_TG : Badges.VARIANT_TT;
-                        Badges.setBadgeVariant(next);
-                        recreate();
-                    }));
         }
         column.addView(wrap(ecosystem));
         column.addView(caption(Text.CLIPVAULT_NOTE));
+    }
 
-        column.addView(section(Text.LOCALIZER_SECTION));
-        LinearLayout localizer = card();
-        localizer.addView(toggleRow("favorite", Text.LOCALIZER_AUTO_FAVORITES,
-                Localizer.isAutoFavoritesEnabled(), Localizer::setAutoFavoritesEnabled));
-        localizer.addView(line());
-        localizer.addView(toggleRow("chat", Text.LOCALIZER_AUTO_CHATS,
-                Localizer.isAutoChatsEnabled(), Localizer::setAutoChatsEnabled));
-        localizer.addView(line());
-        localizer.addView(actionRow("cloud_upload", Text.LOCALIZER_SYNC_CLOUD,
-                Localizer.getArchivedVideoCount(this) + " відео в архіві",
-                () -> Localizer.syncAllToAmeoCloud(this)));
-        localizer.addView(line());
-        localizer.addView(actionRow("folder", Text.LOCALIZER_OPEN_DIR,
-                Localizer.getArchiveDir(this).getName(),
-                () -> Localizer.openArchiveFolder(this)));
-        column.addView(wrap(localizer));
-        column.addView(caption(Text.LOCALIZER_NOTE));
-
-        column.addView(section(Text.OFFLINE_SECTION));
-        LinearLayout offline = card();
-        offline.addView(actionRow("link", Text.OFFLINE_COPY_LINK, "В буфер обміну",
-                () -> OfflineActions.copyLinkOffline(this, null)));
-        offline.addView(line());
-        offline.addView(actionRow("download", Text.OFFLINE_EXTRACT_CACHE, "З кешу MP4",
-                () -> OfflineActions.downloadFromCacheOffline(this, null)));
-        offline.addView(line());
-        offline.addView(actionRow("favorite", Text.OFFLINE_LIKES_QUEUE, "Авто-синхронізація",
-                () -> OfflineActions.syncOfflineLikes(this)));
-        column.addView(wrap(offline));
-        column.addView(caption(Text.OFFLINE_NOTE));
-
-        column.addView(section(Text.ACCOUNT_FIX_SECTION));
-        LinearLayout accFix = card();
-        accFix.addView(toggleRow("shield", Text.PASSPORT_SAFE_TITLE,
-                AccountFix.isPassportSafeModeEnabled(), AccountFix::setPassportSafeModeEnabled));
-        accFix.addView(line());
-        accFix.addView(actionRow("refresh", Text.RESET_AUTH_CACHE, Text.RESET_AUTH_SUB,
-                () -> AccountFix.resetAuthCache(this)));
-        accFix.addView(line());
-        accFix.addView(actionRow("open_in_browser", Text.WEB_PASSPORT_PORTAL, "tiktok.com/setting",
-                () -> AccountFix.openWebPassportPortal(this)));
-        accFix.addView(line());
-        accFix.addView(actionRow("help_outline", Text.EMAIL_FIX_GUIDE,
-                Account.username() != null ? ("@" + Account.username()) : "Інструкція та логін",
-                () -> AccountFix.showEmailFixGuide(this)));
-        column.addView(wrap(accFix));
-        column.addView(caption(Text.PASSPORT_SAFE_SUB));
-
+    private void buildPluginsCategory() {
         column.addView(section(Text.PLUGINS));
         LinearLayout plugins = card();
         plugins.addView(installRow());
@@ -450,70 +810,9 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(plugins));
         column.addView(caption(Text.PLUGIN_WARNING));
+    }
 
-        column.addView(section(Text.STREAKS));
-        LinearLayout streaks = card();
-        streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(),
-                Streaks::setEnabled));
-        streaks.addView(line());
-        streaks.addView(actionRow("swap_horiz", Text.STREAK_MODE,
-                Streaks.BY_TEXT.equals(Streaks.mode()) ? Text.STREAK_MODE_TEXT : Text.STREAK_MODE_STICKER,
-                () -> {
-                    boolean byText = Streaks.BY_TEXT.equals(Streaks.mode());
-                    Streaks.setMode(byText ? Streaks.BY_STICKER : Streaks.BY_TEXT);
-                    markChanged();
-                }));
-        if (Streaks.BY_TEXT.equals(Streaks.mode())) {
-            streaks.addView(line());
-            streaks.addView(actionRow("edit", Text.STREAK_TEXT_TITLE, Streaks.text(),
-                    () -> askText(Text.STREAK_TEXT_TITLE, Streaks.text(), Streaks.DEFAULT_TEXT, value -> {
-                        Streaks.setText(value);
-                        rebuild();
-                    })));
-        }
-        streaks.addView(line());
-        streaks.addView(stickerHead());
-        if (streakOpen) {
-            streaks.addView(line());
-            streaks.addView(stickerChoices());
-        }
-        streaks.addView(line());
-        streaks.addView(actionRow("play_circle", Text.STREAK_TEST, Text.STREAK_TEST_NOTE,
-                () -> {
-                    if (!Streaks.BY_TEXT.equals(Streaks.mode())
-                            && Streaks.offered().isEmpty() && Streaks.chosen().isEmpty()) {
-                        Toast.makeText(this, Text.STREAK_NEED_STICKER, Toast.LENGTH_LONG).show();
-                    } else {
-                        Streaks.test(this);
-                        Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
-                    }
-                }));
-        column.addView(wrap(streaks));
-        column.addView(caption(Text.STREAK_NOTE));
-
-        column.addView(section(Text.LINKS));
-        LinearLayout links = card();
-        links.addView(linkRow("link", Text.CHANNEL, "@fuckramochka", CHANNEL));
-        links.addView(line());
-        links.addView(linkRow("extension", Text.SOURCE, "fuckramochka/tiktokmi", GITHUB));
-        links.addView(line());
-        links.addView(toggleRow("favorite_border", Text.BADGES_ON, Badges.isEnabled(),
-                Badges::setEnabled));
-        links.addView(line());
-        links.addView(thanksHead());
-        if (thanksOpen) {
-            links.addView(line());
-            links.addView(thanks());
-        }
-        column.addView(wrap(links));
-
-        column.addView(section(Text.ACCOUNT));
-        LinearLayout account = card();
-        account.addView(idRow(Text.ACCOUNT_ID, Account.id()));
-        account.addView(line());
-        account.addView(idRow(Text.ACCOUNT_SEC_ID, Account.secId()));
-        column.addView(wrap(account));
-
+    private void buildAboutCategory() {
         column.addView(section(Text.UPDATE));
         LinearLayout updates = card();
         updates.addView(actionRow("download", Text.UPDATE_CHECK,
@@ -533,6 +832,19 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(updates));
 
+        column.addView(section(Text.LINKS));
+        LinearLayout links = card();
+        links.addView(linkRow("link", Text.CHANNEL, "@fuckramochka", CHANNEL));
+        links.addView(line());
+        links.addView(linkRow("extension", Text.SOURCE, "fuckramochka/tiktokmi", GITHUB));
+        links.addView(line());
+        links.addView(thanksHead());
+        if (thanksOpen) {
+            links.addView(line());
+            links.addView(thanks());
+        }
+        column.addView(wrap(links));
+
         column.addView(section(Text.DIARY));
         LinearLayout diary = card();
         diary.addView(diaryHead());
@@ -543,17 +855,281 @@ public class SettingsActivity extends Activity {
         column.addView(wrap(diary));
 
         column.addView(versions());
-
-        showRestartBar();
     }
 
-    /**
-     * The bar that says a restart is due, pinned to the foot of the screen.
-     *
-     * It sits in the root frame rather than in the column, so it stays put
-     * while the page scrolls under it, and it is built again on every rebuild
-     * because the accent it is painted with may be what just changed.
-     */
+    private void buildSearch(String query) {
+        String q = query.toLowerCase(Locale.US).trim();
+        LinearLayout results = card();
+        boolean found = false;
+
+        if (match(q, "акцент", "accent", "цвет", "colour", "колір")) {
+            found = true;
+            results.addView(accentHead());
+        }
+        if (match(q, "тема", "theme", "контраст", "contrast", "material", "обои")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("contrast", Text.THEME_ON, Themes.isEnabled(), on -> {
+                Themes.setEnabled(on);
+                rebuild();
+            }));
+        }
+        if (match(q, "шрифт", "font", "емодзі", "emoji", "эмодзи")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(fontHead());
+        }
+        if (match(q, "иконка", "значок", "icon")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(iconHead());
+        }
+        if (match(q, "интерфейс", "чистый", "clean", "ui", "oled")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("block", Text.UI_CLEAN, Ui.isEnabled(), Ui::setEnabled));
+            results.addView(line());
+            results.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
+        }
+
+        if (match(q, "аккаунт", "account", "id", "айди", "secid", "sec_id")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(idRow(Text.ACCOUNT_ID, Account.id()));
+        }
+        if (match(q, "значки", "badges", "значок", "amegram")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("favorite_border", Text.BADGES_ON, Badges.isEnabled(), Badges::setEnabled));
+        }
+        if (match(q, "аватар", "avatar", "аватарка")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("place", Text.SAVE_AVATARS_ON, Avatars.isEnabled(), Avatars::setEnabled));
+        }
+        if (match(q, "паспорт", "passport", "почта", "email", "вход", "login", "auth", "кэш")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("fingerprint", Text.PASSPORT_SAFE_TITLE,
+                    AccountFix.isPassportSafeModeEnabled(), AccountFix::setPassportSafeModeEnabled));
+            results.addView(line());
+            results.addView(actionRow("swap_vert", Text.RESET_AUTH_CACHE, Text.RESET_AUTH_SUB,
+                    () -> AccountFix.resetAuthCache(this)));
+        }
+
+        if (match(q, "регион", "region", "страна", "country", "сим")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(switchRow());
+            results.addView(line());
+            results.addView(countryHead());
+        }
+        if (match(q, "реклама", "ads", "эфиры", "трансляции", "live", "фото", "photo", "истории", "stories", "слова", "keywords", "описание", "caption")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
+            results.addView(line());
+            results.addView(toggleRow("visibility_off", Text.HIDE_LIVES, Feed.isHideLivesEnabled(), Feed::setHideLivesEnabled));
+            results.addView(line());
+            results.addView(toggleRow("image", Text.HIDE_PHOTOS, Feed.isHidePhotosEnabled(), Feed::setHidePhotosEnabled));
+            results.addView(line());
+            results.addView(toggleRow("visibility_off", Text.HIDE_STORIES, Feed.isHideStoriesEnabled(), Feed::setHideStoriesEnabled));
+        }
+        if (match(q, "звук", "sound", "volume", "музыка", "перемотка", "seekbar", "полоса")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("volume_up", Text.SOUND, Sound.isEnabled(), Sound::setEnabled));
+            results.addView(line());
+            results.addView(toggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(), Seekbar::setEnabled));
+        }
+        if (match(q, "баннеры", "banners", "голос", "voice", "ab", "a/b")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("mic", Text.VOICE, Flags.isOn(Flags.KEY_VOICE),
+                    on -> Flags.set(Flags.KEY_VOICE, on)));
+            results.addView(line());
+            results.addView(toggleRow("image", Text.BANNERS, Flags.isOn(Flags.KEY_BANNERS),
+                    on -> Flags.set(Flags.KEY_BANNERS, on)));
+        }
+
+        if (match(q, "серии", "streak", "streaks", "огоньки", "огонек", "автоогонек")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(), Streaks::setEnabled));
+            results.addView(line());
+            results.addView(actionRow("info", Text.STREAK_SCHEDULE_TIME, Streaks.formatScheduleTime(),
+                    () -> {
+                        new android.app.TimePickerDialog(this, (view, hourOfDay, minute) -> {
+                            Streaks.setScheduleTime(hourOfDay, minute);
+                            rebuild();
+                        }, Streaks.scheduleHour(), Streaks.scheduleMinute(), true).show();
+                    }));
+        }
+        if (match(q, "призрак", "ghost", "невидимка", "удаленные", "deleted", "стелс", "stealth", "сообщения", "поиск")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("visibility_off", Text.GHOST_MODE, Ghost.isEnabled(), on -> {
+                Ghost.setEnabled(on);
+                rebuild();
+            }));
+            results.addView(line());
+            results.addView(actionRow("search", Text.CHAT_SEARCH_TITLE,
+                    ChatSearch.getCount() > 0 ? ("" + ChatSearch.getCount() + " соо") : Text.CHAT_SEARCH_SUB,
+                    () -> ChatSearch.showChatSearchDialog(this)));
+        }
+        if (match(q, "стикер", "sticker", "стикеры")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("star", Text.SAVE_STICKERS_ON, Stickers.isEnabled(), Stickers::setEnabled));
+        }
+
+        if (match(q, "скачать", "скачивание", "download", "водяной", "watermark", "папка", "folder", "качество", "quality", "hevc", "звук")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("image", Text.NO_WATERMARK, Download.isEnabled(), Download::setEnabled));
+            results.addView(line());
+            results.addView(toggleRow("download", Text.DOWNLOAD_ALWAYS, Download.isAlways(), Download::setAlways));
+            results.addView(line());
+            results.addView(toggleRow("tune", Text.QUALITY_SHEET_SETTING, Download.isQualitySheetEnabled(), Download::setQualitySheetEnabled));
+            results.addView(line());
+            results.addView(actionRow("play_circle", "Пример диалога качества", "Выбор 576p / 480p / Звук",
+                    () -> QualitySheet.show(this, null)));
+        }
+        if (match(q, "время", "дата", "time", "date", "гринвич", "timezone", "публикация", "aweme")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(actionRow("info", Text.TIME_INFO_SETTING, "Показать точное время",
+                    () -> TimeSheet.show(this, null)));
+        }
+        if (match(q, "скорость", "speed", "2x", "2х", "закрепить", "lock", "ускорение")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("play_circle", Text.SPEED_LOCK_SETTING, SpeedOverlay.isEnabled(), SpeedOverlay::setEnabled));
+            results.addView(line());
+            results.addView(actionRow("play_circle", "Пример оверлея 2×", "Показать оверлей",
+                    () -> SpeedOverlay.show(this)));
+        }
+        if (match(q, "история", "history", "просмотры", "продо", "прода", "часть 2")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(actionRow("history", Text.WATCH_HISTORY_TITLE,
+                    WatchHistory.getCount() > 0 ? ("" + WatchHistory.getCount() + " відео") : Text.WATCH_HISTORY_SUB,
+                    () -> WatchHistory.showHistoryDialog(this)));
+            results.addView(line());
+            results.addView(toggleRow("search", Text.AUTO_PRODA_TITLE, Continuation.isEnabled(), Continuation::setEnabled));
+        }
+        if (match(q, "локалайзер", "localizer", "архив", "archive", "бэкап", "бекап", "облако", "cloud", "ameocloud")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(toggleRow("favorite_border", Text.LOCALIZER_AUTO_FAVORITES,
+                    Localizer.isAutoFavoritesEnabled(), Localizer::setAutoFavoritesEnabled));
+            results.addView(line());
+            results.addView(actionRow("download", Text.LOCALIZER_SYNC_CLOUD,
+                    Localizer.getArchivedVideoCount(this) + " відео в архіві",
+                    () -> Localizer.syncAllToAmeoCloud(this)));
+        }
+        if (match(q, "офлайн", "offline", "кэш", "cache")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(actionRow("link", Text.OFFLINE_COPY_LINK, "В буфер обміну",
+                    () -> OfflineActions.copyLinkOffline(this, null)));
+            results.addView(line());
+            results.addView(actionRow("download", Text.OFFLINE_EXTRACT_CACHE, "З кешу MP4",
+                    () -> OfflineActions.downloadFromCacheOffline(this, null)));
+        }
+        if (match(q, "amegram", "телеграм", "telegram", "экосистема", "ecosystem")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(actionRow("swap_vert", Text.SYNC_WITH_AMEGRAM, null,
+                    () -> MiogramBridge.syncWithAmegram(this)));
+        }
+
+        if (match(q, "плагин", "плагины", "plugin", "plugins", "mtp")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(installRow());
+        }
+
+        if (match(q, "обновление", "update", "версия", "version")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(actionRow("download", Text.UPDATE_CHECK,
+                    Updater.newer() ? Text.UPDATE_THERE_IS + " " + Updater.latest() : null,
+                    () -> Updater.check(this, true)));
+        }
+        if (match(q, "канал", "channel", "github", "автор", "разработчик", "чат")) {
+            if (found) results.addView(line());
+            found = true;
+            results.addView(linkRow("link", Text.CHANNEL, "@fuckramochka", CHANNEL));
+            results.addView(line());
+            results.addView(linkRow("extension", Text.SOURCE, "fuckramochka/tiktokmi", GITHUB));
+        }
+
+        if (found) {
+            column.addView(section(Text.SEARCH_RESULTS));
+            column.addView(wrap(results));
+        } else {
+            column.addView(section(Text.SEARCH_RESULTS));
+            LinearLayout empty = card();
+            TextView msg = label(Text.SEARCH_EMPTY);
+            msg.setPadding(dp(16), dp(16), dp(16), dp(16));
+            msg.setGravity(Gravity.CENTER);
+            empty.addView(msg);
+            column.addView(wrap(empty));
+        }
+
+        LinearLayout resetBox = new LinearLayout(this);
+        resetBox.setGravity(Gravity.CENTER);
+        resetBox.setPadding(0, dp(16), 0, dp(16));
+        TextView resetBtn = new TextView(this);
+        resetBtn.setText(Text.SEARCH_RESET);
+        resetBtn.setTextColor(Accent.colour());
+        resetBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        resetBtn.setPadding(dp(16), dp(8), dp(16), dp(8));
+        resetBtn.setOnClickListener(v -> {
+            searchQuery = null;
+            if (page != null) page.scrollTo(0, 0);
+            rebuild();
+        });
+        resetBox.addView(resetBtn);
+        column.addView(resetBox);
+    }
+
+    private static boolean match(String query, String... keywords) {
+        for (String k : keywords) {
+            if (k.contains(query) || query.contains(k)) return true;
+        }
+        return false;
+    }
+
+    private static final class SearchGlassView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        SearchGlassView(Context context, int colour) {
+            super(context);
+            paint.setColor(colour);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+        }
+
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            int size = Math.round(22 * getResources().getDisplayMetrics().density);
+            setMeasuredDimension(size, size);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float d = getResources().getDisplayMetrics().density;
+            paint.setStrokeWidth(2f * d);
+            float cx = 8.5f * d;
+            float cy = 8.5f * d;
+            float r = 5f * d;
+            canvas.drawCircle(cx, cy, r, paint);
+            canvas.drawLine(cx + 3.5f * d, cy + 3.5f * d, 17.5f * d, 17.5f * d, paint);
+        }
+    }
+
     private void showRestartBar() {
         if (restartBar != null) {
             root.removeView(restartBar);
@@ -1127,6 +1703,18 @@ public class SettingsActivity extends Activity {
      */
     private View icon(String name) {
         ImageView view = new ImageView(this);
+        Bitmap bitmap = iconBitmap(name);
+        if (bitmap != null) {
+            view.setImageBitmap(bitmap);
+            view.setColorFilter(skin.muted(), android.graphics.PorterDuff.Mode.SRC_IN);
+        }
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(22), dp(22));
+        params.rightMargin = dp(14);
+        view.setLayoutParams(params);
+        return view;
+    }
+
+    private Bitmap iconBitmap(String name) {
         Bitmap bitmap = ICONS.get(name);
         if (bitmap == null) {
             try {
@@ -1139,14 +1727,7 @@ public class SettingsActivity extends Activity {
             } catch (Throwable ignored) {
             }
         }
-        if (bitmap != null) {
-            view.setImageBitmap(bitmap);
-            view.setColorFilter(skin.muted(), android.graphics.PorterDuff.Mode.SRC_IN);
-        }
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(22), dp(22));
-        params.rightMargin = dp(14);
-        view.setLayoutParams(params);
-        return view;
+        return bitmap;
     }
 
     private static final java.util.Map<String, Bitmap> ICONS =
