@@ -781,6 +781,23 @@ final class Text {
     static final String SECRET_MODE_STEPS = pick("Осталось шагов: %d", "Залишилося кроків: %d", "%d steps remaining");
     static final String SECRET_MODE_SECTION = pick("Секретный режим (Разработчик)", "Секретний режим (Розробник)", "Secret Mode (Developer)");
 
+    static final String OLED_ANTI_BURN_IN = OLED_SECTION;
+    static final String OLED_SHOW_BUTTON = OLED_SHOW_ON_FEED;
+    static final String OLED_AUTO_START = OLED_AUTO_ENABLE;
+    static final String OLED_TRANSPARENCY_TITLE = OLED_TRANSPARENCY;
+    static final String ICON_CHOICE = ICON_SHEET_TITLE;
+    static final String ICON_SHEET_SUB = ICON_SYSTEM_COLORS_SUB;
+    static final String STREAKS_RECIPIENTS_SUB = STREAKS_RECIPIENTS_DESC;
+    static final String STREAKS_SEND_TO_ALL = STREAKS_SEND_ALL;
+    static final String STREAK_STICKER_TITLE = STREAKS_STICKER_TITLE;
+    static final String STREAK_STICKER_SUB = STREAKS_STICKER_SUB;
+    static final String STREAK_STICKER_FLAME = STREAKS_DEFAULT_FLAME;
+    static final String SKIP_QUALITY_SETTING = QUALITY_SKIP;
+    static final String SKIP_QUALITY_SUB = QUALITY_SKIP_SUB;
+    static final String OTA_DIALOG_TITLE = OTA_TITLE;
+    static final String OTA_DIALOG_SUB = OTA_SUB;
+    static final String OTA_UP_TO_DATE = pick("Все компоненты актуальны", "Усі компоненти актуальні", "All components up to date");
+
     private static String language() {
         try {
             return Locale.getDefault().getLanguage();

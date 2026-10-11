@@ -1,6 +1,8 @@
 package mi.tiktokmi;
 
 import android.content.SharedPreferences;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -174,6 +176,14 @@ public final class Feed {
         if (prefs != null) prefs.edit().putBoolean(KEY_OLED_SHOW_BUTTON, enabled).apply();
     }
 
+    public static boolean isOledShowButtonEnabled() {
+        return isOledButtonEnabled();
+    }
+
+    public static void setOledShowButtonEnabled(boolean enabled) {
+        setOledButtonEnabled(enabled);
+    }
+
     public static boolean isOledAutoStartEnabled() {
         Boolean known = cachedOledAuto;
         if (known != null) return known;
@@ -206,6 +216,10 @@ public final class Feed {
         }
         cachedOledTransparency = val;
         return val;
+    }
+
+    public static int oledTransparency() {
+        return getOledTransparency();
     }
 
     public static void setOledTransparency(int percent) {
