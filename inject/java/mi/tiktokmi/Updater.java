@@ -55,6 +55,7 @@ public final class Updater {
     // -------------------------------------------------------------- knowing
 
     public static final String KEY_DOWNLOADED_VER = "update_downloaded_version";
+    public static final String KEY_PART_VER = "update_part_version";
 
     public static synchronized void start(final Context context) {
         if (started) return;
@@ -97,8 +98,31 @@ public final class Updater {
                 if (apk.exists()) apk.delete();
                 File part = partFile(context);
                 if (part.exists()) part.delete();
-                p.edit().remove(KEY_DOWNLOADED_VER).apply();
+                p.edit().remove(KEY_DOWNLOADED_VER).remove(KEY_PART_VER).apply();
                 Diary.note("updater: cleaned up older or already installed apk (" + downloaded + ")");
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void purgeStaleDownloads(Context context) {
+        try {
+            SharedPreferences p = prefs(context);
+            String recorded = p.getString(KEY_DOWNLOADED_VER, null);
+            if (recorded != null && !recorded.isEmpty()) {
+                if (latest != null && compare(recorded, latest) < 0) {
+                    File apk = file(context);
+                    if (apk.exists()) apk.delete();
+                    p.edit().remove(KEY_DOWNLOADED_VER).apply();
+                    Diary.note("updater: purged outdated cached apk (" + recorded + " < " + latest + ")");
+                }
+            }
+            String partVer = p.getString(KEY_PART_VER, null);
+            if (partVer != null && latest != null && !latest.equals(partVer)) {
+                File part = partFile(context);
+                if (part.exists()) part.delete();
+                p.edit().remove(KEY_PART_VER).apply();
+                Diary.note("updater: purged mismatched part file (" + partVer + " != " + latest + ")");
             }
         } catch (Throwable ignored) {
         }
@@ -189,6 +213,8 @@ public final class Updater {
                 latest = candidateVer;
                 where = candidateUrl;
                 notes = candidateNotes;
+
+                purgeStaleDownloads(context);
 
                 if (!byHand && (refused || !remind(context))) return;
                 offer(context);
@@ -309,7 +335,20 @@ public final class Updater {
                 if (activity == null || activity.isFinishing()) return;
 
                 final boolean ready = isReadyToInstall(context);
-                final boolean hasPart = !ready && partFile(context).exists() && partFile(context).length() > 0;
+                boolean validPart = false;
+                if (!ready) {
+                    File part = partFile(context);
+                    if (part.exists() && part.length() > 0) {
+                        String partVer = prefs(context).getString(KEY_PART_VER, null);
+                        if (latest != null && latest.equals(partVer)) {
+                            validPart = true;
+                        } else if (latest != null && partVer != null && !latest.equals(partVer)) {
+                            part.delete();
+                            prefs(context).edit().remove(KEY_PART_VER).apply();
+                        }
+                    }
+                }
+                final boolean hasPart = validPart;
 
                 String actionText = ready ? "Встановити" : (hasPart ? "Продовжити" : Text.UPDATE_GET);
                 String title = ready ? "Оновлення завантажено" : Text.UPDATE;
@@ -372,6 +411,9 @@ public final class Updater {
             String recorded = prefs(context).getString(KEY_DOWNLOADED_VER, null);
             if (recorded != null && !recorded.isEmpty()) {
                 if (!isStrictlyNewer(recorded)) return false;
+                if (latest != null && !latest.isEmpty() && compare(recorded, latest) < 0) {
+                    return false;
+                }
             } else if (!newer()) {
                 return false;
             }
@@ -390,13 +432,21 @@ public final class Updater {
             return;
         }
 
-        if (where == null || where.isEmpty()) {
-            if (latest != null && !latest.isEmpty()) {
-                where = "https://github.com/fuckramochka/tiktokmi/releases/download/"
-                        + (latest.startsWith("v") ? latest : "v" + latest) + "/tiktokmi.apk";
-            } else {
-                where = "https://github.com/fuckramochka/tiktokmi/releases/download/v" + Version.MOD + "/tiktokmi.apk";
+        // Wipe stale part file if it belongs to a different version
+        try {
+            SharedPreferences p = prefs(context);
+            String partVer = p.getString(KEY_PART_VER, null);
+            if (latest != null && !latest.equals(partVer)) {
+                File part = partFile(context);
+                if (part.exists()) part.delete();
+                p.edit().putString(KEY_PART_VER, latest).apply();
             }
+        } catch (Throwable ignored) {
+        }
+
+        if (where == null || where.isEmpty()) {
+            String tag = (latest != null && !latest.isEmpty()) ? latest : Version.MOD;
+            where = "https://github.com/fuckramochka/tiktokmi/releases/download/" + tag + "/tiktokmi.apk";
         }
 
         final File apk = file(context);
@@ -410,9 +460,26 @@ public final class Updater {
                         Screen.progress(Text.UPDATE_GETTING, percent);
                     }
                 });
+
+                // Fallback attempt: if download failed and URL has /releases/download/, try toggling tag 'v' prefix
+                if (!done && where != null && where.contains("/releases/download/")) {
+                    String altWhere = toggleTagV(where);
+                    if (!altWhere.equals(where)) {
+                        Diary.note("update: primary URL failed, trying alternate tag URL: " + altWhere);
+                        done = Net.download(altWhere, apk, new Net.Along() {
+                            @Override
+                            public void at(int percent, long got, long total) {
+                                Screen.progress(Text.UPDATE_GETTING, percent);
+                            }
+                        });
+                        if (done) where = altWhere;
+                    }
+                }
+
                 Screen.progressGone();
                 if (!done) {
-                    final File part = partFile(context);                    if (part.isFile() && part.length() > 0) {
+                    final File part = partFile(context);
+                    if (part.isFile() && part.length() > 0) {
                         final int mb = (int) (part.length() / (1024 * 1024));
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                             @Override
@@ -443,15 +510,31 @@ public final class Updater {
                 // check and the startup cleanup compare mod against mod --
                 // never the apk's own versionName, which is TikTok's.
                 try {
-                    String got = latest;
-                    if (got != null && !got.isEmpty()) {
-                        prefs(context).edit().putString(KEY_DOWNLOADED_VER, got).apply();
-                    }
+                    String got = latest != null && !latest.isEmpty() ? latest : Version.MOD;
+                    prefs(context).edit()
+                            .putString(KEY_DOWNLOADED_VER, got)
+                            .remove(KEY_PART_VER)
+                            .apply();
                 } catch (Throwable ignored) {
                 }
                 install(context);
             }
         });
+    }
+
+    static String toggleTagV(String url) {
+        if (url == null) return "";
+        String prefix = "/releases/download/";
+        int idx = url.indexOf(prefix);
+        if (idx < 0) return url;
+        int tagStart = idx + prefix.length();
+        int slashAfter = url.indexOf('/', tagStart);
+        if (slashAfter < 0) return url;
+        String tag = url.substring(tagStart, slashAfter);
+        String newTag = tag.startsWith("v") || tag.startsWith("V")
+                ? tag.substring(1)
+                : "v" + tag;
+        return url.substring(0, tagStart) + newTag + url.substring(slashAfter);
     }
 
     /**

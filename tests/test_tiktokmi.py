@@ -757,5 +757,85 @@ class PaletteTest(unittest.TestCase):
         self.assertIn("MIN_VALUE = %gf" % palette.MIN_VALUE, java)
 
 
+class UpdaterLogicTest(unittest.TestCase):
+    @staticmethod
+    def clean_version(s: str) -> str:
+        if not s:
+            return ""
+        s = s.strip()
+        if s.startswith(("v", "V")):
+            s = s[1:].strip()
+        import re
+        if not re.match(r"^\d+(\.\d+)+.*$", s):
+            return ""
+        end = 0
+        while end < len(s) and (s[end].isdigit() or s[end] == "."):
+            end += 1
+        cleaned = s[:end]
+        first_dot = cleaned.find(".")
+        if first_dot > 0:
+            try:
+                major = int(cleaned[:first_dot])
+                if major >= 100:
+                    return ""
+            except ValueError:
+                pass
+        return cleaned
+
+    @classmethod
+    def compare(cls, a: str, b: str) -> int:
+        clean_a = cls.clean_version(a)
+        clean_b = cls.clean_version(b)
+        if not clean_a and not clean_b:
+            return 0
+        if not clean_a:
+            return -1
+        if not clean_b:
+            return 1
+        left = [int(p) for p in clean_a.split(".")]
+        right = [int(p) for p in clean_b.split(".")]
+        most = max(len(left), len(right))
+        for i in range(most):
+            one = left[i] if i < len(left) else 0
+            two = right[i] if i < len(right) else 0
+            if one != two:
+                return -1 if one < two else 1
+        return 0
+
+    @staticmethod
+    def toggle_tag_v(url: str) -> str:
+        if not url:
+            return ""
+        prefix = "/releases/download/"
+        idx = url.find(prefix)
+        if idx < 0:
+            return url
+        tag_start = idx + len(prefix)
+        slash_after = url.find("/", tag_start)
+        if slash_after < 0:
+            return url
+        tag = url[tag_start:slash_after]
+        new_tag = tag[1:] if tag.startswith(("v", "V")) else f"v{tag}"
+        return url[:tag_start] + new_tag + url[slash_after:]
+
+    def test_version_comparisons(self):
+        self.assertGreater(self.compare("4.2", "0.4.0"), 0)
+        self.assertGreater(self.compare("4.2", "0.4.1"), 0)
+        self.assertGreater(self.compare("0.4.1", "0.4.0"), 0)
+        self.assertLess(self.compare("0.4.1", "4.2"), 0)
+        self.assertEqual(self.compare("4.2", "4.2"), 0)
+        self.assertEqual(self.compare("v4.2", "4.2"), 0)
+        self.assertGreater(self.compare("4.2.1", "4.2"), 0)
+        self.assertLess(self.compare("0.3.7", "0.4.0"), 0)
+
+    def test_tag_toggle_v(self):
+        url = "https://github.com/fuckramochka/tiktokmi/releases/download/4.2/tiktokmi.apk"
+        self.assertEqual(self.toggle_tag_v(url),
+                         "https://github.com/fuckramochka/tiktokmi/releases/download/v4.2/tiktokmi.apk")
+        url_v = "https://github.com/fuckramochka/tiktokmi/releases/download/v4.2/tiktokmi.apk"
+        self.assertEqual(self.toggle_tag_v(url_v),
+                         "https://github.com/fuckramochka/tiktokmi/releases/download/4.2/tiktokmi.apk")
+
+
 if __name__ == "__main__":
     unittest.main()
