@@ -286,7 +286,7 @@ public final class SpeedOverlay {
             // Keyhole
             paint.setStyle(Paint.Style.FILL);
             int origColor = paint.getColor();
-            paint.setColor(0xFF1B7C41); // cutout tint
+            paint.setColor(Accent.colour()); // cutout tint
             canvas.drawCircle(w * 0.50f, h * 0.62f, dp(getContext(), 1.5f), paint);
             canvas.drawRect(w * 0.46f, h * 0.62f, w * 0.54f, h * 0.74f, paint);
             paint.setColor(origColor);
@@ -295,7 +295,7 @@ public final class SpeedOverlay {
 
     private static int onColor(int color) {
         int r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = color & 0xFF;
-        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? 0xFF1C2C24 : 0xFFFFFFFF;
+        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? 0xFF1C1C1E : 0xFFFFFFFF;
     }
 
     private static int dp(Context context, float value) {

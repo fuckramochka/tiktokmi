@@ -61,6 +61,8 @@ public final class Streaks {
     public static final String KEY_MODE = "streak_mode";
     public static final String KEY_TEXT = "streak_text";
     public static final String KEY_CONVERSATIONS = "streak_saved_conversations";
+    public static final String KEY_EXCLUDED = "streak_excluded_conversations";
+    public static final String KEY_SEND_TO_ALL = "streak_send_to_all";
     public static final String KEY_SCHEDULE_HOUR = "streak_schedule_hour";
     public static final String KEY_SCHEDULE_MINUTE = "streak_schedule_minute";
 
@@ -169,6 +171,66 @@ public final class Streaks {
         int schedHour = scheduleHour();
         int schedMin = scheduleMinute();
         return (curHour > schedHour) || (curHour == schedHour && curMin >= schedMin);
+    }
+
+    public static boolean isSendToAll() {
+        return flag(KEY_SEND_TO_ALL, true);
+    }
+
+    public static void setSendToAll(boolean all) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putBoolean(KEY_SEND_TO_ALL, all).apply();
+    }
+
+    public static java.util.Set<String> excludedConversations() {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return new java.util.HashSet<String>();
+        java.util.Set<String> set = prefs.getStringSet(KEY_EXCLUDED, null);
+        return set == null ? new java.util.HashSet<String>() : new java.util.HashSet<String>(set);
+    }
+
+    public static boolean isConversationAllowed(String conversation) {
+        if (conversation == null) return false;
+        return !excludedConversations().contains(conversation);
+    }
+
+    public static void setConversationExcluded(String conversation, boolean excluded) {
+        if (conversation == null) return;
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        java.util.Set<String> set = excludedConversations();
+        if (excluded) {
+            set.add(conversation);
+        } else {
+            set.remove(conversation);
+        }
+        prefs.edit().putStringSet(KEY_EXCLUDED, set).apply();
+    }
+
+    public static List<String> allKnownConversations() {
+        List<String> result = new ArrayList<String>();
+        try {
+            SharedPreferences prefs = prefs();
+            if (prefs != null) {
+                java.util.Set<String> set = prefs.getStringSet(KEY_CONVERSATIONS, null);
+                if (set != null) {
+                    for (String s : set) {
+                        if (isValidConversationId(s) && !result.contains(s)) result.add(s);
+                    }
+                }
+            }
+            synchronized (asked) {
+                for (String s : asked.keySet()) {
+                    if (isValidConversationId(s) && !result.contains(s)) result.add(s);
+                }
+            }
+            synchronized (known) {
+                for (String s : known.keySet()) {
+                    if (isValidConversationId(s) && !result.contains(s)) result.add(s);
+                }
+            }
+        } catch (Throwable ignored) {}
+        return result;
     }
 
     public static String chosen() {
@@ -659,6 +721,9 @@ public final class Streaks {
         int grey = 0, lit = 0, gone = 0, unknown = 0, already = 0;
         long now = System.currentTimeMillis();
         for (String conversation : all) {
+            if (!isConversationAllowed(conversation)) {
+                continue;
+            }
             if (sentToday(conversation, now)) {
                 already++;
                 continue;
@@ -792,6 +857,9 @@ public final class Streaks {
             public void run() {
                 int sent = 0, failed = 0;
                 for (String conversation : all) {
+                    if (!isConversationAllowed(conversation)) {
+                        continue;
+                    }
                     String state = statusOf(ask(conversation));
                     boolean ok = deliver(context, toSend, conversation);
                     if (ok) sent++;

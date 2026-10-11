@@ -54,24 +54,22 @@ public final class Accent {
 
     /** iso-style names are not needed here; the label is the colour itself. */
     public static final int[] PALETTE = {
-            BUILT_WITH,
-            TIKTOK,      // TikTok's own pink, in case the build baked another
-            0xFFFFB7C5,  // Miogram Strawberry Milk
-            0xFFE6E6FA,  // Miogram Lavender Dream
-            0xFFBFFCC6,  // Miogram Minty Angel
-            0xFFA0E7E5,  // Miogram Cyber Fairy
-            0xFFFF1493,  // Miogram Neon Pink
-            0xFF00F0FF,  // Miogram Cyan Cyber
-            0xFFFFD700,  // Miogram Royal Gold
+            TIKTOK,      // TikTok's own original red/pink (#FE2C55)
+            0xFFE53935,  // Material 3 Crimson Red
+            0xFFFF4D6D,  // Ruby Red
+            0xFFFF1493,  // Neon Pink
+            0xFFFF8A3D,  // Warm Orange
+            0xFFFFD700,  // Royal Gold
             0xFF8DD1B0,  // Mint
             0xFF25F4EE,  // TikTok cyan
-            0xFF4C8DFF,
-            0xFF9B6BFF,
-            0xFFFF8A3D,
-            0xFF35C759,
-            0xFFFF4D6D,
+            0xFF4C8DFF,  // Sky Blue
+            0xFF9B6BFF,  // Purple
+            0xFFBFFCC6,  // Pastel Mint
+            0xFFA0E7E5,  // Cyber Turquoise
+            0xFFFFB7C5,  // Strawberry Milk
+            0xFFE6E6FA,  // Lavender
             0xFF1A1423,  // Dark Velvet
-            0xFFE8E8E8,
+            0xFFE8E8E8,  // Monochrome Silver
     };
 
     /** The palette without repeats: the built-in colour may be in it twice. */
@@ -119,10 +117,9 @@ public final class Accent {
             chosen = prefs.getInt(KEY, 0);
         } catch (Throwable ignored) {
         }
-        // Auto-detect Material You from wallpaper on first run if available
+        // Priority color is TikTok original red (#FE2C55)
         if (chosen == 0) {
-            int wallpaper = fromWallpaper();
-            chosen = (wallpaper != 0) ? wallpaper : BUILT_WITH;
+            chosen = BUILT_WITH;
         }
         cached = chosen;
         return chosen;

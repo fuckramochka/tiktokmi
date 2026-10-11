@@ -35,6 +35,9 @@ public final class Feed {
     public static final String KEY_HIDE_PHOTOS = "hide_photos";
     public static final String KEY_HIDE_STORIES = "hide_stories";
     public static final String KEY_OLED_CLEAN = "oled_clean_mode";
+    public static final String KEY_OLED_SHOW_BUTTON = "oled_show_button";
+    public static final String KEY_OLED_AUTO_START = "oled_auto_start";
+    public static final String KEY_OLED_TRANSPARENCY = "oled_transparency";
     public static final String KEY_KEYWORDS = "feed_keywords";
     public static final String KEY_MAX_CAPTION = "feed_caption_max";
     public static final String KEY_REGION_MATCH = "feed_region_match";
@@ -44,6 +47,9 @@ public final class Feed {
     private static volatile Boolean cachedPhotos;
     private static volatile Boolean cachedStories;
     private static volatile Boolean cachedOled;
+    private static volatile Boolean cachedOledButton;
+    private static volatile Boolean cachedOledAuto;
+    private static volatile Integer cachedOledTransparency;
 
     public static boolean isEnabled() {
         Boolean known = cached;
@@ -133,6 +139,9 @@ public final class Feed {
         boolean on = false;
         try {
             on = prefs.getBoolean(KEY_OLED_CLEAN, false);
+            if (!on && isOledAutoStartEnabled()) {
+                on = true;
+            }
         } catch (Throwable ignored) {
         }
         cachedOled = on;
@@ -143,6 +152,81 @@ public final class Feed {
         cachedOled = enabled;
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putBoolean(KEY_OLED_CLEAN, enabled).apply();
+    }
+
+    public static boolean isOledButtonEnabled() {
+        Boolean known = cachedOledButton;
+        if (known != null) return known;
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return true; // default enabled
+        boolean on = true;
+        try {
+            on = prefs.getBoolean(KEY_OLED_SHOW_BUTTON, true);
+        } catch (Throwable ignored) {
+        }
+        cachedOledButton = on;
+        return on;
+    }
+
+    public static void setOledButtonEnabled(boolean enabled) {
+        cachedOledButton = enabled;
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putBoolean(KEY_OLED_SHOW_BUTTON, enabled).apply();
+    }
+
+    public static boolean isOledAutoStartEnabled() {
+        Boolean known = cachedOledAuto;
+        if (known != null) return known;
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return false;
+        boolean on = false;
+        try {
+            on = prefs.getBoolean(KEY_OLED_AUTO_START, false);
+        } catch (Throwable ignored) {
+        }
+        cachedOledAuto = on;
+        return on;
+    }
+
+    public static void setOledAutoStartEnabled(boolean enabled) {
+        cachedOledAuto = enabled;
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putBoolean(KEY_OLED_AUTO_START, enabled).apply();
+    }
+
+    public static int getOledTransparency() {
+        Integer known = cachedOledTransparency;
+        if (known != null) return known;
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return 80;
+        int val = 80;
+        try {
+            val = prefs.getInt(KEY_OLED_TRANSPARENCY, 80);
+        } catch (Throwable ignored) {
+        }
+        cachedOledTransparency = val;
+        return val;
+    }
+
+    public static void setOledTransparency(int percent) {
+        if (percent < 0) percent = 0;
+        if (percent > 100) percent = 100;
+        cachedOledTransparency = percent;
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putInt(KEY_OLED_TRANSPARENCY, percent).apply();
+    }
+
+    public static float targetOledAlpha() {
+        int trans = getOledTransparency();
+        return Math.max(0.0f, Math.min(1.0f, (100 - trans) / 100.0f));
+    }
+
+    public static void toggleOledClean(android.app.Activity activity) {
+        boolean next = !isOledCleanEnabled();
+        setOledCleanEnabled(next);
+        if (activity != null) {
+            applyOled(activity.getWindow().getDecorView());
+        }
     }
 
     // ------------------------------------------------- the word filter
@@ -365,7 +449,7 @@ public final class Feed {
                             } catch (Throwable skip) {
                             }
                         }
-                        view.setAlpha(0.6f);
+                        view.setAlpha(targetOledAlpha());
                         view.setTag(OLED_TAG, Boolean.TRUE);
                     }
                 }
@@ -391,6 +475,102 @@ public final class Feed {
             for (int i = 0; i < count; i++) {
                 walkOled(group.getChildAt(i), enabled, depth + 1);
             }
+        }
+    }
+
+    private static final int CLEAN_BTN_TAG = 0x4F4C4542; // "OLEB"
+
+    public static void attachCleanButton(final android.app.Activity activity) {
+        if (activity == null || activity.isFinishing()) return;
+        if (!isOledButtonEnabled()) {
+            removeCleanButton(activity);
+            return;
+        }
+        try {
+            android.view.ViewGroup decor = (android.view.ViewGroup) activity.getWindow().getDecorView();
+            if (decor == null || decor.findViewById(CLEAN_BTN_TAG) != null) return;
+
+            CleanButton btn = new CleanButton(activity);
+            btn.setId(CLEAN_BTN_TAG);
+            float d = activity.getResources().getDisplayMetrics().density;
+            android.widget.FrameLayout.LayoutParams lp =
+                    new android.widget.FrameLayout.LayoutParams(
+                            Math.round(46 * d), Math.round(46 * d));
+            lp.gravity = android.view.Gravity.TOP | android.view.Gravity.START;
+            lp.leftMargin = Math.round(16 * d);
+            lp.topMargin = Math.round(54 * d);
+            decor.addView(btn, lp);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static void removeCleanButton(android.app.Activity activity) {
+        if (activity == null) return;
+        try {
+            android.view.ViewGroup decor = (android.view.ViewGroup) activity.getWindow().getDecorView();
+            if (decor != null) {
+                View existing = decor.findViewById(CLEAN_BTN_TAG);
+                if (existing != null) decor.removeView(existing);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    static class CleanButton extends View {
+        private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        public CleanButton(final android.content.Context context) {
+            super(context);
+            bgPaint.setColor(0x99000000);
+            bgPaint.setStyle(Paint.Style.FILL);
+
+            iconPaint.setColor(0xFFFFFFFF);
+            iconPaint.setStyle(Paint.Style.STROKE);
+            iconPaint.setStrokeWidth(context.getResources().getDisplayMetrics().density * 2.2f);
+            iconPaint.setStrokeCap(Paint.Cap.ROUND);
+
+            setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    boolean next = !isOledCleanEnabled();
+                    setOledCleanEnabled(next);
+                    if (context instanceof android.app.Activity) {
+                        applyOled(((android.app.Activity) context).getWindow().getDecorView());
+                    }
+                    invalidate();
+                }
+            });
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float w = getWidth();
+            float h = getHeight();
+            float r = Math.min(w, h) / 2f;
+            canvas.drawCircle(w / 2f, h / 2f, r, bgPaint);
+
+            // Draw view-finder focus corners [  ]
+            float d = getContext().getResources().getDisplayMetrics().density;
+            float pad = 13 * d;
+            float corner = 6 * d;
+            float l = pad, t = pad, right = w - pad, b = h - pad;
+
+            // Top-left corner
+            canvas.drawLine(l, t + corner, l, t, iconPaint);
+            canvas.drawLine(l, t, l + corner, t, iconPaint);
+
+            // Top-right corner
+            canvas.drawLine(right - corner, t, right, t, iconPaint);
+            canvas.drawLine(right, t, right, t + corner, iconPaint);
+
+            // Bottom-left corner
+            canvas.drawLine(l, b - corner, l, b, iconPaint);
+            canvas.drawLine(l, b, l + corner, b, iconPaint);
+
+            // Bottom-right corner
+            canvas.drawLine(right - corner, b, right, b, iconPaint);
+            canvas.drawLine(right, b - corner, right, b, iconPaint);
         }
     }
 

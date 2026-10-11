@@ -57,6 +57,14 @@ public final class Download {
         write(KEY_QUALITY, enabled);
     }
 
+    public static boolean isSkipQualitySheetEnabled() {
+        return !isQualitySheetEnabled();
+    }
+
+    public static void setSkipQualitySheetEnabled(boolean skip) {
+        setQualitySheetEnabled(!skip);
+    }
+
     public static boolean isEnabled() {
         Boolean known = cached;
         if (known != null) return known;

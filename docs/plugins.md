@@ -177,3 +177,4 @@ longer means what the plugin thought.
 | api | TikTok MI | What changed |
 |---|---|---|
 | 1 | 0.4 | The first one: start, the three activity hooks, colour, region. |
+| 2 | 0.4.1 | The interceptors: `onFlag`, `onText` and `onDirectMessage`. |

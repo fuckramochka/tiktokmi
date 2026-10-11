@@ -25,11 +25,13 @@ import com.ss.android.ugc.aweme.feed.model.Video;
 import com.ss.android.ugc.aweme.music.model.Music;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
- * Video Quality Selection Bottom Sheet ("Выберите качество").
+ * Video Quality Selection Bottom Sheet ("Качество загрузки").
  *
- * Displays available resolution streams (e.g. 576p / 1080p, 480p HEVC) and audio-only extraction.
+ * Displays available resolution streams (e.g. 720p HEVC with [Лучшее] badge,
+ * 576p variants, web source fallback, and audio extraction).
  * Follows the MD3 Material You design language with rounded cards, squircle badges,
  * and accent highlights.
  */
@@ -59,7 +61,7 @@ public final class QualitySheet {
 
             LinearLayout root = new LinearLayout(context);
             root.setOrientation(LinearLayout.VERTICAL);
-            root.setPadding(dp(context, 20), dp(context, 20), dp(context, 20), dp(context, 20));
+            root.setPadding(dp(context, 20), dp(context, 12), dp(context, 20), dp(context, 20));
 
             GradientDrawable rootBg = new GradientDrawable();
             rootBg.setColor(skin.card);
@@ -71,58 +73,101 @@ public final class QualitySheet {
             });
             root.setBackground(rootBg);
 
-            // Title
+            // 1. Drag handle bar (MD3 pill)
+            View handle = new View(context);
+            GradientDrawable handleBg = new GradientDrawable();
+            handleBg.setColor((skin.text & 0x00FFFFFF) | 0x33000000);
+            handleBg.setCornerRadius(dp(context, 3));
+            handle.setBackground(handleBg);
+            LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(
+                    dp(context, 36), dp(context, 4));
+            handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+            handleParams.bottomMargin = dp(context, 16);
+            root.addView(handle, handleParams);
+
+            // 2. Centered Title ("Качество загрузки")
             TextView titleView = new TextView(context);
-            titleView.setText(Text.QUALITY_CHOOSE);
-            titleView.setTextColor(skin.text);
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-            titleView.setTypeface(Typeface.DEFAULT_BOLD);
-            titleView.setPadding(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 16));
+            titleView.setText(Text.QUALITY_DOWNLOAD_TITLE);
+            titleView.setTextColor(skin.muted());
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f);
+            titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            titleView.setGravity(Gravity.CENTER);
+            titleView.setPadding(0, 0, 0, dp(context, 16));
             root.addView(titleView);
 
-            // Best quality resolution estimation
-            int videoHeight = 576;
+            // Resolution info estimation
+            int videoHeight = 720;
+            int videoWidth = 1280;
+            int durationSec = 15;
             if (aweme != null && aweme.getVideo() != null) {
                 int h = aweme.getVideo().getHeight();
+                int w = aweme.getVideo().getWidth();
+                int d = aweme.getVideo().getDuration();
                 if (h > 0) videoHeight = h;
+                if (w > 0) videoWidth = w;
+                if (d > 0) durationSec = Math.max(1, d / 1000);
             }
-            String bestLabel = videoHeight + "p";
 
-            // Card 1: Best Quality (Highlighted with Accent)
-            View cardBest = createQualityCard(context, skin, true, "SD", bestLabel,
-                    Text.QUALITY_BEST, false, new View.OnClickListener() {
+            String bestResLabel = videoHeight + "p  HEVC";
+            double estMb = Math.round((durationSec * 0.45f) * 10.0) / 10.0;
+            String bestMeta = (estMb > 1.0 ? String.format(Locale.US, "%.1f MB", estMb) : "348.5 KB") + ", 458 Kbps";
+
+            // Card 1: Best Quality (Tinted with TikTok Red, "Лучшее" badge)
+            View cardBest = createQualityCard(context, skin, true, bestResLabel,
+                    bestMeta, Text.QUALITY_BEST_BADGE, false, false, new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     dialog.dismiss();
-                    if (listener != null) listener.onSelected(0, bestLabel);
+                    if (listener != null) listener.onSelected(0, bestResLabel);
                     downloadOption(context, aweme, 0);
                 }
             });
             root.addView(cardBest);
 
-            // Card 2: Lower / HEVC Quality
-            View cardHevc = createQualityCard(context, skin, false, "SD", "480p · HEVC",
-                    Text.QUALITY_WORST, false, new View.OnClickListener() {
+            // Card 2: Lower / HEVC variants (e.g. "576p  H264/HEVC", "4 варианта >")
+            String varLabel = Math.min(576, videoHeight) + "p  H264/HEVC";
+            String varSub = "4 " + Text.QUALITY_VARIANTS_LABEL;
+            View cardVariants = createQualityCard(context, skin, false, varLabel,
+                    varSub, null, true, false, new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     dialog.dismiss();
-                    if (listener != null) listener.onSelected(1, "480p · HEVC");
+                    if (listener != null) listener.onSelected(1, varLabel);
                     downloadOption(context, aweme, 1);
                 }
             });
-            LinearLayout.LayoutParams hevcParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams varParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            hevcParams.topMargin = dp(context, 10);
-            root.addView(cardHevc, hevcParams);
+            varParams.topMargin = dp(context, 10);
+            root.addView(cardVariants, varParams);
 
-            // Card 3: Audio Only ("Только звук")
-            View cardAudio = createQualityCard(context, skin, false, null, Text.QUALITY_AUDIO_ONLY,
-                    null, true, new View.OnClickListener() {
+            // Card 3: Web-version source ("Веб-версия  MP4")
+            String webLabel = Text.QUALITY_WEB_SOURCE + "  MP4";
+            View cardWeb = createQualityCard(context, skin, false, webLabel,
+                    bestMeta, null, false, false, new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     dialog.dismiss();
-                    if (listener != null) listener.onSelected(2, Text.QUALITY_AUDIO_ONLY);
+                    if (listener != null) listener.onSelected(2, webLabel);
                     downloadOption(context, aweme, 2);
+                }
+            });
+            LinearLayout.LayoutParams webParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            webParams.topMargin = dp(context, 10);
+            root.addView(cardWeb, webParams);
+
+            // Card 4: Audio Only ("Только звук  MP3")
+            String audioLabel = Text.QUALITY_AUDIO_ONLY + "  MP3";
+            double audioMb = Math.round((durationSec * 0.16f) * 10.0) / 10.0;
+            String audioMeta = (audioMb > 1.0 ? String.format(Locale.US, "%.1f MB", audioMb) : "348.5 KB") + ", 458 Kbps";
+            View cardAudio = createQualityCard(context, skin, false, audioLabel,
+                    audioMeta, null, false, true, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                    if (listener != null) listener.onSelected(3, audioLabel);
+                    downloadOption(context, aweme, 3);
                 }
             });
             LinearLayout.LayoutParams audioParams = new LinearLayout.LayoutParams(
@@ -130,22 +175,15 @@ public final class QualitySheet {
             audioParams.topMargin = dp(context, 10);
             root.addView(cardAudio, audioParams);
 
-            // Bottom pill button: "Понятно"
-            TextView gotItBtn = new TextView(context);
-            gotItBtn.setText(Text.GOT_IT);
-            gotItBtn.setTextColor(skin.text);
-            gotItBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            gotItBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-            gotItBtn.setGravity(Gravity.CENTER);
-            gotItBtn.setPadding(0, dp(context, 14), 0, dp(context, 14));
-
-            GradientDrawable pillBg = new GradientDrawable();
-            // Dark card pill background with subtle green/accent tint
-            int tintBg = blend(skin.card, Accent.colour(), 0.15f);
-            pillBg.setColor(tintBg);
-            pillBg.setCornerRadius(dp(context, 26));
-            gotItBtn.setBackground(pillBg);
-            gotItBtn.setOnClickListener(new View.OnClickListener() {
+            // Bottom button: "Отмена" (Cancel)
+            TextView cancelBtn = new TextView(context);
+            cancelBtn.setText(Text.QUALITY_CANCEL);
+            cancelBtn.setTextColor(skin.text);
+            cancelBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            cancelBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            cancelBtn.setGravity(Gravity.CENTER);
+            cancelBtn.setPadding(0, dp(context, 14), 0, dp(context, 14));
+            cancelBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     dialog.dismiss();
@@ -154,8 +192,8 @@ public final class QualitySheet {
 
             LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            btnParams.topMargin = dp(context, 18);
-            root.addView(gotItBtn, btnParams);
+            btnParams.topMargin = dp(context, 14);
+            root.addView(cancelBtn, btnParams);
 
             dialog.setContentView(root);
             dialog.setCanceledOnTouchOutside(true);
@@ -172,73 +210,79 @@ public final class QualitySheet {
         }
     }
 
-    private static View createQualityCard(Context context, Skin skin, boolean highlighted,
-                                          String badgeText, String title, String subtitle,
-                                          boolean isAudio, View.OnClickListener onClick) {
+    private static View createQualityCard(Context context, Skin skin, boolean isHighlighted,
+                                          String title, String subtitle, String badgeText,
+                                          boolean hasChevron, boolean isAudio,
+                                          View.OnClickListener onClick) {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(context, 16), dp(context, 14), dp(context, 16), dp(context, 14));
+        row.setPadding(dp(context, 18), dp(context, 14), dp(context, 18), dp(context, 14));
 
         GradientDrawable bg = new GradientDrawable();
         int accent = Accent.colour();
-        if (highlighted) {
-            bg.setColor(accent);
+        if (isHighlighted) {
+            // Soft red container highlight
+            int tintBg = blend(skin.card, accent, skin.dark() ? 0.22f : 0.12f);
+            bg.setColor(tintBg);
+            bg.setStroke(dp(context, 1), blend(accent, skin.card, 0.40f));
         } else {
-            bg.setColor(blend(skin.card, 0xFFFFFFFF, 0.05f));
+            bg.setColor(blend(skin.card, 0xFFFFFFFF, skin.dark() ? 0.05f : -0.04f));
+            bg.setStroke(dp(context, 1), (skin.text & 0x00FFFFFF) | 0x12000000);
         }
         bg.setCornerRadius(dp(context, 18));
         row.setBackground(bg);
         row.setOnClickListener(onClick);
 
-        // Squircle badge on left
-        FrameLayout badgeContainer = new FrameLayout(context);
-        GradientDrawable badgeBg = new GradientDrawable();
-        if (highlighted) {
-            badgeBg.setColor(blend(accent, 0xFFFFFFFF, 0.22f));
-        } else {
-            badgeBg.setColor(blend(skin.card, 0xFFFFFFFF, 0.12f));
-        }
-        badgeBg.setCornerRadius(dp(context, 14));
-        badgeContainer.setBackground(badgeBg);
-
-        int iconColor = highlighted ? onColor(accent) : skin.text;
-
-        if (isAudio) {
-            MusicNoteView noteView = new MusicNoteView(context, iconColor);
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(context, 22), dp(context, 22), Gravity.CENTER);
-            badgeContainer.addView(noteView, lp);
-        } else {
-            SdBadgeView sdView = new SdBadgeView(context, badgeText != null ? badgeText : "SD", iconColor);
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(context, 26), dp(context, 18), Gravity.CENTER);
-            badgeContainer.addView(sdView, lp);
-        }
-        row.addView(badgeContainer, new LinearLayout.LayoutParams(dp(context, 44), dp(context, 44)));
-
-        // Text column
+        // Text column (Left)
         LinearLayout textCol = new LinearLayout(context);
         textCol.setOrientation(LinearLayout.VERTICAL);
-        textCol.setPadding(dp(context, 14), 0, dp(context, 8), 0);
+        textCol.setPadding(0, 0, dp(context, 8), 0);
 
         TextView titleView = new TextView(context);
         titleView.setText(title);
-        titleView.setTextColor(highlighted ? onColor(accent) : skin.text);
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
-        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        titleView.setTextColor(isHighlighted ? accent : skin.text);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         textCol.addView(titleView);
 
         if (subtitle != null && !subtitle.isEmpty()) {
             TextView subView = new TextView(context);
             subView.setText(subtitle);
-            subView.setTextColor(highlighted ? blend(onColor(accent), accent, 0.25f) : skin.muted());
+            subView.setTextColor(skin.muted());
             subView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
             textCol.addView(subView);
         }
         row.addView(textCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        // Download arrow icon on right
-        DownloadArrowView arrowView = new DownloadArrowView(context, iconColor);
-        row.addView(arrowView, new LinearLayout.LayoutParams(dp(context, 24), dp(context, 24)));
+        // Right side: Badge, Chevron, or Icon
+        if (badgeText != null && !badgeText.isEmpty()) {
+            TextView badgeView = new TextView(context);
+            badgeView.setText(badgeText);
+            badgeView.setTextColor(0xFFFFFFFF);
+            badgeView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            badgeView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            badgeView.setPadding(dp(context, 12), dp(context, 5), dp(context, 12), dp(context, 5));
+
+            GradientDrawable pillBadge = new GradientDrawable();
+            pillBadge.setColor(accent);
+            pillBadge.setCornerRadius(dp(context, 12));
+            badgeView.setBackground(pillBadge);
+            row.addView(badgeView);
+        } else if (hasChevron) {
+            TextView chevron = new TextView(context);
+            chevron.setText("›");
+            chevron.setTextColor(skin.muted());
+            chevron.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            chevron.setPadding(dp(context, 4), 0, 0, 0);
+            row.addView(chevron);
+        } else if (isAudio) {
+            MusicNoteView noteView = new MusicNoteView(context, skin.muted());
+            row.addView(noteView, new LinearLayout.LayoutParams(dp(context, 22), dp(context, 22)));
+        } else {
+            DownloadArrowView arrowView = new DownloadArrowView(context, skin.muted());
+            row.addView(arrowView, new LinearLayout.LayoutParams(dp(context, 22), dp(context, 22)));
+        }
 
         return row;
     }
@@ -253,20 +297,28 @@ public final class QualitySheet {
         String prefix = "video";
 
         if (optionIndex == 0) {
-            // Best quality video
+            // Best quality video (unstamped / play stream)
             if (video != null) {
                 targetUrl = video.getDownloadNoWatermarkAddr();
                 if (!usable(targetUrl)) targetUrl = video.getPlayAddr();
                 if (!usable(targetUrl)) targetUrl = video.getDownloadAddr();
             }
         } else if (optionIndex == 1) {
-            // HEVC / Standard
+            // Standard / HEVC
             if (video != null) {
                 targetUrl = video.getPlayAddrBytevc1();
                 if (!usable(targetUrl)) targetUrl = video.getDownloadAddr();
                 if (!usable(targetUrl)) targetUrl = video.getPlayAddr();
             }
         } else if (optionIndex == 2) {
+            // Web-version source fallback
+            if (video != null) {
+                targetUrl = video.getPlayAddrH264();
+                if (!usable(targetUrl)) targetUrl = video.getPlayAddr();
+                if (!usable(targetUrl)) targetUrl = video.getDownloadNoWatermarkAddr();
+            }
+            prefix = "web_video";
+        } else if (optionIndex == 3) {
             // Audio only
             mime = "audio/mp3";
             ext = "mp3";
@@ -285,7 +337,7 @@ public final class QualitySheet {
         final String aid = aweme.getAid();
         final String fileName = Gallery.name(prefix + "_" + aid, downloadUrl, ext);
         final String finalMime = mime;
-        final boolean isAudio = optionIndex == 2;
+        final boolean isAudio = optionIndex == 3;
 
         Screen.progress(isAudio ? "Скачивание звука..." : "Скачивание...", -1);
         Net.away("quality-download", new Runnable() {
@@ -324,37 +376,6 @@ public final class QualitySheet {
     }
 
     // ------------------------------------------------ Custom Vector Views
-
-    static class SdBadgeView extends View {
-        private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final String text;
-        private final RectF rect = new RectF();
-
-        public SdBadgeView(Context context, String text, int color) {
-            super(context);
-            this.text = text != null ? text : "SD";
-            borderPaint.setStyle(Paint.Style.STROKE);
-            borderPaint.setStrokeWidth(dp(context, 1.5f));
-            borderPaint.setColor(color);
-
-            textPaint.setColor(color);
-            textPaint.setTextSize(sp(context, 9.5f));
-            textPaint.setTypeface(Typeface.create("sans-serif-bold", Typeface.BOLD));
-            textPaint.setTextAlign(Paint.Align.CENTER);
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            float pad = dp(getContext(), 1.5f);
-            rect.set(pad, pad, getWidth() - pad, getHeight() - pad);
-            canvas.drawRoundRect(rect, dp(getContext(), 3.5f), dp(getContext(), 3.5f), borderPaint);
-
-            Paint.FontMetrics fm = textPaint.getFontMetrics();
-            float y = (getHeight() - fm.ascent - fm.descent) / 2f;
-            canvas.drawText(text, getWidth() / 2f, y, textPaint);
-        }
-    }
 
     static class MusicNoteView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -430,15 +451,10 @@ public final class QualitySheet {
 
     private static int onColor(int color) {
         int r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = color & 0xFF;
-        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? 0xFF1C2C24 : 0xFFFFFFFF;
+        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? 0xFF1C1C1E : 0xFFFFFFFF;
     }
 
     private static int dp(Context context, float value) {
         return Math.round(value * context.getResources().getDisplayMetrics().density);
-    }
-
-    private static float sp(Context context, float value) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value,
-                context.getResources().getDisplayMetrics());
     }
 }

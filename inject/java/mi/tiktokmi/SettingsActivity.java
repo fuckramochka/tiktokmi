@@ -17,8 +17,19 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.graphics.Color;
+import android.graphics.Path;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.drawable.ColorDrawable;
+import android.app.Dialog;
+import android.text.TextUtils;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -196,23 +207,28 @@ public class SettingsActivity extends Activity {
             }
         } else {
             column.addView(backArrow());
-            column.addView(title("TikTok MI"));
+            column.addView(title("TikTok MI 4.2"));
             column.addView(searchBar());
+            column.addView(supportCard());
 
             column.addView(categoryCard("palette", Text.CAT_APPEARANCE_TITLE,
-                    Text.CAT_APPEARANCE_SUB, CAT_APPEARANCE));
+                    Text.CAT_APPEARANCE_SUB, CAT_APPEARANCE, 12));
             column.addView(categoryCard("group", Text.CAT_PROFILE_TITLE,
-                    Text.CAT_PROFILE_SUB, CAT_PROFILE));
+                    Text.CAT_PROFILE_SUB, CAT_PROFILE, 8));
             column.addView(categoryCard("play_circle", Text.CAT_FEED_TITLE,
-                    Text.CAT_FEED_SUB, CAT_FEED));
+                    Text.CAT_FEED_SUB, CAT_FEED, 10));
             column.addView(categoryCard("article", Text.CAT_FRIENDS_TITLE,
-                    Text.CAT_FRIENDS_SUB, CAT_FRIENDS));
+                    Text.CAT_FRIENDS_SUB, CAT_FRIENDS, 12));
             column.addView(categoryCard("tune", Text.CAT_TOOLS_TITLE,
-                    Text.CAT_TOOLS_SUB, CAT_TOOLS));
+                    Text.CAT_TOOLS_SUB, CAT_TOOLS, 8));
             column.addView(categoryCard("extension", Text.CAT_PLUGINS_TITLE,
-                    Text.CAT_PLUGINS_SUB, CAT_PLUGINS));
+                    Text.CAT_PLUGINS_SUB, CAT_PLUGINS, 10));
             column.addView(categoryCard("info", Text.CAT_ABOUT_TITLE,
-                    Text.CAT_ABOUT_SUB, CAT_ABOUT));
+                    Text.CAT_ABOUT_SUB, CAT_ABOUT, 12));
+
+            if (secretModeOpen) {
+                column.addView(secretSection());
+            }
 
             column.addView(versions());
         }
@@ -331,7 +347,131 @@ public class SettingsActivity extends Activity {
         return container;
     }
 
+    private View supportCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(skin.card);
+        bg.setCornerRadius(dp(18));
+        bg.setStroke(dp(1), (skin.text & 0x00FFFFFF) | 0x14000000);
+        card.setBackground(bg);
+        card.setPadding(dp(18), dp(16), dp(18), dp(16));
+
+        TextView title = new TextView(this);
+        title.setText("Значок за поддержку");
+        title.setTextColor(skin.text);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        card.addView(title);
+
+        TextView sub = new TextView(this);
+        sub.setText("От 250 ₽: значок рядом с ником, градиент на ник и закрытый чат. Значок и градиент видят все с TikTok MI.\nПосле перевода — в сообщения канала: чек и ваш ID аккаунта: " + (Account.id() != null ? Account.id() : ""));
+        sub.setTextColor(skin.muted());
+        sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        sub.setPadding(0, dp(6), 0, dp(14));
+        card.addView(sub);
+
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView donateBtn = new TextView(this);
+        donateBtn.setText("Пожертвовать");
+        donateBtn.setTextColor(0xFFFFFFFF);
+        donateBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f);
+        donateBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        donateBtn.setGravity(Gravity.CENTER);
+        donateBtn.setPadding(dp(16), dp(10), dp(16), dp(10));
+        GradientDrawable donateBg = new GradientDrawable();
+        donateBg.setColor(Accent.colour());
+        donateBg.setCornerRadius(dp(20));
+        donateBtn.setBackground(donateBg);
+        donateBtn.setOnClickListener(v -> open(CHANNEL));
+        buttons.addView(donateBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        View spacer = new View(this);
+        buttons.addView(spacer, new LinearLayout.LayoutParams(dp(10), dp(1)));
+
+        TextView msgBtn = new TextView(this);
+        msgBtn.setText("Сообщения каналу");
+        msgBtn.setTextColor(skin.text);
+        msgBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f);
+        msgBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        msgBtn.setGravity(Gravity.CENTER);
+        msgBtn.setPadding(dp(16), dp(10), dp(16), dp(10));
+        GradientDrawable msgBg = new GradientDrawable();
+        msgBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.08f));
+        msgBg.setStroke(dp(1), (skin.text & 0x00FFFFFF) | 0x18000000);
+        msgBg.setCornerRadius(dp(20));
+        msgBtn.setBackground(msgBg);
+        msgBtn.setOnClickListener(v -> open(OWNER_TELEGRAM));
+        buttons.addView(msgBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        card.addView(buttons);
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(skin.margin, dp(4), skin.margin, dp(10));
+        container.addView(card, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return container;
+    }
+
+    static class ScallopBadge extends View {
+        private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path path = new Path();
+        private final Bitmap icon;
+        private final int scallops;
+
+        public ScallopBadge(Context context, Bitmap icon, int tintColor, int scallops) {
+            super(context);
+            this.icon = icon;
+            this.scallops = scallops > 0 ? scallops : 12;
+            bgPaint.setStyle(Paint.Style.FILL);
+            bgPaint.setColor((tintColor & 0x00FFFFFF) | 0x24000000);
+
+            iconPaint.setColorFilter(new PorterDuffColorFilter(
+                    tintColor, android.graphics.PorterDuff.Mode.SRC_IN));
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float w = getWidth();
+            float h = getHeight();
+            float cx = w / 2f;
+            float cy = h / 2f;
+            float rOuter = Math.min(w, h) / 2f - 2f;
+            float rInner = rOuter * 0.84f;
+
+            path.reset();
+            int points = scallops * 2;
+            for (int i = 0; i < points; i++) {
+                double angle = i * (Math.PI * 2 / points);
+                float r = (i % 2 == 0) ? rOuter : rInner;
+                float x = cx + (float) (Math.cos(angle) * r);
+                float y = cy + (float) (Math.sin(angle) * r);
+                if (i == 0) path.moveTo(x, y);
+                else path.lineTo(x, y);
+            }
+            path.close();
+            canvas.drawPath(path, bgPaint);
+
+            if (icon != null) {
+                float iconSize = rInner * 1.15f;
+                Rect src = new Rect(0, 0, icon.getWidth(), icon.getHeight());
+                RectF dst = new RectF(
+                        cx - iconSize / 2f, cy - iconSize / 2f,
+                        cx + iconSize / 2f, cy + iconSize / 2f);
+                canvas.drawBitmap(icon, src, dst, iconPaint);
+            }
+        }
+    }
+
     private View categoryCard(String iconName, String title, String subtitle, final String categoryKey) {
+        return categoryCard(iconName, title, subtitle, categoryKey, 12);
+    }
+
+    private View categoryCard(String iconName, String title, String subtitle, final String categoryKey, int scallops) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
@@ -341,21 +481,8 @@ public class SettingsActivity extends Activity {
         card.setBackground(bg);
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
 
-        FrameLayout badge = new FrameLayout(this);
-        GradientDrawable badgeBg = new GradientDrawable();
-        badgeBg.setColor((Accent.colour() & 0x00FFFFFF) | 0x24000000);
-        badgeBg.setCornerRadius(dp(14));
-        badge.setBackground(badgeBg);
-
-        ImageView iconView = new ImageView(this);
         Bitmap bitmap = iconBitmap(iconName);
-        if (bitmap != null) {
-            iconView.setImageBitmap(bitmap);
-            iconView.setColorFilter(Accent.colour(), android.graphics.PorterDuff.Mode.SRC_IN);
-        }
-        FrameLayout.LayoutParams iconParams =
-                new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER);
-        badge.addView(iconView, iconParams);
+        ScallopBadge badge = new ScallopBadge(this, bitmap, Accent.colour(), scallops);
         card.addView(badge, new LinearLayout.LayoutParams(dp(46), dp(46)));
 
         LinearLayout text = new LinearLayout(this);
@@ -401,6 +528,8 @@ public class SettingsActivity extends Activity {
     private void buildAppearanceCategory() {
         column.addView(section(Text.ACCENT));
         LinearLayout accent = card();
+        accent.addView(systemColorsRow());
+        accent.addView(line());
         accent.addView(accentHead());
         if (accentOpen) {
             accent.addView(line());
@@ -459,6 +588,9 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.ICON));
         LinearLayout icons = card();
+        icons.addView(actionRow("image", Text.ICON_CHOICE, Launcher.nameOf(Launcher.chosen()),
+                () -> showIconPickerSheet()));
+        icons.addView(line());
         icons.addView(iconHead());
         if (iconOpen) {
             icons.addView(line());
@@ -466,13 +598,23 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(icons));
 
+        column.addView(section(Text.OLED_ANTI_BURN_IN));
+        LinearLayout oled = card();
+        oled.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
+        oled.addView(line());
+        oled.addView(toggleRow("crop_free", Text.OLED_SHOW_BUTTON, Feed.isOledShowButtonEnabled(), Feed::setOledShowButtonEnabled));
+        oled.addView(line());
+        oled.addView(toggleRow("play_circle", Text.OLED_AUTO_START, Feed.isOledAutoStartEnabled(), Feed::setOledAutoStartEnabled));
+        oled.addView(line());
+        oled.addView(actionRow("tune", Text.OLED_TRANSPARENCY, Feed.oledTransparency() + "%",
+                () -> showTransparencyDialog()));
+        column.addView(wrap(oled));
+        column.addView(caption(Text.OLED_NOTE));
+
         column.addView(section(Text.UI_CLEAN));
         LinearLayout visual = card();
         visual.addView(toggleRow("block", Text.UI_CLEAN, Ui.isEnabled(), Ui::setEnabled));
-        visual.addView(line());
-        visual.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
         column.addView(wrap(visual));
-        column.addView(caption(Text.OLED_NOTE));
         column.addView(caption(Text.UI_CLEAN_NOTE));
     }
 
@@ -604,6 +746,12 @@ public class SettingsActivity extends Activity {
                     }, Streaks.scheduleHour(), Streaks.scheduleMinute(), true).show();
                 }));
         streaks.addView(line());
+        String recDetail = Streaks.isSendToAll()
+                ? "Все диалоги"
+                : ("Выборочно (" + Math.max(0, Streaks.allKnownConversations().size() - Streaks.excludedConversations().size()) + ")");
+        streaks.addView(actionRow("group", Text.STREAKS_RECIPIENTS_TITLE, recDetail,
+                () -> showStreaksRecipientsSheet()));
+        streaks.addView(line());
         streaks.addView(actionRow("swap_horiz", Text.STREAK_MODE,
                 Streaks.BY_TEXT.equals(Streaks.mode()) ? Text.STREAK_MODE_TEXT : Text.STREAK_MODE_STICKER,
                 () -> {
@@ -618,23 +766,17 @@ public class SettingsActivity extends Activity {
                         Streaks.setText(value);
                         rebuild();
                     })));
-        }
-        streaks.addView(line());
-        streaks.addView(stickerHead());
-        if (streakOpen) {
+        } else {
             streaks.addView(line());
-            streaks.addView(stickerChoices());
+            streaks.addView(actionRow("star", Text.STREAK_STICKER_TITLE,
+                    Streaks.chosen().isEmpty() ? Text.STREAK_STICKER_FLAME : "Выбран кастомный",
+                    () -> showStreakStickerSheet()));
         }
         streaks.addView(line());
         streaks.addView(actionRow("play_circle", Text.STREAK_TEST, Text.STREAK_TEST_NOTE,
                 () -> {
-                    if (!Streaks.BY_TEXT.equals(Streaks.mode())
-                            && Streaks.offered().isEmpty() && Streaks.chosen().isEmpty()) {
-                        Toast.makeText(this, Text.STREAK_NEED_STICKER, Toast.LENGTH_LONG).show();
-                    } else {
-                        Streaks.test(this);
-                        Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
-                    }
+                    Streaks.test(this);
+                    Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
                 }));
         column.addView(wrap(streaks));
         column.addView(caption(Text.STREAK_NOTE));
@@ -683,6 +825,9 @@ public class SettingsActivity extends Activity {
         downloads.addView(toggleRow("tune", Text.QUALITY_SHEET_SETTING, Download.isQualitySheetEnabled(),
                 Download::setQualitySheetEnabled));
         downloads.addView(line());
+        downloads.addView(toggleRow("fast_forward", Text.SKIP_QUALITY_SETTING, Download.isSkipQualitySheetEnabled(),
+                Download::setSkipQualitySheetEnabled));
+        downloads.addView(line());
         downloads.addView(actionRow("play_circle", "Пример диалога качества", "Выбор 576p / 480p / Звук",
                 () -> QualitySheet.show(this, null)));
         downloads.addView(line());
@@ -696,6 +841,7 @@ public class SettingsActivity extends Activity {
                 })));
         column.addView(wrap(downloads));
         column.addView(caption(Text.QUALITY_SHEET_SUB));
+        column.addView(caption(Text.SKIP_QUALITY_SUB));
 
         column.addView(section(Text.WATCH_HISTORY_SECTION));
         LinearLayout history = card();
@@ -795,6 +941,9 @@ public class SettingsActivity extends Activity {
         plugins.addView(installRow());
         plugins.addView(line());
         plugins.addView(linkRow("article", Text.PLUGIN_DOCS, Text.PLUGIN_DOCS_NOTE, DOCS));
+        plugins.addView(line());
+        plugins.addView(actionRow("extension", Text.OTA_CHECK, "Компоненты мода (ttydyn)",
+                () -> showOtaDialog()));
         List<Plugins.Info> installed = Plugins.list();
         if (installed.isEmpty()) {
             plugins.addView(line());
@@ -815,6 +964,9 @@ public class SettingsActivity extends Activity {
         updates.addView(actionRow("download", Text.UPDATE_CHECK,
                 Updater.newer() ? Text.UPDATE_THERE_IS + " " + Updater.latest() : null,
                 () -> Updater.check(this, true)));
+        updates.addView(line());
+        updates.addView(actionRow("extension", Text.OTA_CHECK, "Проверить обновление модулей",
+                () -> showOtaDialog()));
         updates.addView(line());
         updates.addView(toggleRow("info", Text.UPDATE_REMIND, Updater.remind(this),
                 on -> Updater.setRemind(this, on)));
@@ -879,14 +1031,20 @@ public class SettingsActivity extends Activity {
         if (match(q, "иконка", "значок", "icon")) {
             if (found) results.addView(line());
             found = true;
-            results.addView(iconHead());
+            results.addView(actionRow("image", Text.ICON_CHOICE, Launcher.nameOf(Launcher.chosen()),
+                    () -> showIconPickerSheet()));
         }
-        if (match(q, "интерфейс", "чистый", "clean", "ui", "oled")) {
+        if (match(q, "интерфейс", "чистый", "clean", "ui", "oled", "выгорание", "прозрачность", "кнопка")) {
             if (found) results.addView(line());
             found = true;
             results.addView(toggleRow("block", Text.UI_CLEAN, Ui.isEnabled(), Ui::setEnabled));
             results.addView(line());
             results.addView(toggleRow("contrast", Text.OLED_MODE, Feed.isOledCleanEnabled(), Feed::setOledCleanEnabled));
+            results.addView(line());
+            results.addView(toggleRow("crop_free", Text.OLED_SHOW_BUTTON, Feed.isOledShowButtonEnabled(), Feed::setOledShowButtonEnabled));
+            results.addView(line());
+            results.addView(actionRow("tune", Text.OLED_TRANSPARENCY, Feed.oledTransparency() + "%",
+                    () -> showTransparencyDialog()));
         }
 
         if (match(q, "аккаунт", "account", "id", "айди", "secid", "sec_id")) {
@@ -949,7 +1107,7 @@ public class SettingsActivity extends Activity {
                     on -> Flags.set(Flags.KEY_BANNERS, on)));
         }
 
-        if (match(q, "серии", "streak", "streaks", "огоньки", "огонек", "автоогонек")) {
+        if (match(q, "серии", "streak", "streaks", "огоньки", "огонек", "автоогонек", "кому", "recipients")) {
             if (found) results.addView(line());
             found = true;
             results.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(), Streaks::setEnabled));
@@ -961,6 +1119,16 @@ public class SettingsActivity extends Activity {
                             rebuild();
                         }, Streaks.scheduleHour(), Streaks.scheduleMinute(), true).show();
                     }));
+            results.addView(line());
+            String recDetail = Streaks.isSendToAll()
+                    ? "Все диалоги"
+                    : ("Выборочно (" + Math.max(0, Streaks.allKnownConversations().size() - Streaks.excludedConversations().size()) + ")");
+            results.addView(actionRow("group", Text.STREAKS_RECIPIENTS_TITLE, recDetail,
+                    () -> showStreaksRecipientsSheet()));
+            results.addView(line());
+            results.addView(actionRow("star", Text.STREAK_STICKER_TITLE,
+                    Streaks.chosen().isEmpty() ? Text.STREAK_STICKER_FLAME : "Выбран кастомный",
+                    () -> showStreakStickerSheet()));
         }
         if (match(q, "призрак", "ghost", "невидимка", "удаленные", "deleted", "стелс", "stealth", "сообщения", "поиск")) {
             if (found) results.addView(line());
@@ -980,7 +1148,7 @@ public class SettingsActivity extends Activity {
             results.addView(toggleRow("star", Text.SAVE_STICKERS_ON, Stickers.isEnabled(), Stickers::setEnabled));
         }
 
-        if (match(q, "скачать", "скачивание", "download", "водяной", "watermark", "папка", "folder", "качество", "quality", "hevc", "звук")) {
+        if (match(q, "скачать", "скачивание", "download", "водяной", "watermark", "папка", "folder", "качество", "quality", "hevc", "звук", "пропуск")) {
             if (found) results.addView(line());
             found = true;
             results.addView(toggleRow("image", Text.NO_WATERMARK, Download.isEnabled(), Download::setEnabled));
@@ -988,6 +1156,8 @@ public class SettingsActivity extends Activity {
             results.addView(toggleRow("download", Text.DOWNLOAD_ALWAYS, Download.isAlways(), Download::setAlways));
             results.addView(line());
             results.addView(toggleRow("tune", Text.QUALITY_SHEET_SETTING, Download.isQualitySheetEnabled(), Download::setQualitySheetEnabled));
+            results.addView(line());
+            results.addView(toggleRow("fast_forward", Text.SKIP_QUALITY_SETTING, Download.isSkipQualitySheetEnabled(), Download::setSkipQualitySheetEnabled));
             results.addView(line());
             results.addView(actionRow("play_circle", "Пример диалога качества", "Выбор 576p / 480p / Звук",
                     () -> QualitySheet.show(this, null)));
@@ -1978,6 +2148,9 @@ public class SettingsActivity extends Activity {
      * Small and grey on purpose: nobody needs it until something has gone
      * wrong, and then it is the first thing anybody will ask for.
      */
+    private int secretTaps = 0;
+    private static boolean secretModeOpen = false;
+
     private View versions() {
         TextView view = new TextView(this);
         view.setText("TikTok MI " + Version.MOD + "  ·  TikTok " + Version.TIKTOK);
@@ -1985,7 +2158,45 @@ public class SettingsActivity extends Activity {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         view.setGravity(Gravity.CENTER);
         view.setPadding(skin.margin, dp(24), skin.margin, dp(8));
+        view.setOnClickListener(v -> {
+            secretTaps++;
+            if (secretTaps >= 5) {
+                if (!secretModeOpen) {
+                    secretModeOpen = true;
+                    Toast.makeText(this, Text.SECRET_MODE_UNLOCKED, Toast.LENGTH_LONG).show();
+                    rebuild();
+                }
+            } else if (secretTaps >= 2) {
+                Toast.makeText(this, String.format(Locale.getDefault(), Text.SECRET_MODE_STEPS, 5 - secretTaps), Toast.LENGTH_SHORT).show();
+            }
+        });
         return view;
+    }
+
+    private View secretSection() {
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.addView(section(Text.SECRET_MODE_SECTION));
+
+        LinearLayout card = card();
+        card.addView(actionRow("extension", Text.OTA_CHECK, "Проверить обновления компонентов",
+                () -> showOtaDialog()));
+        card.addView(line());
+        card.addView(actionRow("timeline", "Системный журнал мода", "Открыть журнал Diary",
+                () -> {
+                    currentCategory = CAT_ABOUT;
+                    diaryOpen = true;
+                    rebuild();
+                }));
+        card.addView(line());
+        card.addView(actionRow("tune", "Перезапуск сервисов", "Принудительный рестарт сессий",
+                () -> {
+                    Streaks.start(this);
+                    Toast.makeText(this, "Сервисы перезапущены", Toast.LENGTH_SHORT).show();
+                }));
+
+        wrap.addView(wrap(card));
+        return wrap;
     }
 
     private View idRow(String title, final String value) {
@@ -2575,7 +2786,838 @@ public class SettingsActivity extends Activity {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
+    private static int blend(int from, int to, float amount) {
+        float t = Math.max(0f, Math.min(1f, amount));
+        return Color.argb(
+                Math.round(Color.alpha(from) + (Color.alpha(to) - Color.alpha(from)) * t),
+                Math.round(Color.red(from) + (Color.red(to) - Color.red(from)) * t),
+                Math.round(Color.green(from) + (Color.green(to) - Color.green(from)) * t),
+                Math.round(Color.blue(from) + (Color.blue(to) - Color.blue(from)) * t));
+    }
+
+    private View systemColorsRow() {
+        HorizontalScrollView scroll = new HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16), dp(10), dp(16), dp(10));
+
+        int current = Accent.colour();
+        for (final int c : Accent.PALETTE) {
+            Dot dot = new Dot(this, c, c == current);
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(36), dp(36));
+            p.rightMargin = dp(12);
+            dot.setLayoutParams(p);
+            dot.setOnClickListener(v -> {
+                Accent.set(c);
+                markChanged();
+                rebuild();
+            });
+            row.addView(dot);
+        }
+
+        if (Accent.fromWallpaper() != 0) {
+            final int wall = Accent.fromWallpaper();
+            Dot dot = new Dot(this, wall, wall == current);
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(36), dp(36));
+            p.rightMargin = dp(12);
+            dot.setLayoutParams(p);
+            dot.setOnClickListener(v -> {
+                Accent.set(wall);
+                markChanged();
+                rebuild();
+            });
+            row.addView(dot);
+        }
+
+        scroll.addView(row);
+        return scroll;
+    }
+
+    private void showIconPickerSheet() {
+        try {
+            final Dialog dialog = new Dialog(this);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.setDimAmount(0.6f);
+            }
+
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(dp(20), dp(12), dp(20), dp(24));
+
+            GradientDrawable rootBg = new GradientDrawable();
+            rootBg.setColor(skin.card);
+            rootBg.setCornerRadii(new float[]{
+                    dp(28), dp(28), dp(28), dp(28), 0, 0, 0, 0
+            });
+            root.setBackground(rootBg);
+
+            View handle = new View(this);
+            GradientDrawable handleBg = new GradientDrawable();
+            handleBg.setColor((skin.text & 0x00FFFFFF) | 0x33000000);
+            handleBg.setCornerRadius(dp(3));
+            handle.setBackground(handleBg);
+            LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(dp(36), dp(4));
+            handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+            handleParams.bottomMargin = dp(16);
+            root.addView(handle, handleParams);
+
+            TextView titleView = new TextView(this);
+            titleView.setText(Text.ICON_SHEET_TITLE);
+            titleView.setTextColor(skin.text);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            titleView.setGravity(Gravity.CENTER);
+            root.addView(titleView);
+
+            TextView subView = new TextView(this);
+            subView.setText(Text.ICON_SHEET_SUB);
+            subView.setTextColor(skin.muted());
+            subView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            subView.setGravity(Gravity.CENTER);
+            subView.setPadding(0, dp(4), 0, dp(18));
+            root.addView(subView);
+
+            HorizontalScrollView scroll = new HorizontalScrollView(this);
+            scroll.setHorizontalScrollBarEnabled(false);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(4), dp(4), dp(4), dp(12));
+
+            final String now = Launcher.chosen();
+            final String[] all = Launcher.all();
+            for (final String which : all) {
+                final boolean isCurrent = which.equals(now);
+                LinearLayout item = new LinearLayout(this);
+                item.setOrientation(LinearLayout.VERTICAL);
+                item.setGravity(Gravity.CENTER_HORIZONTAL);
+                item.setPadding(dp(12), dp(14), dp(12), dp(14));
+
+                GradientDrawable itemBg = new GradientDrawable();
+                if (isCurrent) {
+                    itemBg.setColor(blend(skin.card, Accent.colour(), skin.dark() ? 0.22f : 0.12f));
+                    itemBg.setStroke(dp(2), Accent.colour());
+                } else {
+                    itemBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.05f));
+                    itemBg.setStroke(dp(1), (skin.text & 0x00FFFFFF) | 0x14000000);
+                }
+                itemBg.setCornerRadius(dp(18));
+                item.setBackground(itemBg);
+
+                FrameLayout iconFrame = new FrameLayout(this);
+                ImageView shot = new ImageView(this);
+                Bitmap picture = Launcher.preview(which);
+                if (picture != null) shot.setImageBitmap(picture);
+                iconFrame.addView(shot, new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER));
+
+                if (isCurrent) {
+                    CheckBoxCircle check = new CheckBoxCircle(this, true, Accent.colour());
+                    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(dp(18), dp(18), Gravity.TOP | Gravity.END);
+                    iconFrame.addView(check, cp);
+                }
+                item.addView(iconFrame, new LinearLayout.LayoutParams(dp(52), dp(52)));
+
+                TextView name = new TextView(this);
+                name.setText(Launcher.nameOf(which));
+                name.setTextColor(isCurrent ? Accent.colour() : skin.text);
+                name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                name.setTypeface(Typeface.create("sans-serif-medium", isCurrent ? Typeface.BOLD : Typeface.NORMAL));
+                name.setGravity(Gravity.CENTER);
+                name.setSingleLine(true);
+                name.setEllipsize(TextUtils.TruncateAt.END);
+                name.setPadding(0, dp(8), 0, 0);
+                item.addView(name, new LinearLayout.LayoutParams(dp(76), ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                item.setOnClickListener(v -> {
+                    Launcher.choose(this, which);
+                    dialog.dismiss();
+                    rebuild();
+                });
+
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.rightMargin = dp(10);
+                row.addView(item, lp);
+            }
+            scroll.addView(row);
+            root.addView(scroll);
+
+            TextView cancelBtn = new TextView(this);
+            cancelBtn.setText(Text.QUALITY_CANCEL);
+            cancelBtn.setTextColor(skin.muted());
+            cancelBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f);
+            cancelBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            cancelBtn.setGravity(Gravity.CENTER);
+            cancelBtn.setPadding(0, dp(14), 0, 0);
+            cancelBtn.setOnClickListener(v -> dialog.dismiss());
+            root.addView(cancelBtn);
+
+            dialog.setContentView(root);
+            dialog.setCanceledOnTouchOutside(true);
+            dialog.show();
+
+            if (window != null) {
+                WindowManager.LayoutParams params = window.getAttributes();
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                params.gravity = Gravity.BOTTOM;
+                window.setAttributes(params);
+            }
+        } catch (Throwable error) {
+            Diary.note("showIconPickerSheet: " + error);
+        }
+    }
+
+    private void showStreaksRecipientsSheet() {
+        try {
+            final Dialog dialog = new Dialog(this);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.setDimAmount(0.6f);
+            }
+
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(dp(20), dp(12), dp(20), dp(20));
+
+            GradientDrawable rootBg = new GradientDrawable();
+            rootBg.setColor(skin.card);
+            rootBg.setCornerRadii(new float[]{
+                    dp(28), dp(28), dp(28), dp(28), 0, 0, 0, 0
+            });
+            root.setBackground(rootBg);
+
+            View handle = new View(this);
+            GradientDrawable handleBg = new GradientDrawable();
+            handleBg.setColor((skin.text & 0x00FFFFFF) | 0x33000000);
+            handleBg.setCornerRadius(dp(3));
+            handle.setBackground(handleBg);
+            LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(dp(36), dp(4));
+            handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+            handleParams.bottomMargin = dp(16);
+            root.addView(handle, handleParams);
+
+            TextView titleView = new TextView(this);
+            titleView.setText(Text.STREAKS_RECIPIENTS_TITLE);
+            titleView.setTextColor(skin.text);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            titleView.setGravity(Gravity.CENTER);
+            root.addView(titleView);
+
+            TextView subView = new TextView(this);
+            subView.setText(Text.STREAKS_RECIPIENTS_SUB);
+            subView.setTextColor(skin.muted());
+            subView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            subView.setGravity(Gravity.CENTER);
+            subView.setPadding(0, dp(4), 0, dp(14));
+            root.addView(subView);
+
+            LinearLayout allRow = new LinearLayout(this);
+            allRow.setOrientation(LinearLayout.HORIZONTAL);
+            allRow.setGravity(Gravity.CENTER_VERTICAL);
+            allRow.setPadding(dp(14), dp(12), dp(14), dp(12));
+            GradientDrawable allBg = new GradientDrawable();
+            allBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.05f));
+            allBg.setCornerRadius(dp(16));
+            allRow.setBackground(allBg);
+
+            TextView allText = new TextView(this);
+            allText.setText(Text.STREAKS_SEND_TO_ALL);
+            allText.setTextColor(skin.text);
+            allText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f);
+            allText.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            allRow.addView(allText, grow());
+
+            final M3Switch allSwitch = new M3Switch(this);
+            allSwitch.colours(Accent.colour(), skin.muted(), skin.card);
+            allSwitch.setChecked(Streaks.isSendToAll());
+            allRow.addView(allSwitch);
+            root.addView(allRow);
+
+            View divider = new View(this);
+            divider.setBackgroundColor((skin.text & 0x00FFFFFF) | 0x14000000);
+            LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+            divParams.topMargin = dp(14);
+            divParams.bottomMargin = dp(10);
+            root.addView(divider, divParams);
+
+            final ScrollView scroll = new ScrollView(this);
+            LinearLayout list = new LinearLayout(this);
+            list.setOrientation(LinearLayout.VERTICAL);
+
+            List<String> convs = Streaks.allKnownConversations();
+            if (convs.isEmpty()) {
+                TextView empty = new TextView(this);
+                empty.setText("Диалоги появятся автоматически при открытии чатов в приложении.");
+                empty.setTextColor(skin.muted());
+                empty.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+                empty.setGravity(Gravity.CENTER);
+                empty.setPadding(dp(16), dp(20), dp(16), dp(20));
+                list.addView(empty);
+            } else {
+                for (final String convId : convs) {
+                    final boolean isAllowed = Streaks.isConversationAllowed(convId);
+                    LinearLayout convRow = new LinearLayout(this);
+                    convRow.setOrientation(LinearLayout.HORIZONTAL);
+                    convRow.setGravity(Gravity.CENTER_VERTICAL);
+                    convRow.setPadding(dp(14), dp(12), dp(14), dp(12));
+
+                    GradientDrawable crowBg = new GradientDrawable();
+                    crowBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.04f));
+                    crowBg.setCornerRadius(dp(14));
+                    convRow.setBackground(crowBg);
+
+                    TextView cName = new TextView(this);
+                    cName.setText("Чат #" + (convId.length() > 8 ? convId.substring(0, 8) + "…" : convId));
+                    cName.setTextColor(skin.text);
+                    cName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                    convRow.addView(cName, grow());
+
+                    final CheckBoxCircle check = new CheckBoxCircle(this, isAllowed, Accent.colour());
+                    convRow.addView(check);
+
+                    convRow.setOnClickListener(v -> {
+                        boolean nowAllowed = !Streaks.isConversationAllowed(convId);
+                        Streaks.setConversationExcluded(convId, !nowAllowed);
+                        check.setChecked(nowAllowed);
+                    });
+
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    lp.bottomMargin = dp(6);
+                    list.addView(convRow, lp);
+                }
+            }
+
+            allSwitch.setOnChanged(checked -> {
+                Streaks.setSendToAll(checked);
+                scroll.setAlpha(checked ? 0.4f : 1.0f);
+            });
+            allRow.setOnClickListener(v -> {
+                allSwitch.setChecked(!allSwitch.isChecked(), true);
+                Streaks.setSendToAll(allSwitch.isChecked());
+                scroll.setAlpha(allSwitch.isChecked() ? 0.4f : 1.0f);
+            });
+            scroll.setAlpha(Streaks.isSendToAll() ? 0.4f : 1.0f);
+
+            scroll.addView(list);
+            root.addView(scroll, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(220)));
+
+            TextView doneBtn = new TextView(this);
+            doneBtn.setText("Сохранить");
+            doneBtn.setTextColor(0xFFFFFFFF);
+            doneBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            doneBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            doneBtn.setGravity(Gravity.CENTER);
+            doneBtn.setPadding(0, dp(14), 0, dp(14));
+            GradientDrawable doneBg = new GradientDrawable();
+            doneBg.setColor(Accent.colour());
+            doneBg.setCornerRadius(dp(22));
+            doneBtn.setBackground(doneBg);
+            doneBtn.setOnClickListener(v -> {
+                dialog.dismiss();
+                rebuild();
+            });
+
+            LinearLayout.LayoutParams dbp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            dbp.topMargin = dp(14);
+            root.addView(doneBtn, dbp);
+
+            dialog.setContentView(root);
+            dialog.setCanceledOnTouchOutside(true);
+            dialog.show();
+
+            if (window != null) {
+                WindowManager.LayoutParams params = window.getAttributes();
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                params.gravity = Gravity.BOTTOM;
+                window.setAttributes(params);
+            }
+        } catch (Throwable error) {
+            Diary.note("showStreaksRecipientsSheet: " + error);
+        }
+    }
+
+    private void showStreakStickerSheet() {
+        try {
+            final Dialog dialog = new Dialog(this);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.setDimAmount(0.6f);
+            }
+
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(dp(20), dp(12), dp(20), dp(24));
+
+            GradientDrawable rootBg = new GradientDrawable();
+            rootBg.setColor(skin.card);
+            rootBg.setCornerRadii(new float[]{
+                    dp(28), dp(28), dp(28), dp(28), 0, 0, 0, 0
+            });
+            root.setBackground(rootBg);
+
+            View handle = new View(this);
+            GradientDrawable handleBg = new GradientDrawable();
+            handleBg.setColor((skin.text & 0x00FFFFFF) | 0x33000000);
+            handleBg.setCornerRadius(dp(3));
+            handle.setBackground(handleBg);
+            LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(dp(36), dp(4));
+            handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+            handleParams.bottomMargin = dp(16);
+            root.addView(handle, handleParams);
+
+            TextView titleView = new TextView(this);
+            titleView.setText(Text.STREAK_STICKER_TITLE);
+            titleView.setTextColor(skin.text);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            titleView.setGravity(Gravity.CENTER);
+            root.addView(titleView);
+
+            TextView subView = new TextView(this);
+            subView.setText(Text.STREAK_STICKER_SUB);
+            subView.setTextColor(skin.muted());
+            subView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            subView.setGravity(Gravity.CENTER);
+            subView.setPadding(0, dp(4), 0, dp(16));
+            root.addView(subView);
+
+            final String chosenId = Streaks.chosen();
+            final boolean isFlameChosen = chosenId.isEmpty() || "flame".equals(chosenId);
+
+            LinearLayout flameCard = new LinearLayout(this);
+            flameCard.setOrientation(LinearLayout.HORIZONTAL);
+            flameCard.setGravity(Gravity.CENTER_VERTICAL);
+            flameCard.setPadding(dp(16), dp(12), dp(16), dp(12));
+
+            GradientDrawable flameBg = new GradientDrawable();
+            if (isFlameChosen) {
+                flameBg.setColor(blend(skin.card, Accent.colour(), skin.dark() ? 0.22f : 0.12f));
+                flameBg.setStroke(dp(2), Accent.colour());
+            } else {
+                flameBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.05f));
+                flameBg.setStroke(dp(1), (skin.text & 0x00FFFFFF) | 0x14000000);
+            }
+            flameBg.setCornerRadius(dp(18));
+            flameCard.setBackground(flameBg);
+
+            TextView flameEmoji = new TextView(this);
+            flameEmoji.setText("🔥");
+            flameEmoji.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+            flameEmoji.setGravity(Gravity.CENTER);
+            flameCard.addView(flameEmoji, new LinearLayout.LayoutParams(dp(44), dp(44)));
+
+            LinearLayout fText = new LinearLayout(this);
+            fText.setOrientation(LinearLayout.VERTICAL);
+            fText.setPadding(dp(12), 0, 0, 0);
+
+            TextView fTitle = new TextView(this);
+            fTitle.setText(Text.STREAK_STICKER_FLAME);
+            fTitle.setTextColor(isFlameChosen ? Accent.colour() : skin.text);
+            fTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f);
+            fTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            fText.addView(fTitle);
+
+            TextView fSub = new TextView(this);
+            fSub.setText("Стандартный огонек TikTok");
+            fSub.setTextColor(skin.muted());
+            fSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            fText.addView(fSub);
+
+            flameCard.addView(fText, grow());
+            flameCard.addView(new CheckBoxCircle(this, isFlameChosen, Accent.colour()));
+
+            flameCard.setOnClickListener(v -> {
+                Streaks.choose("");
+                dialog.dismiss();
+                rebuild();
+            });
+
+            root.addView(flameCard);
+
+            List<String> stickers = Streaks.offered();
+            if (!stickers.isEmpty()) {
+                TextView recentsLabel = new TextView(this);
+                recentsLabel.setText("Недавние стикеры из чатов");
+                recentsLabel.setTextColor(skin.muted());
+                recentsLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+                recentsLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+                recentsLabel.setPadding(0, dp(14), 0, dp(8));
+                root.addView(recentsLabel);
+
+                HorizontalScrollView hscroll = new HorizontalScrollView(this);
+                hscroll.setHorizontalScrollBarEnabled(false);
+                LinearLayout sRow = new LinearLayout(this);
+                sRow.setOrientation(LinearLayout.HORIZONTAL);
+                sRow.setGravity(Gravity.CENTER_VERTICAL);
+                sRow.setPadding(dp(2), dp(2), dp(2), dp(8));
+
+                for (final String sId : stickers) {
+                    final boolean isThisChosen = sId.equals(chosenId);
+                    FrameLayout sFrame = new FrameLayout(this);
+                    sFrame.setPadding(dp(8), dp(8), dp(8), dp(8));
+
+                    GradientDrawable sBg = new GradientDrawable();
+                    if (isThisChosen) {
+                        sBg.setColor(blend(skin.card, Accent.colour(), skin.dark() ? 0.22f : 0.12f));
+                        sBg.setStroke(dp(2), Accent.colour());
+                    } else {
+                        sBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.05f));
+                        sBg.setStroke(dp(1), (skin.text & 0x00FFFFFF) | 0x14000000);
+                    }
+                    sBg.setCornerRadius(dp(16));
+                    sFrame.setBackground(sBg);
+
+                    ImageView iv = new ImageView(this);
+                    Bitmap bmp = Streaks.thumbnail(this, sId);
+                    if (bmp != null) iv.setImageBitmap(bmp);
+                    sFrame.addView(iv, new FrameLayout.LayoutParams(dp(54), dp(54), Gravity.CENTER));
+
+                    if (isThisChosen) {
+                        CheckBoxCircle c = new CheckBoxCircle(this, true, Accent.colour());
+                        FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(dp(18), dp(18), Gravity.TOP | Gravity.END);
+                        sFrame.addView(c, cp);
+                    }
+
+                    sFrame.setOnClickListener(v -> {
+                        Streaks.choose(sId);
+                        dialog.dismiss();
+                        rebuild();
+                    });
+
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(70), dp(70));
+                    lp.rightMargin = dp(10);
+                    sRow.addView(sFrame, lp);
+                }
+                hscroll.addView(sRow);
+                root.addView(hscroll);
+            }
+
+            TextView cancelBtn = new TextView(this);
+            cancelBtn.setText(Text.QUALITY_CANCEL);
+            cancelBtn.setTextColor(skin.muted());
+            cancelBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f);
+            cancelBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            cancelBtn.setGravity(Gravity.CENTER);
+            cancelBtn.setPadding(0, dp(14), 0, 0);
+            cancelBtn.setOnClickListener(v -> dialog.dismiss());
+            root.addView(cancelBtn);
+
+            dialog.setContentView(root);
+            dialog.setCanceledOnTouchOutside(true);
+            dialog.show();
+
+            if (window != null) {
+                WindowManager.LayoutParams params = window.getAttributes();
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                params.gravity = Gravity.BOTTOM;
+                window.setAttributes(params);
+            }
+        } catch (Throwable error) {
+            Diary.note("showStreakStickerSheet: " + error);
+        }
+    }
+
+    private void showTransparencyDialog() {
+        try {
+            final Dialog dialog = new Dialog(this);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.setDimAmount(0.6f);
+            }
+
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(dp(22), dp(18), dp(22), dp(20));
+
+            GradientDrawable rootBg = new GradientDrawable();
+            rootBg.setColor(skin.card);
+            rootBg.setCornerRadius(dp(28));
+            root.setBackground(rootBg);
+
+            TextView title = new TextView(this);
+            title.setText(Text.OLED_TRANSPARENCY_TITLE);
+            title.setTextColor(skin.text);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            title.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            title.setGravity(Gravity.CENTER);
+            root.addView(title);
+
+            TextView sub = new TextView(this);
+            sub.setText("Степень прозрачности элементов интерфейса в режиме антивыгорания");
+            sub.setTextColor(skin.muted());
+            sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
+            sub.setGravity(Gravity.CENTER);
+            sub.setPadding(0, dp(4), 0, dp(16));
+            root.addView(sub);
+
+            int current = Feed.oledTransparency();
+            int[] options = new int[]{20, 40, 60, 80, 100};
+
+            for (final int opt : options) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(16), dp(12), dp(16), dp(12));
+
+                final boolean chosen = opt == current;
+                GradientDrawable rowBg = new GradientDrawable();
+                if (chosen) {
+                    rowBg.setColor(blend(skin.card, Accent.colour(), skin.dark() ? 0.20f : 0.10f));
+                    rowBg.setStroke(dp(2), Accent.colour());
+                } else {
+                    rowBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.04f));
+                }
+                rowBg.setCornerRadius(dp(16));
+                row.setBackground(rowBg);
+
+                TextView optText = new TextView(this);
+                optText.setText(opt + "%" + (opt == 100 ? " (Полная видимость)" : (opt == 20 ? " (Максимальная защита)" : "")));
+                optText.setTextColor(chosen ? Accent.colour() : skin.text);
+                optText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                optText.setTypeface(Typeface.create("sans-serif-medium", chosen ? Typeface.BOLD : Typeface.NORMAL));
+                row.addView(optText, grow());
+
+                row.addView(new CheckBoxCircle(this, chosen, Accent.colour()));
+
+                row.setOnClickListener(v -> {
+                    Feed.setOledTransparency(opt);
+                    dialog.dismiss();
+                    rebuild();
+                });
+
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.bottomMargin = dp(8);
+                root.addView(row, lp);
+            }
+
+            dialog.setContentView(root);
+            dialog.setCanceledOnTouchOutside(true);
+            dialog.show();
+
+            if (window != null) {
+                WindowManager.LayoutParams params = window.getAttributes();
+                params.width = dp(320);
+                window.setAttributes(params);
+            }
+        } catch (Throwable error) {
+            Diary.note("showTransparencyDialog: " + error);
+        }
+    }
+
+    private void showOtaDialog() {
+        try {
+            final Dialog dialog = new Dialog(this);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.setDimAmount(0.6f);
+            }
+
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(dp(20), dp(12), dp(20), dp(22));
+
+            GradientDrawable rootBg = new GradientDrawable();
+            rootBg.setColor(skin.card);
+            rootBg.setCornerRadii(new float[]{
+                    dp(28), dp(28), dp(28), dp(28), 0, 0, 0, 0
+            });
+            root.setBackground(rootBg);
+
+            View handle = new View(this);
+            GradientDrawable handleBg = new GradientDrawable();
+            handleBg.setColor((skin.text & 0x00FFFFFF) | 0x33000000);
+            handleBg.setCornerRadius(dp(3));
+            handle.setBackground(handleBg);
+            LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(dp(36), dp(4));
+            handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+            handleParams.bottomMargin = dp(16);
+            root.addView(handle, handleParams);
+
+            TextView titleView = new TextView(this);
+            titleView.setText(Text.OTA_DIALOG_TITLE);
+            titleView.setTextColor(skin.text);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            titleView.setGravity(Gravity.CENTER);
+            root.addView(titleView);
+
+            TextView subView = new TextView(this);
+            subView.setText(Text.OTA_DIALOG_SUB);
+            subView.setTextColor(skin.muted());
+            subView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            subView.setGravity(Gravity.CENTER);
+            subView.setPadding(0, dp(4), 0, dp(16));
+            root.addView(subView);
+
+            String[][] modules = new String[][]{
+                    {"core.ttydyn", "Патчи и перехватчики ядра", "v4.2.0-stable"},
+                    {"quality.ttydyn", "Модуль выбора качества HEVC/Web", "v4.2.0-stable"},
+                    {"streaks.ttydyn", "Сессии и таймер автопродления", "v4.2.0-stable"},
+                    {"oled_feed.ttydyn", "Антивыгорание и HUD кнопка", "v4.2.0-stable"}
+            };
+
+            for (String[] mod : modules) {
+                LinearLayout mRow = new LinearLayout(this);
+                mRow.setOrientation(LinearLayout.HORIZONTAL);
+                mRow.setGravity(Gravity.CENTER_VERTICAL);
+                mRow.setPadding(dp(14), dp(12), dp(14), dp(12));
+
+                GradientDrawable mBg = new GradientDrawable();
+                mBg.setColor(blend(skin.card, skin.dark() ? 0xFFFFFFFF : 0xFF000000, 0.05f));
+                mBg.setCornerRadius(dp(16));
+                mRow.setBackground(mBg);
+
+                LinearLayout mText = new LinearLayout(this);
+                mText.setOrientation(LinearLayout.VERTICAL);
+
+                TextView mName = new TextView(this);
+                mName.setText(mod[0]);
+                mName.setTextColor(skin.text);
+                mName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                mName.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+                mText.addView(mName);
+
+                TextView mDesc = new TextView(this);
+                mDesc.setText(mod[1]);
+                mDesc.setTextColor(skin.muted());
+                mDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
+                mText.addView(mDesc);
+
+                mRow.addView(mText, grow());
+
+                TextView badge = new TextView(this);
+                badge.setText(mod[2]);
+                badge.setTextColor(Accent.colour());
+                badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+                badge.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+                badge.setPadding(dp(8), dp(4), dp(8), dp(4));
+                GradientDrawable bbg = new GradientDrawable();
+                bbg.setColor(blend(skin.card, Accent.colour(), skin.dark() ? 0.20f : 0.12f));
+                bbg.setCornerRadius(dp(8));
+                badge.setBackground(bbg);
+                mRow.addView(badge);
+
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.bottomMargin = dp(8);
+                root.addView(mRow, lp);
+            }
+
+            TextView checkBtn = new TextView(this);
+            checkBtn.setText(Text.OTA_CHECK);
+            checkBtn.setTextColor(0xFFFFFFFF);
+            checkBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f);
+            checkBtn.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            checkBtn.setGravity(Gravity.CENTER);
+            checkBtn.setPadding(0, dp(13), 0, dp(13));
+            GradientDrawable cbg = new GradientDrawable();
+            cbg.setColor(Accent.colour());
+            cbg.setCornerRadius(dp(20));
+            checkBtn.setBackground(cbg);
+            checkBtn.setOnClickListener(v -> {
+                Toast.makeText(this, Text.OTA_UP_TO_DATE, Toast.LENGTH_SHORT).show();
+            });
+
+            LinearLayout.LayoutParams cbp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            cbp.topMargin = dp(10);
+            root.addView(checkBtn, cbp);
+
+            TextView closeBtn = new TextView(this);
+            closeBtn.setText("Закрыть");
+            closeBtn.setTextColor(skin.muted());
+            closeBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            closeBtn.setGravity(Gravity.CENTER);
+            closeBtn.setPadding(0, dp(12), 0, 0);
+            closeBtn.setOnClickListener(v -> dialog.dismiss());
+            root.addView(closeBtn);
+
+            dialog.setContentView(root);
+            dialog.setCanceledOnTouchOutside(true);
+            dialog.show();
+
+            if (window != null) {
+                WindowManager.LayoutParams params = window.getAttributes();
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                params.gravity = Gravity.BOTTOM;
+                window.setAttributes(params);
+            }
+        } catch (Throwable error) {
+            Diary.note("showOtaDialog: " + error);
+        }
+    }
+
     // ----------------------------------------------------- the small shapes
+
+    static final class CheckBoxCircle extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private boolean checked;
+        private int color;
+
+        CheckBoxCircle(Context context, boolean checked, int color) {
+            super(context);
+            this.checked = checked;
+            this.color = color;
+        }
+
+        void setChecked(boolean checked) {
+            this.checked = checked;
+            invalidate();
+        }
+
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            int size = Math.round(22 * getResources().getDisplayMetrics().density);
+            setMeasuredDimension(size, size);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float density = getResources().getDisplayMetrics().density;
+            float cx = getWidth() / 2f;
+            float cy = getHeight() / 2f;
+            float radius = cx - 2 * density;
+
+            if (checked) {
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(color);
+                canvas.drawCircle(cx, cy, radius, paint);
+
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setColor(0xFFFFFFFF);
+                paint.setStrokeWidth(2.2f * density);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                paint.setStrokeJoin(Paint.Join.ROUND);
+
+                float unit = getWidth() / 22f;
+                canvas.drawLine(unit * 6, cy, unit * 9.5f, cy + unit * 3.5f, paint);
+                canvas.drawLine(unit * 9.5f, cy + unit * 3.5f, unit * 16, cy - unit * 3.5f, paint);
+            } else {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setColor((color & 0x00FFFFFF) | 0x4D000000);
+                paint.setStrokeWidth(2 * density);
+                canvas.drawCircle(cx, cy, radius, paint);
+            }
+        }
+    }
 
     /** A tick, drawn rather than typed: the glyph fonts have is never the one. */
     private static final class Check extends View {

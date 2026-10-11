@@ -169,7 +169,7 @@ public final class TimeSheet {
             // Relative age pill tag
             TextView relPill = new TextView(context);
             relPill.setText(relativeAge);
-            relPill.setTextColor(blend(Accent.colour(), 0xFF88FF88, 0.2f));
+            relPill.setTextColor(Accent.colour());
             relPill.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
             relPill.setPadding(dp(context, 12), dp(context, 6), dp(context, 12), dp(context, 6));
 
@@ -584,7 +584,7 @@ public final class TimeSheet {
 
     private static int onColor(int color) {
         int r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = color & 0xFF;
-        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? 0xFF1C2C24 : 0xFFFFFFFF;
+        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? 0xFF1C1C1E : 0xFFFFFFFF;
     }
 
     private static int dp(Context context, float value) {

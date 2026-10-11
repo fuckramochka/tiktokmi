@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TikTok MI — TikTok, yours.</title>
-  <meta name="description" content="TikTok MI is a minimal, premium TikTok mod for Android: your region, your accent, your theme, a clean feed. No root.">
+  <meta name="description" content="TikTok MI is a minimal, premium TikTok mod for Android: your region, your accent, your theme, a clean feed, streaks on schedule and a plugin engine. No root.">
   <link rel="icon" type="image/png" href="../icon_out/mipmap-xxhdpi/ic_launcher_foreground.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,7 +65,7 @@
       <div class="orb orb-cyan" aria-hidden="true"></div>
       <div class="max-w-6xl mx-auto px-6 grid lg:grid-cols-[1.15fr_.85fr] gap-14 items-center relative">
         <div>
-          <p class="hero-pill" data-hero><span class="livedot"></span><span id="version">v0.3.6.1</span><span class="opacity-40">·</span>on TikTok 47.0.3</p>
+          <p class="hero-pill" data-hero><span class="livedot"></span><span id="version">v4.2</span><span class="opacity-40">·</span>on TikTok 47.1.4</p>
           <h1 class="font-display font-extrabold leading-[1.02] tracking-tight text-[clamp(2.6rem,7vw,5.2rem)]" data-hero>
             TikTok,<br><span class="grad-word">yours.</span>
           </h1>
@@ -123,11 +123,23 @@
         </article>
         <article class="bento" data-reveal>
           <h3>Save anything</h3>
-          <p>Videos without the watermark. Avatars, stickers, comment shots. One tap.</p>
+          <p>Videos without the watermark — in the quality you pick, or as audio only. Avatars, stickers, comment shots. One tap.</p>
         </article>
         <article class="bento" data-reveal>
           <h3>Ghost mode</h3>
           <p>Stealth visits, kept deletes, no reads, no typing. Invisible by design.</p>
+        </article>
+        <article class="bento" data-reveal>
+          <h3>Streaks on schedule</h3>
+          <p>The mod keeps your daily streaks alive at noon — or any time you set — with text or stickers, and logs every send in the diary.</p>
+        </article>
+        <article class="bento" data-reveal>
+          <h3>Plugins</h3>
+          <p>Small dex apps in <code>.mtp</code> files: intercept flags, text and colours with a few lines of Java. Read one before you run one.</p>
+        </article>
+        <article class="bento" data-reveal>
+          <h3>Metadata &amp; OLED</h3>
+          <p>The exact second any video was posted, down to the timezone — and true #000000 black everywhere dark mode touches.</p>
         </article>
         <article class="bento bento-wide" data-reveal>
           <div class="bento-glow"></div>
@@ -171,6 +183,7 @@
           <p class="mt-5 flex flex-wrap gap-6">
             <a class="link" href="https://t.me/fuckramochka">Channel →</a>
             <a class="link" href="https://github.com/fuckramochka/tiktokmi">Source →</a>
+            <a class="link" href="https://github.com/fuckramochka/tiktokmi/blob/main/docs/plugins.md">Plugin docs →</a>
           </p>
         </article>
       </div>
@@ -199,6 +212,7 @@
         <details data-reveal><summary>Can it sit beside the official app?</summary><p>No — same package name, so uninstall stock first. Account, drafts and data live on TikTok&rsquo;s servers and survive the switch.</p></details>
         <details data-reveal><summary>How do updates work?</summary><p>The mod checks releases itself and offers the APK. Nothing installs silently — Android always asks first.</p></details>
         <details data-reveal><summary>Is there an iPhone version?</summary><p>No, Android only.</p></details>
+        <details data-reveal><summary>Can I extend it?</summary><p>Yes — plugins in <code>.mtp</code> files, built from a few lines of Java. But there is no sandbox: a plugin runs with everything TikTok has, so only install ones you have read or trust. <a class="link" href="https://github.com/fuckramochka/tiktokmi/blob/main/docs/plugins.md">The spec →</a></p></details>
         <details data-reveal><summary>Something looks off — how do I report it?</summary><p>Settings → TikTok&nbsp;MI → diary at the bottom: what the mod saw, copyable in one tap. Send it with your account ID to <a class="link" href="https://t.me/dkramochka">@dkramochka</a>.</p></details>
       </div>
     </section>

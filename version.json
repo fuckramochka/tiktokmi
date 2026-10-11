@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the repository at startup and every five minutes, the same way it reads badges.json.",
-  "version": "0.4.1",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/0.4.1/tiktokmi.apk",
-  "notes": "TikTok MI v0.4.1: fixed streaks delivery and conversation filtering with reliable sticker fallback, fixed banner flags suppression, removed speed overlay mock preview, updated documentation and keystore handling. Base TikTok 47.1.4 universal nodpi.",
-  "notes_ru": "TikTok MI v0.4.1: исправлена доставка серий (стриков) и фильтрация диалогов с надежным фолбеком на стикеры, исправлено подавление флагов баннеров, удален мок оверлея скорости, обновлена документация и автоопределение keystore. База TikTok 47.1.4 universal nodpi.",
-  "notes_uk": "TikTok MI v0.4.1: виправлено доставку серій (стріків) та фільтрацію діалогів з надійним фолбеком на стікери, виправлено придушення прапорців банерів, видалено демо оверлею швидкості, оновлено документацію та автовизначення keystore. База TikTok 47.1.4 universal nodpi."
+  "version": "4.2",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/4.2/tiktokmi.apk",
+  "notes": "TikTok MI v4.2: Material Design 3 redesign with TikTok red (#FE2C55) priority accent, OTA updates, selective streaks auto-extension, sticker picker sheet, download quality sheet with web source fallback, AMOLED anti-burn-in HUD button & settings, app icon launcher picker, easter egg secret mode. Base TikTok 47.1.4 universal nodpi.",
+  "notes_ru": "TikTok MI v4.2: редизайн Material Design 3 с фирменным красным (#FE2C55) акцентом, обновления по воздуху (OTA), выборочное автопродление серий, выбор стикера для серий, выбор качества загрузки с веб-источниками, режим антивыгорания AMOLED с кнопкой на экране, выбор иконки приложения, секретный режим. База TikTok 47.1.4 universal nodpi.",
+  "notes_uk": "TikTok MI v4.2: редизайн Material Design 3 з фірмовим червоним (#FE2C55) акцентом, оновлення по повітрю (OTA), вибіркове автопродовження серій, вибір стікера для серій, вибір якості завантаження з веб-джерелами, режим антивигорання AMOLED з кнопкою на екрані, вибір іконки додатку, секретний режим. База TikTok 47.1.4 universal nodpi."
 }

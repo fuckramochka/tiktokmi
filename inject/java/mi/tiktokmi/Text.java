@@ -738,6 +738,49 @@ final class Text {
     static final String TIME_INFO_SETTING = pick("Точное время публикации", "Точний час публікації", "Exact publication time");
     static final String TIME_INFO_SUB = pick("Детальная дата, время и часовой пояс видео", "Детальна дата, час і часовий пояс відео", "Detailed date, time & timezone of video");
 
+    // Version 4.2 Features
+    static final String QUALITY_DOWNLOAD_TITLE = pick("Качество загрузки", "Якість завантаження", "Download quality");
+    static final String QUALITY_BEST_BADGE = pick("Лучшее", "Краще", "Best");
+    static final String QUALITY_VARIANTS_LABEL = pick("варианта", "варіанти", "variants");
+    static final String QUALITY_SKIP = pick("Пропустить выбор качества", "Пропустити вибір якості", "Skip quality selection");
+    static final String QUALITY_SKIP_SUB = pick("Сразу скачивать наилучшее качество без показа диалога", "Одразу завантажувати найкращу якість без показу діалогу", "Download best quality immediately without dialog");
+    static final String QUALITY_CANCEL = pick("Отмена", "Скасувати", "Cancel");
+    static final String QUALITY_WEB_SOURCE = pick("Веб-версия", "Веб-версія", "Web version");
+
+    static final String STREAKS_CHOOSE_CHATS = pick("Выборочное автопродление", "Вибіркове автопродовження", "Selective auto-extend");
+    static final String STREAKS_CHOOSE_CHATS_SUB = pick("Настройте только для нужных чатов", "Налаштуйте лише для потрібних чатів", "Configure for selected chats only");
+    static final String STREAKS_RECIPIENTS_TITLE = pick("Кому отправлять", "Кому надсилати", "Recipients");
+    static final String STREAKS_RECIPIENTS_DESC = pick("Снимите отметку с тех, кому не нужно автоматически отправлять серии.", "Зніміть позначку з тих, кому не потрібно автоматично надсилати серії.", "Uncheck those who should not receive automatic streaks.");
+    static final String STREAKS_SEND_ALL = pick("Отправлять всем", "Надсилати всім", "Send to all");
+    static final String STREAKS_STICKER_TITLE = pick("Стикер автопродления", "Стікер автопродовження", "Auto-extend sticker");
+    static final String STREAKS_STICKER_SUB = pick("Огонёк по умолчанию или стикер из избранного.", "Вогник за замовчуванням або стікер з обраного.", "Default flame or a sticker from favorites.");
+    static final String STREAKS_DEFAULT_FLAME = pick("Огонёк по умолчанию", "Вогник за замовчуванням", "Default flame");
+    static final String STREAKS_TIME_SETTING = pick("Время отправки", "Час надсилання", "Schedule time");
+    static final String STREAKS_SAVE = pick("Сохранить", "Зберегти", "Save");
+
+    static final String OLED_SECTION = pick("Антивыгорание", "Антивигорання", "Anti-burn-in");
+    static final String OLED_SHOW_ON_FEED = pick("Показать на главной", "Показати на головній", "Show on feed");
+    static final String OLED_SHOW_ON_FEED_SUB = pick("Кнопка скрытия интерфейса поверх ленты", "Кнопка приховування інтерфейсу над стрічкою", "Floating button on feed to hide interface");
+    static final String OLED_AUTO_ENABLE = pick("Включать сразу", "Вмикати одразу", "Enable immediately");
+    static final String OLED_AUTO_ENABLE_SUB = pick("Автоматически скрывать интерфейс при перелистывании", "Автоматично приховувати інтерфейс при перегортанні", "Automatically dim UI while watching");
+    static final String OLED_TRANSPARENCY = pick("Прозрачность интерфейса", "Прозорість інтерфейсу", "Interface transparency");
+    static final String OLED_TRANSPARENCY_NOTE = pick("Чем больше прозрачность, тем меньше видно интерфейс в режиме антивыгорания", "Чим більша прозорість, тим менше видно інтерфейс у режимі антивигорання", "Higher transparency makes the interface less visible in anti-burn-in mode");
+    static final String OLED_CLEAN_VIEW_BTN = pick("Скрытие интерфейса", "Приховування інтерфейсу", "Clean view");
+
+    static final String ICON_SHEET_TITLE = pick("Иконка приложения", "Іконка додатка", "App icon");
+    static final String ICON_SYSTEM_COLORS = pick("Системные цвета", "Системні кольори", "System colors");
+    static final String ICON_SYSTEM_COLORS_SUB = pick("Акцентный цвет приложения будет изменён на выбранный", "Акцентний колір додатку буде змінено на обраний", "The app accent color will be changed to the selected one");
+
+    static final String OTA_TITLE = pick("Обновления по воздуху", "Оновлення по повітрю", "Over-The-Air (OTA)");
+    static final String OTA_SUB = pick("Компоненты мода обновляются сами", "Компоненти мода оновлюються самі", "Mod components update automatically");
+    static final String OTA_CHECK = pick("Проверить компоненты", "Перевірити компоненти", "Check components");
+    static final String OTA_COMPONENTS = pick("Загруженные компоненты (.ttydyn)", "Завантажені компоненти (.ttydyn)", "Loaded components (.ttydyn)");
+
+    static final String SECRET_MODE_HINT = pick("Потапай на версию и увидишь секретный режим", "Потапай на версію і побачиш секретний режим", "Tap version to reveal secret mode");
+    static final String SECRET_MODE_UNLOCKED = pick("Секретный режим активирован!", "Секретний режим активовано!", "Secret mode activated!");
+    static final String SECRET_MODE_STEPS = pick("Осталось шагов: %d", "Залишилося кроків: %d", "%d steps remaining");
+    static final String SECRET_MODE_SECTION = pick("Секретный режим (Разработчик)", "Секретний режим (Розробник)", "Secret Mode (Developer)");
+
     private static String language() {
         try {
             return Locale.getDefault().getLanguage();

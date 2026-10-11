@@ -520,6 +520,7 @@ public final class Themes {
         if (activity == null) return;
         try {
             final View root = activity.getWindow().getDecorView();
+            Feed.attachCleanButton(activity);
             if (Boolean.TRUE.equals(root.getTag(WATCHING))) {
                 repaint(root);
                 Badge.rewrite(root);
@@ -539,12 +540,14 @@ public final class Themes {
                             Badge.rewrite(root);
                             Feed.applyOled(root);
                             Ui.applyClean(root);
+                            Feed.attachCleanButton(activity);
                         }
                     });
             repaint(root);
             Badge.rewrite(root);
             Feed.applyOled(root);
             Ui.applyClean(root);
+            Feed.attachCleanButton(activity);
         } catch (Throwable error) {
             Diary.note("theme: " + error);
         }

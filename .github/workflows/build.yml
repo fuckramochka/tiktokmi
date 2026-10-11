@@ -12,13 +12,23 @@ on:
         required: false
         default: "https://github.com/fuckramochka/tiktokmi/releases/download/official-47.1.4/com.zhiliaoapp.musically_47.1.4-2024701040_minAPI23.arm64-v8a.armeabi-v7a.nodpi.apk"
       accent:
-        description: "Baked accent RRGGBB (empty keeps TikTok pink)"
+        description: "Baked accent RRGGBB (empty keeps TikTok red)"
+        required: false
+        default: ""
+      create_release:
+        description: "Create GitHub Release after build (true/false)"
+        required: false
+        default: "true"
+      tag_name:
+        description: "Release tag name (leave empty to use VERSION, e.g. 4.2)"
         required: false
         default: ""
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -62,8 +72,32 @@ jobs:
           if [ -n "${{ inputs.accent }}" ]; then ACCENT="--accent ${{ inputs.accent }}"; fi
           python3 -m tiktokmi official.apk $ACCENT
 
-      - name: upload the mod
+      - name: upload the mod artifact
         uses: actions/upload-artifact@v4
         with:
           name: tiktokmi.apk
           path: build/tiktokmi.apk
+
+      - name: create github release
+        if: ${{ github.event.inputs.create_release != 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          TAG="${{ inputs.tag_name }}"
+          if [ -z "$TAG" ]; then
+            TAG="$VERSION"
+          fi
+          TITLE="TikTok MI v$TAG"
+
+          python3 -c "import json; data=json.load(open('version.json')); print(data.get('notes_ru') or data.get('notes') or '')" > release_notes.txt
+          if [ ! -s release_notes.txt ]; then
+            echo "TikTok MI v$TAG update" > release_notes.txt
+          fi
+
+          echo "Publishing release $TAG..."
+          gh release create "$TAG" build/tiktokmi.apk \
+            --title "$TITLE" \
+            -F release_notes.txt \
+            --latest || gh release upload "$TAG" build/tiktokmi.apk --clobber
