@@ -1,14 +1,14 @@
 {
  "_comment": "What Margy Patcher reads to know which mods there are, what each is made from and where the patch is. Read from the project's own git server, so a link here can be changed for everybody without an update.",
  "patcher": {
-  "version": "1.1",
-  "url": "https://git.narez.xyz/narezany/MargyT/releases/download/patcher-v1.1/margy-patcher.apk",
-  "sha256": "e35cb6835aafb2e70c381c67d0217689edd45206dd52f9d8c0a8ac0e917080c9",
-  "size": 1363657,
+  "version": "2.0",
+  "url": "https://git.narez.xyz/narezany/MargyStore/releases/download/v2.0/margy-store.apk",
+  "sha256": "ac7a6409d5fc96d695cb58e053989b7d612503e30aff14a1346ae46f7ce6bcea",
+  "size": 1699585,
   "notes": {
-   "ru": "Добавлен MargyC, мод на приложение Claude.",
-   "uk": "Додано MargyC, мод на застосунок Claude.",
-   "en": "MargyC, a mod of the Claude app, is here."
+   "ru": "Margy Patcher теперь Margy Store: магазин приложений и модов с открытым кодом, аккаунты, отзывы и сообщения. Моды ставятся как раньше.",
+   "uk": "Margy Patcher тепер Margy Store: магазин застосунків і модів з відкритим кодом, акаунти, відгуки й повідомлення. Моди ставляться як раніше.",
+   "en": "Margy Patcher is now Margy Store: a store of open source apps and mods, with accounts, reviews and messages. Mods install as before."
   }
  },
  "channel": "https://t.me/margymods",
