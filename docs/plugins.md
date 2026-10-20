@@ -1,11 +1,11 @@
-# MargyT plugins
+# TikTok Mi plugins
 
 A plugin is code that runs inside TikTok, in the same process the app does,
 loaded by the mod when the app starts.
 
 Margy's plugins are Python. These are not, and the reason is repacking rather
 than taste. Margy is a fork: it builds its own apk, so a Python runtime goes in
-at build time. MargyT edits an apk somebody else built — carrying CPython's
+at build time. TikTok Mi edits an apk somebody else built — carrying CPython's
 native libraries and its standard library into a 340 MB archive whose alignment
 is not ours to decide is a different project with a doubtful ending.
 `DexClassLoader` is an ordinary Android API that costs nothing and needs no
@@ -26,7 +26,7 @@ This is written the same way in the settings screen, so nobody finds out later.
 An ordinary zip renamed to `.mtp`:
 
 ```
-margyt.hello.mtp
+tiktokmi.hello.mtp
 ├── manifest.json   required
 ├── classes.dex     required
 └── icon.png        optional
@@ -40,14 +40,14 @@ Without one the list draws a dot in the accent colour.
 
 ```json
 {
-  "id": "margyt.hello",
+  "id": "tiktokmi.hello",
   "name": "Hello",
   "name_ru": "Привет",
   "version": "1.0",
   "author": "narezany",
   "description": "Writes a line in the mod's diary every time TikTok starts.",
   "description_ru": "Пишет строку в журнал мода при каждом запуске TikTok.",
-  "entry": "cat.narezany.hello.Hello",
+  "entry": "mi.tiktokmi.hello.Hello",
   "min_api": 1
 }
 ```
@@ -70,15 +70,15 @@ that does nothing, so a plugin that only wants one hook writes one method, and
 hooks added in later versions of the mod do not break it.
 
 ```java
-package cat.narezany.hello;
+package mi.tiktokmi.hello;
 
 import android.content.Context;
-import cat.narezany.margyt.plugin.MargyPlugin;
+import mi.tiktokmi.plugin.MargyPlugin;
 
 public final class Hello extends MargyPlugin {
     @Override
     public void onStart(Context context) {
-        margyt().log("hello");
+        tiktokmi().log("hello");
     }
 }
 ```
@@ -107,7 +107,7 @@ throw the same exception on every frame either.
 
 ### What the mod hands you
 
-`margyt()` returns a `PluginContext`:
+`tiktokmi()` returns a `PluginContext`:
 
 | | |
 |---|---|
@@ -123,17 +123,17 @@ There is no hooking of TikTok's own methods at runtime. Without root there is
 no Xposed, and the app's own code is obfuscated and rewritten between releases;
 the hooks above are the ones the mod can promise to still mean the same thing
 next month. If you need one that is not here, the honest route is a patch to
-`margyt/dexpatch.py` that adds a call site, and a hook next to these — open an
+`tiktokmi/dexpatch.py` that adds a call site, and a hook next to these — open an
 issue rather than reaching in with reflection that will break.
 
 ## Building one
 
 ```bash
-python3 -m margyt.plugin examples/hello
+python3 -m tiktokmi.plugin examples/hello
 ```
 
 That compiles `java/` against `android.jar` and the plugin api, dexes it, and
-writes `margyt.hello.mtp` next to the manifest. It needs a JDK and Python 3 and
+writes `tiktokmi.hello.mtp` next to the manifest. It needs a JDK and Python 3 and
 nothing else: the toolchain is the same pinned one `build.sh` downloads into
 `tools/`, so whichever you run first fetches it.
 
@@ -149,12 +149,12 @@ examples/hello/
 ├── manifest.json
 ├── icon.png                     optional
 └── java/
-    └── cat/narezany/hello/Hello.java
+    └── mi/tiktokmi/hello/Hello.java
 ```
 
 ## Installing one
 
-**Settings and privacy → MargyT → Plugins → Install a plugin**, and pick the
+**Settings and privacy → TikTok Mi → Plugins → Install a plugin**, and pick the
 `.mtp`. It is unpacked into the app's own files, so no storage permission is
 involved and the picker is the only way in.
 
@@ -169,7 +169,7 @@ changes shape. A plugin declares the oldest it works with as `min_api`, and the
 loader refuses anything newer than it knows rather than calling a hook that no
 longer means what the plugin thought.
 
-| api | MargyT | What changed |
+| api | TikTok Mi | What changed |
 |---|---|---|
 | 1 | 0.4 | The first one: start, the three activity hooks, colour, region. |
 
@@ -217,12 +217,12 @@ Text on its way into a view.
 ## Putting something on the screen
 
 ```java
-margyt().addSettingsRow("Title", "the line under it", () -> { ... });
-margyt().showWindow("Title", "A sentence.");
-margyt().offer("Do the thing", () -> { ... });
-margyt().progress("Working", 40);
-margyt().progressGone();
-Activity now = margyt().screen();
+tiktokmi().addSettingsRow("Title", "the line under it", () -> { ... });
+tiktokmi().showWindow("Title", "A sentence.");
+tiktokmi().offer("Do the thing", () -> { ... });
+tiktokmi().progress("Working", 40);
+tiktokmi().progressGone();
+Activity now = tiktokmi().screen();
 ```
 
 `addSettingsRow` puts a row in the mod's own settings under the plugin's
@@ -240,8 +240,8 @@ an ordinary `Intent` if it really does want a screen from another app.
 ## Off the main thread
 
 ```java
-margyt().away("fetching", () -> {
-    byte[] raw = margyt().fetch("https://example.invalid/thing.json");
+tiktokmi().away("fetching", () -> {
+    byte[] raw = tiktokmi().fetch("https://example.invalid/thing.json");
 });
 ```
 
@@ -272,8 +272,8 @@ Additive API; old plugins do not need recompilation. Use `min_api: 4` if your pl
 
 ```java
 @Override public void onAccountChanged(String uid) {
-    boolean enabled = margyt().accountPrefs().getBoolean("enabled", false);
-    margyt().log("account preferences loaded: " + enabled);
+    boolean enabled = tiktokmi().accountPrefs().getBoolean("enabled", false);
+    tiktokmi().log("account preferences loaded: " + enabled);
 }
 ```
 

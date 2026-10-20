@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="MargyT" width="640">
+<img src="assets/banner.png" alt="TikTok Mi" width="640">
 
 **A TikTok mod for Android.**
 The second in the line after [Margy](https://github.com/narezany/Margelet).
 Built from the official apk with the patches in this repository.
 
-[![channel](https://img.shields.io/badge/channel-margytiktok-8DD1B0?style=flat-square)](https://t.me/margytiktok)
+[![channel](https://img.shields.io/badge/channel-tiktokmiiktok-8DD1B0?style=flat-square)](https://t.me/tiktokmiiktok)
 [![forum](https://img.shields.io/badge/forum-margeletforum-8DD1B0?style=flat-square)](https://t.me/margeletforum)
 [![plugins](https://img.shields.io/badge/plugins-docs-8DD1B0?style=flat-square)](docs/plugins.md)
 [![licence](https://img.shields.io/badge/licence-MIT-8DD1B0?style=flat-square)](#licence)
@@ -19,7 +19,7 @@ Keeps TikTok's own package, `com.zhiliaoapp.musically`, so it goes in **instead
 of** the official app rather than beside it: uninstall TikTok first, then
 install this. arm64 only. No root.
 
-Everything the mod adds is on one screen: **Settings and privacy → MargyT**,
+Everything the mod adds is on one screen: **Settings and privacy → TikTok Mi**,
 the first row. There is no second icon on the home screen — the mod goes in
 through TikTok's own settings and nowhere else.
 
@@ -71,7 +71,7 @@ wrong one. A colour that differs between themes is normally a resource with a
 near a theme. The names are no help either; this build has them stripped. The
 theme is in the **styles**: every colour in TikTok's design system is a theme
 attribute, and the two themes are two styles giving the same attribute two
-different values. `margyt/nightly.py` reads the style table, pairs them up, and
+different values. `tiktokmi/nightly.py` reads the style table, pairs them up, and
 writes the answer into the mod as a sorted list of colours it is allowed to
 touch. Nothing else is on the list, so nothing else can be repainted by
 accident.
@@ -89,7 +89,7 @@ Not by flattening it. Every shade is moved by the same step that takes the
 brand pink to the chosen colour, in hue, saturation and value at once, so the
 pink itself lands exactly on the accent, a light pink comes out a light accent,
 and the two ends of a gradient stay two ends of a gradient. Alpha is never
-touched. `margyt/palette.py` decides what belongs to the family; the hue window
+touched. `tiktokmi/palette.py` decides what belongs to the family; the hue window
 is deliberately narrow enough to leave TikTok's other brand colour, the cyan
 `#25F4EE`, exactly where it is.
 
@@ -98,7 +98,7 @@ files — 104 distinct shades — plus the 72 places the bytecode spells a colou
 out as a constant.
 
 Those last 72 are the only ones that can still change afterwards: the mod sends
-them through itself, so the palette in **Settings and privacy → MargyT** moves
+them through itself, so the palette in **Settings and privacy → TikTok Mi** moves
 them while the app runs. The rest are read by the framework out of the resource
 table, inside its own code, and no client without root rewrites a 25 MB table
 it has already mapped. So the palette reaches the code and `--accent` reaches
@@ -230,7 +230,7 @@ build, no update for anybody.
 <details>
 <summary><b>Updates that announce themselves</b></summary>
 
-[version.json](version.json) says what the latest MargyT is and where its apk
+[version.json](version.json) says what the latest TikTok Mi is and where its apk
 lives. The mod reads it the same way it reads the badges, offers the update in
 a dialog of its own, downloads it and hands it to the installer.
 
@@ -248,7 +248,7 @@ the file instead, read-only, out of one directory, for that one intent.
 
 Other people's code, running inside this one. A plugin is a zip — `.mtp` —
 holding a manifest, a dex and an icon; installing one from
-**Settings and privacy → MargyT → Plugins** unpacks it into the app's own
+**Settings and privacy → TikTok Mi → Plugins** unpacks it into the app's own
 files, and the switch loads it with `DexClassLoader` and starts calling its
 hooks. There is no storage permission involved: the document picker is the only
 way in.
@@ -268,7 +268,7 @@ There is no sandbox and there cannot be one: a plugin has everything TikTok
 has. The settings screen says so where the list is, and so does the
 documentation.
 
-`python3 -m margyt.plugin examples/hello` builds one, with the toolchain the
+`python3 -m tiktokmi.plugin examples/hello` builds one, with the toolchain the
 apk build already downloads. **[docs/plugins.md](docs/plugins.md)** is the rest:
 the manifest, every hook, and what is deliberately not there.
 </details>
@@ -276,7 +276,7 @@ the manifest, every hook, and what is deliberately not there.
 <details>
 <summary><b>Its own name and icon</b></summary>
 
-`MargyT`, in the mint the whole line uses — `#8DD1B0`, straight off the Margy
+`TikTok Mi`, in the mint the whole line uses — `#8DD1B0`, straight off the Margy
 banner — with a white note where Margy has a white paper plane.
 
 The icon is not added as a new resource; the files behind TikTok's own icon are
@@ -294,7 +294,7 @@ rather than added to `res/`, because adding one resource means rewriting a
 <details>
 <summary><b>A row in TikTok's own settings</b></summary>
 
-**Settings and privacy → MargyT**, at the top of the list, drawn like the rows
+**Settings and privacy → TikTok Mi**, at the top of the list, drawn like the rows
 around it.
 
 The row is not written into the bytecode that builds that list, and it could
@@ -369,7 +369,7 @@ invoke-virtual {v0}, Landroid/telephony/TelephonyManager;->getSimCountryIso()Lja
 becomes
 
 ```smali
-invoke-static {v0}, Lcat/narezany/margyt/Region;->getSimCountryIso(Landroid/telephony/TelephonyManager;)Ljava/lang/String;
+invoke-static {v0}, Lmi/tiktokmi/Region;->getSimCountryIso(Landroid/telephony/TelephonyManager;)Ljava/lang/String;
 ```
 
 The instruction format (35c), the register count and the return type all match,
@@ -442,11 +442,11 @@ it.
 | what | how |
 |---|---|
 | the zip | rewritten entry by entry, each one still compressed the way it arrived; `resources.arsc` stays stored and four-byte aligned |
-| `AndroidManifest.xml` | parsed and rebuilt by `margyt/axml.py`, which round-trips aapt2's own output byte for byte |
+| `AndroidManifest.xml` | parsed and rebuilt by `tiktokmi/axml.py`, which round-trips aapt2's own output byte for byte |
 | `resources.arsc` | read to find where things live, and written only in place: a colour repainted where it lies, never a byte moved |
 | the icon | the files behind the existing resource are replaced, so no new id is ever needed |
-| the accent | `margyt/palette.py` moves the whole family of reds onto the chosen colour, in the table and in every compiled xml that draws one |
-| the theme | `margyt/nightly.py` reads the style table to find which colours TikTok itself repaints between light and dark, and writes that set into the mod |
+| the accent | `tiktokmi/palette.py` moves the whole family of reds onto the chosen colour, in the table and in every compiled xml that draws one |
+| the theme | `tiktokmi/nightly.py` reads the style table to find which colours TikTok itself repaints between light and dark, and writes that set into the mod |
 | the dex | the files that hold something worth rewriting go through baksmali and smali; the rest are copied |
 | the mod | javac and d8, in as the next `classesN.dex` — the run has to be unbroken or the runtime stops reading |
 | the landing sites | every static a rewrite points at is checked against the mod's own dex before the apk is written: smali assembles a call to a method nobody wrote without a word, and the runtime only finds out on the screen that reaches it |
@@ -477,8 +477,8 @@ version. And a **universal** apk of TikTok — on APKMirror the variant of type
 its own to read.
 
 ```bash
-git clone https://git.narez.xyz/narezany/MargyT
-cd MargyT
+git clone https://git.narez.xyz/narezany/TikTok Mi
+cd TikTok Mi
 ./build.sh path/to/tiktok.apk
 ```
 
@@ -488,7 +488,7 @@ minutes of taking them apart and putting them back, several at a time and as
 many as the machine has memory for.
 
 The builds after it are shorter, because three things are kept in
-`~/.cache/margyt-dex`: every dex taken apart, every patched dex under a name
+`~/.cache/tiktokmi-dex`: every dex taken apart, every patched dex under a name
 made from what was rewritten in it, and which of those a given set of rules
 led to. Change only the mod's Java and no dex is opened at all; change one
 hook and every dex is rewritten again but only the ones that came out
@@ -557,16 +557,16 @@ only thing here that wants aapt2.
 | | |
 |---|---|
 | `build.sh` | the whole thing, one command |
-| `margyt/axml.py` | binary XML: parse, edit, write |
-| `margyt/arsc.py` | the resource table, read and patched in place |
-| `margyt/apkzip.py` | the zip, rewritten entry by entry |
-| `margyt/dexpatch.py` | every rewrite, and what it is anchored on |
-| `margyt/palette.py` | which colours the accent takes over, and what it turns them into |
-| `margyt/nightly.py` | which colours TikTok itself repaints between light and dark |
-| `margyt/icon.py` | the icon, replaced file by file |
-| `margyt/png.py` | just enough PNG to resize an icon, so Pillow is not needed |
-| `margyt/vector.py` | vector drawables, compiled without aapt2 |
-| `margyt/plugin.py` | packs a folder into an `.mtp`, with the same pinned toolchain |
+| `tiktokmi/axml.py` | binary XML: parse, edit, write |
+| `tiktokmi/arsc.py` | the resource table, read and patched in place |
+| `tiktokmi/apkzip.py` | the zip, rewritten entry by entry |
+| `tiktokmi/dexpatch.py` | every rewrite, and what it is anchored on |
+| `tiktokmi/palette.py` | which colours the accent takes over, and what it turns them into |
+| `tiktokmi/nightly.py` | which colours TikTok itself repaints between light and dark |
+| `tiktokmi/icon.py` | the icon, replaced file by file |
+| `tiktokmi/png.py` | just enough PNG to resize an icon, so Pillow is not needed |
+| `tiktokmi/vector.py` | vector drawables, compiled without aapt2 |
+| `tiktokmi/plugin.py` | packs a folder into an `.mtp`, with the same pinned toolchain |
 | `inject/java/` | the mod itself: its screen, and the methods the rewrites land in |
 | `badges.json` | the badges, read from here by every install |
 | `version.json` | what the latest release is, read from here by every install |
@@ -576,7 +576,7 @@ only thing here that wants aapt2.
 | `icon_out/` | the app icon: the 512px master the build scales from, and the density set |
 | `tests/` | the fixture apk and what is asserted about it |
 
-`margyt/dexpatch.py` is the file to read before moving the mod to a newer
+`tiktokmi/dexpatch.py` is the file to read before moving the mod to a newer
 TikTok. Everything else is either ours outright or finds its own targets; the
 rewrites are the part that has to find them again in a rebuilt apk.
 

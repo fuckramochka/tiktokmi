@@ -129,9 +129,9 @@ answer in other chats; nothing here can do that.
 
 ## Running it
 
-    systemctl status margyt-badges margyt-bot
-    journalctl -u margyt-badges -f
-    journalctl -u margyt-bot -f
+    systemctl status tiktokmi-badges tiktokmi-bot
+    journalctl -u tiktokmi-badges -f
+    journalctl -u tiktokmi-bot -f
 
     badgectl list
     badgectl grant supporter 7551880794956989495

@@ -10,16 +10,16 @@ STUBS={
  'android/graphics/Bitmap.java':'package android.graphics;public class Bitmap{}',
  'android/graphics/BitmapFactory.java':'package android.graphics;public class BitmapFactory{public static class Options{public boolean inJustDecodeBounds;public int outWidth,outHeight,inSampleSize;}public static Bitmap decodeByteArray(byte[] a,int b,int c,Options o){return null;}}',
  'org/json/JSONArray.java':'package org.json;public class JSONArray{public JSONArray(){}public JSONArray(String s){}public JSONArray put(String s){return this;}public int length(){return 0;}public String optString(int i,String d){return d;}}',
- 'cat/narezany/margyt/StreakSchedule.java':'package cat.narezany.margyt;class StreakSchedule{static boolean due(long n,int m){return true;}static int minute(){return -1;}static long delay(long n,long d){return d;}static boolean sameDay(long a,long b){return b>0&&a-b<86400000;}}',
- 'cat/narezany/margyt/Account.java':'package cat.narezany.margyt;class Account{static String uid="123";static String liveId(){return uid;}}',
- 'cat/narezany/margyt/Margy.java':'package cat.narezany.margyt;class Margy{static String PREFS="test";static android.content.Context context(){return null;}}',
- 'cat/narezany/margyt/StreakAlarm.java':'package cat.narezany.margyt;class StreakAlarm{static boolean pending(android.content.Context c){return true;}static boolean online(android.content.Context c){return true;}static void schedule(android.content.Context c,boolean r){}static void channel(android.content.Context c){}}',
- 'cat/narezany/margyt/Screen.java':'package cat.narezany.margyt;class Screen{static void say(String s){}}',
- 'cat/narezany/margyt/Text.java':'package cat.narezany.margyt;class Text{static final String STREAK_ALL_NONE="a",STREAK_ALL_NO_STICKER="b",STREAK_ALL_NO_CHATS="c",STREAK_ALL_BUSY="d",STREAK_ALL_DONE="%1$d/%2$d";}',
- 'cat/narezany/margyt/Diary.java':'package cat.narezany.margyt;class Diary{static void note(String s){}}',
- 'cat/narezany/margyt/Net.java':'package cat.narezany.margyt;class Net{static void away(String s,Runnable r){r.run();}static byte[] bytes(String s){return null;}}',
+ 'mi/tiktokmi/StreakSchedule.java':'package mi.tiktokmi;class StreakSchedule{static boolean due(long n,int m){return true;}static int minute(){return -1;}static long delay(long n,long d){return d;}static boolean sameDay(long a,long b){return b>0&&a-b<86400000;}}',
+ 'mi/tiktokmi/Account.java':'package mi.tiktokmi;class Account{static String uid="123";static String liveId(){return uid;}}',
+ 'mi/tiktokmi/Margy.java':'package mi.tiktokmi;class Margy{static String PREFS="test";static android.content.Context context(){return null;}}',
+ 'mi/tiktokmi/StreakAlarm.java':'package mi.tiktokmi;class StreakAlarm{static boolean pending(android.content.Context c){return true;}static boolean online(android.content.Context c){return true;}static void schedule(android.content.Context c,boolean r){}static void channel(android.content.Context c){}}',
+ 'mi/tiktokmi/Screen.java':'package mi.tiktokmi;class Screen{static void say(String s){}}',
+ 'mi/tiktokmi/Text.java':'package mi.tiktokmi;class Text{static final String STREAK_ALL_NONE="a",STREAK_ALL_NO_STICKER="b",STREAK_ALL_NO_CHATS="c",STREAK_ALL_BUSY="d",STREAK_ALL_DONE="%1$d/%2$d";}',
+ 'mi/tiktokmi/Diary.java':'package mi.tiktokmi;class Diary{static void note(String s){}}',
+ 'mi/tiktokmi/Net.java':'package mi.tiktokmi;class Net{static void away(String s,Runnable r){r.run();}static byte[] bytes(String s){return null;}}',
 }
-HARNESS='''package cat.narezany.margyt;
+HARNESS='''package mi.tiktokmi;
 import java.util.*;import java.lang.reflect.*;import com.ss.android.ugc.aweme.im.common.model.*;import com.ss.android.ugc.aweme.im.streak.api.*;
 public class StreakHarness{
  static void check(boolean b,String s){if(!b)throw new AssertionError(s);}
@@ -87,23 +87,23 @@ class StreakRepositoryRuntimeTest(unittest.TestCase):
    work=pathlib.Path(folder);sources=dict(STUBS)
    sources['android/content/Context.java']=sources['android/content/Context.java'].replace('return null;', '''return (SharedPreferences)java.lang.reflect.Proxy.newProxyInstance(SharedPreferences.class.getClassLoader(),new Class[]{SharedPreferences.class},(p,m,a)->{if(m.getName().equals("getString"))return a[0].toString().contains("sticker")?"9":a[1];if(m.getName().equals("getBoolean"))return true;if(m.getName().equals("getLong"))return 0L;if(m.getName().equals("getInt"))return 0;return null;});''')
    sources['android/content/Context.java']=sources['android/content/Context.java'].replace('String n,int m)', 'String n,int mode)')
-   sources['cat/narezany/margyt/Margy.java']=sources['cat/narezany/margyt/Margy.java'].replace('static android.content.Context context(){return null;}','static android.content.Context ctx;static android.content.Context context(){return ctx;}')
-   sources['cat/narezany/margyt/NativeStreaks.java']='package cat.narezany.margyt;class NativeStreaks{static void prepare(){}}'
-   sources['cat/narezany/margyt/StreakSchedule.java']=sources['cat/narezany/margyt/StreakSchedule.java'].replace('static int minute(){return -1;}','static int selected=-1;static int minute(){return selected;}')
+   sources['mi/tiktokmi/Margy.java']=sources['mi/tiktokmi/Margy.java'].replace('static android.content.Context context(){return null;}','static android.content.Context ctx;static android.content.Context context(){return ctx;}')
+   sources['mi/tiktokmi/NativeStreaks.java']='package mi.tiktokmi;class NativeStreaks{static void prepare(){}}'
+   sources['mi/tiktokmi/StreakSchedule.java']=sources['mi/tiktokmi/StreakSchedule.java'].replace('static int minute(){return -1;}','static int selected=-1;static int minute(){return selected;}')
    import test_streak_schedule_edges as schedule
-   sources['cat/narezany/margyt/StreakSchedule.java']=sources['cat/narezany/margyt/StreakSchedule.java'].replace('static long delay(long n,long d){return d;}',schedule.method('StreakSchedule.java','static long delay(').replace('Calendar','java.util.Calendar'))
+   sources['mi/tiktokmi/StreakSchedule.java']=sources['mi/tiktokmi/StreakSchedule.java'].replace('static long delay(long n,long d){return d;}',schedule.method('StreakSchedule.java','static long delay(').replace('Calendar','java.util.Calendar'))
    sources['android/os/Handler.java']=sources['android/os/Handler.java'].replace('public Handler(Looper l){}','public static long lastDelay;public static int removed;public Handler(Looper l){}').replace('public void postDelayed(Runnable r,long delay){}','public void postDelayed(Runnable r,long delay){lastDelay=delay;}').replace('public void removeCallbacks(Runnable r){}','public void removeCallbacks(Runnable r){removed++;}')
    sources['android/content/Context.java']='''package android.content;public class Context{public static int MODE_PRIVATE=0;static java.util.Map<String,Object> data=new java.util.HashMap<>();public Context getApplicationContext(){return this;}public SharedPreferences getSharedPreferences(String n,int mode){return (SharedPreferences)java.lang.reflect.Proxy.newProxyInstance(SharedPreferences.class.getClassLoader(),new Class[]{SharedPreferences.class},(p,m,a)->{String name=m.getName();if(name.equals("edit"))return java.lang.reflect.Proxy.newProxyInstance(SharedPreferences.class.getClassLoader(),new Class[]{SharedPreferences.Editor.class},(e,f,b)->{if(f.getName().equals("apply"))return null;data.put((String)b[0],b[1]);return e;});if(name.equals("getString")&&a[0].equals("streak_sticker"))return "9";if(name.equals("getBoolean"))return true;return data.containsKey(a[0])?data.get(a[0]):a[1];});}}'''
    sources['com/ss/android/ugc/aweme/im/sticker/api/IMStickerApi.java']='''package com.ss.android.ugc.aweme.im.sticker.api;public class IMStickerApi{public static int sent;public static Holder holder=new Holder();public static class Holder{public IMStickerApi instance(){return new IMStickerApi();}}public Object getImStickerMessageService(){return new Sender();}public enum Source{AUTO_CONSECUTIVE_SA_STICKERS}public static class Options{public Options(Object x){}}public static class Sender{public void send(android.content.Context c,Object a,Object b,Source s,com.ss.android.ugc.aweme.im.common.model.StickerItem item,Options opts,Object d,Object e,String id,Object f,Object g,Object h,boolean flag){sent++;}}}'''
    for name in ('Streaks','FavouriteStickers'):
-    sources['cat/narezany/margyt/'+name+'.java']=(ROOT/'inject/java/cat/narezany/margyt'/f'{name}.java').read_text(encoding='utf-8')
+    sources['mi/tiktokmi/'+name+'.java']=(ROOT/'inject/java/mi/tiktokmi'/f'{name}.java').read_text(encoding='utf-8')
    for name in ('StickerItem','StickerBase','StickerImage'):
     path='com/ss/android/ugc/aweme/im/common/model/'+name+'.java';sources[path]=(ROOT/'inject/stubs'/path).read_text(encoding='utf-8')
    for name in ('StreakData','IStreakService'):
     path='com/ss/android/ugc/aweme/im/streak/api/'+name+'.java';sources[path]=(ROOT/'inject/stubs'/path).read_text(encoding='utf-8')
-   sources['cat/narezany/margyt/StreakHarness.java']=HARNESS
+   sources['mi/tiktokmi/StreakHarness.java']=HARNESS
    __import__("android_doubles").with_mod(sources)
    for name,s in sources.items():
     path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(s,encoding='utf-8')
    built=subprocess.run(['javac','-source','8','-target','8','-encoding','UTF-8','-d',str(work)]+[str(work/n) for n in sources],capture_output=True,text=True);self.assertEqual(0,built.returncode,built.stderr)
-   run=subprocess.run(['java','-cp',str(work),'cat.narezany.margyt.StreakHarness'],capture_output=True,text=True);self.assertEqual(0,run.returncode,run.stderr)
+   run=subprocess.run(['java','-cp',str(work),'mi.tiktokmi.StreakHarness'],capture_output=True,text=True);self.assertEqual(0,run.returncode,run.stderr)

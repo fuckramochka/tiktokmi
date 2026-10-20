@@ -1,7 +1,7 @@
 """Execute font ownership, weights, restoration and bounded traversal."""
 import unittest
 import test_settings_safety_runtime as safety
-from margyt import dexpatch
+from tiktokmi import dexpatch
 class FontCoverageTest(unittest.TestCase):
  def test_real_font_application(self):
   body=''.join(safety.method('Fonts.java',m) for m in ('    private static boolean drawsGlyphs','    public static void applyTree','    private static void applyTree','    public static void apply(TextView','    private static Typeface keep','    public static void setTypeface(TextView view, Typeface face)','    public static void setTypeface(TextView view, Typeface face, int style)'))

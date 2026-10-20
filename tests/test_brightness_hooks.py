@@ -1,6 +1,6 @@
 import os, tempfile, unittest
 
-from margyt import dexpatch
+from tiktokmi import dexpatch
 
 CONFIG = (".class public Lcom/ss/android/ugc/aweme/video/simplayer/PlayerConfigImpl;\n"
           ".super Ljava/lang/Object;\n\n"
@@ -22,7 +22,7 @@ class BrightnessHookTests(unittest.TestCase):
             with open(path, encoding="utf-8") as handle:
                 patched = handle.read()
             # asked first, and TikTok's own answer is still there for when the mod says no
-            self.assertIn("    .prologue\n    invoke-static {}, Lcat/narezany/margyt/Brightness;->flat()Z\n\n"
+            self.assertIn("    .prologue\n    invoke-static {}, Lmi/tiktokmi/Brightness;->flat()Z\n\n"
                           "    move-result v0\n\n    if-eqz v0, :margyt_hdr\n\n    const/4 v0, 0x1\n\n"
                           "    return v0\n\n    :margyt_hdr\n\n    .line 1\n"
                           "    invoke-static {}, LX/0qIc;->LJJJLIIL()Z", patched)
@@ -50,11 +50,11 @@ class BrightnessHookTests(unittest.TestCase):
             self.assertEqual(counts.get(dexpatch.WINDOW_LABEL), 1)
             with open(path, encoding="utf-8") as handle:
                 patched = handle.read()
-            self.assertIn("invoke-static {v0, v1}, Lcat/narezany/margyt/Brightness;->setAttributes"
+            self.assertIn("invoke-static {v0, v1}, Lmi/tiktokmi/Brightness;->setAttributes"
                           "(Landroid/view/Window;Landroid/view/WindowManager$LayoutParams;)V", patched)
             # reading a window's attributes is nobody's business but TikTok's
             self.assertIn("invoke-virtual {v0}, Landroid/view/Window;->getAttributes()", patched)
-            self.assertIn("Lcat/narezany/margyt/Brightness;->setAttributes"
+            self.assertIn("Lmi/tiktokmi/Brightness;->setAttributes"
                           "(Landroid/view/Window;Landroid/view/WindowManager$LayoutParams;)V",
                           dexpatch.rewrite_targets())
 

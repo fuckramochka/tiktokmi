@@ -7,7 +7,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from margyt import dexcache, dexpatch  # noqa: E402
+from tiktokmi import dexcache, dexpatch  # noqa: E402
 
 
 class Apart:

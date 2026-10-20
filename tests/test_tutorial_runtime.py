@@ -54,24 +54,24 @@ STUBS = {
         public LinearLayout(android.content.Context c){} public void setOrientation(int n){}
         public void addView(android.view.View v){children.add(v);} }''',
     'com/ss/android/ugc/aweme/main/MainActivity.java': 'package com.ss.android.ugc.aweme.main; public class MainActivity extends android.app.Activity {}',
-    'cat/narezany/margyt/SettingsActivity.java': 'package cat.narezany.margyt; class SettingsActivity extends android.app.Activity {void tutorialStep(int i){}}',
-    'cat/narezany/margyt/SettingsRow.java': 'package cat.narezany.margyt; class SettingsRow {static String SETTINGS_ACTIVITY="settings";}',
-    'cat/narezany/margyt/Margy.java': 'package cat.narezany.margyt; class Margy {static String PREFS="mod";}',
-    'cat/narezany/margyt/Skin.java': '''package cat.narezany.margyt; class Skin {int text=-1;
+    'mi/tiktokmi/SettingsActivity.java': 'package mi.tiktokmi; class SettingsActivity extends android.app.Activity {void tutorialStep(int i){}}',
+    'mi/tiktokmi/SettingsRow.java': 'package mi.tiktokmi; class SettingsRow {static String SETTINGS_ACTIVITY="settings";}',
+    'mi/tiktokmi/Margy.java': 'package mi.tiktokmi; class Margy {static String PREFS="mod";}',
+    'mi/tiktokmi/Skin.java': '''package mi.tiktokmi; class Skin {int text=-1;
         static Skin remembered(android.content.Context c){return new Skin();} }''',
-    'cat/narezany/margyt/Accent.java': 'package cat.narezany.margyt; class Accent {static int colour(){return -1;}}',
-    'cat/narezany/margyt/Screen.java': '''package cat.narezany.margyt; class Screen {
+    'mi/tiktokmi/Accent.java': 'package mi.tiktokmi; class Accent {static int colour(){return -1;}}',
+    'mi/tiktokmi/Screen.java': '''package mi.tiktokmi; class Screen {
         static android.app.Activity current;static android.app.Activity now(){return current;} }''',
-    'cat/narezany/margyt/Motion.java': 'package cat.narezany.margyt; class Motion {static void enter(android.view.View v,float d) {}}',
-    'cat/narezany/margyt/CrashConsent.java': '''package cat.narezany.margyt; class CrashConsent {
+    'mi/tiktokmi/Motion.java': 'package mi.tiktokmi; class Motion {static void enter(android.view.View v,float d) {}}',
+    'mi/tiktokmi/CrashConsent.java': '''package mi.tiktokmi; class CrashConsent {
         static boolean asked=true; static int shown; static Runnable pending;
         static boolean asked(android.content.Context c){return asked;}
         static void show(android.app.Activity a,Runnable then){shown++;pending=then;}
         static void paused(android.app.Activity a){} }''',
-    'cat/narezany/margyt/Text.java': '''package cat.narezany.margyt; class Text {
+    'mi/tiktokmi/Text.java': '''package mi.tiktokmi; class Text {
         static final String TUTORIAL_NEXT="Next",TUTORIAL_BACK="Back",TUTORIAL_DONE="Done",TUTORIAL_SKIP="Skip";
         static final String[] TUTORIAL_TITLES={"a","b","c","d","e"},TUTORIAL_WORDS={"a","b","c","d","e"}; }''',
-    'cat/narezany/margyt/Panel.java': '''package cat.narezany.margyt; class Panel {
+    'mi/tiktokmi/Panel.java': '''package mi.tiktokmi; class Panel {
         interface Click {void on();} static Panel last;static int created;
         android.app.Dialog dialog=new android.app.Dialog(); android.content.Context context;
         java.util.List<android.widget.TextView> buttons=new java.util.ArrayList<>();
@@ -81,7 +81,7 @@ STUBS = {
         Panel quiet(String label,Click c){action(label,false).setOnClickListener(v->{close();c.on();});return this;}
         android.app.Dialog dialog(){return dialog;} void show(){dialog.showing=true;} void close(){dialog.dismiss();} }''',
 }
-HARNESS = '''package cat.narezany.margyt;
+HARNESS = '''package mi.tiktokmi;
 public class TutorialHarness {
     static void check(boolean v,String s){if(!v)throw new AssertionError(s);}
     public static void main(String[] args) {
@@ -123,9 +123,9 @@ class TutorialRuntimeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             work = pathlib.Path(directory)
             sources = dict(STUBS)
-            sources['cat/narezany/margyt/Tutorial.java'] = (
-                ROOT / 'inject/java/cat/narezany/margyt/Tutorial.java').read_text(encoding='utf-8')
-            sources['cat/narezany/margyt/TutorialHarness.java'] = HARNESS
+            sources['mi/tiktokmi/Tutorial.java'] = (
+                ROOT / 'inject/java/mi/tiktokmi/Tutorial.java').read_text(encoding='utf-8')
+            sources['mi/tiktokmi/TutorialHarness.java'] = HARNESS
             __import__("android_doubles").with_mod(sources)
             for name, content in sources.items():
                 path = work / name
@@ -134,7 +134,7 @@ class TutorialRuntimeTest(unittest.TestCase):
             compiled = subprocess.run(['javac', '-source', '8', '-target', '8', '-encoding', 'UTF-8', '-d', str(work)] +
                                       [str(work / name) for name in sources], capture_output=True, text=True)
             self.assertEqual(0, compiled.returncode, compiled.stderr)
-            result = subprocess.run(['java', '-cp', str(work), 'cat.narezany.margyt.TutorialHarness'],
+            result = subprocess.run(['java', '-cp', str(work), 'mi.tiktokmi.TutorialHarness'],
                                     capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn('First-run, completion, skip, replay and lifecycle scenarios passed', result.stdout)

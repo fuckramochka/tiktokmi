@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from margyt.dexpatch import rewrite_anchored
+from tiktokmi.dexpatch import rewrite_anchored
 
 
 class OfflineNativeTest(unittest.TestCase):
