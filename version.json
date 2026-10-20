@@ -1,7 +1,7 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the project's own git server at startup and every five minutes; the badges come from the same box.",
   "version": "2.0.5",
-  "url": "https://git.narez.xyz/narezany/TikTok Mi/releases/download/v2.0.5/tiktokmi.apk",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.0.5/tiktokmi.apk",
   "notes": "Less stutter: the mod no longer goes over the screen before every frame. No more blacked-out window in recents. A lag report names the plugin that is holding the app up.",
   "notes_ru": "Меньше подлагов: мод больше не обходит экран перед каждым кадром. Убран «скрытый режим» с чёрным окном в недавних. Отчёт о лагах называет плагин, который тормозит.",
   "notes_uk": "Менше підлагів: мод більше не обходить екран перед кожним кадром. Прибрано «прихований режим» із чорним вікном у недавніх. Звіт про лаги називає плагін, який гальмує."

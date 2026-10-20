@@ -275,7 +275,7 @@ async function json(url, then) {
   } catch (trouble) { /* offline: the page still reads */ }
 }
 
-json("https://git.narez.xyz/narezany/MargyT/raw/branch/main/version.json", said => {
+json("https://raw.githubusercontent.com/fuckramochka/tiktokmi/main/version.json", said => {
   if (said.version) document.getElementById("tver").textContent = said.version;
   if (said.url) document.getElementById("tget").href = said.url;
 });
