@@ -35,7 +35,7 @@ public abstract class MargyPlugin {
      */
     public static final int API = 5;
 
-    private PluginContext margyt;
+    private PluginContext tiktokmi;
 
     /** Set by the loader before anything else is called. */
     public final void attach(PluginContext context) {
@@ -44,11 +44,11 @@ public abstract class MargyPlugin {
 
     /** The mod, from the plugin's side: settings, the diary, the app context. */
     public final PluginContext tiktokmi() {
-        return margyt;
+        return tiktokmi;
     }
 
     public final PluginContext margyt() {
-        return margyt;
+        return tiktokmi;
     }
 
     // ------------------------------------------------------------ the hooks
