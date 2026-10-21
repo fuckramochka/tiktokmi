@@ -16,7 +16,7 @@ import android.view.View;
  * title, a neon "news / updates" line and a white "Subscribe" pill. The whole card is the button.
  */
 final class ChannelBanner extends View {
-    static final String URL = "https://t.me/margytiktok";
+    static final String URL = "https://t.me/dktiktokmi";
     /** The design is drawn on a 1107 x 356 board and scaled to the width it gets. */
     private static final float W = 1107f, H = 356f;
     private static final float[][] SPARKS = {

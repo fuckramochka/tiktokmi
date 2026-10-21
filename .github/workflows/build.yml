@@ -91,7 +91,7 @@ jobs:
           fi
           TITLE="TikTok Mi v$TAG"
 
-          python3 -c "import json; data=json.load(open('version.json')); print(data.get('notes_ru') or data.get('notes') or '')" > release_notes.txt
+          python3 -c "import json; data=json.load(open('version.json')); print(data.get('notes_uk') or data.get('notes') or data.get('notes_ru') or '')" > release_notes.txt
           if [ ! -s release_notes.txt ]; then
             echo "TikTok Mi v$TAG update" > release_notes.txt
           fi

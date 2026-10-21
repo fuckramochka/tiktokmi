@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://margy.narez.xyz/sitemap.xml
+Sitemap: https://fuckramochka.github.io/tiktokmi/sitemap.xml

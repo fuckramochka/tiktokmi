@@ -3,7 +3,7 @@
   "name": "Hello",
   "name_ru": "Привет",
   "version": "1.0",
-  "author": "narezany",
+  "author": "ramochka",
   "description": "Writes a line in the mod's diary every time TikTok starts.",
   "description_ru": "Пишет строку в журнал мода при каждом запуске TikTok.",
   "entry": "mi.tiktokmi.hello.Hello",

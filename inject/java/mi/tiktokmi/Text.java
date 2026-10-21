@@ -515,9 +515,9 @@ final class Text {
     // ----------------------------------------------- fixes without an apk
 
     static final String MADE_BY = pick(
-            "Сделал @narezany · GPL-3.0 с доп. условиями",
-            "Зробив @narezany · GPL-3.0 з дод. умовами",
-            "Made by @narezany · GPL-3.0 with additional terms");
+            "Сделал @dkramochka · GPL-3.0 с доп. условиями",
+            "Зробив @dkramochka · GPL-3.0 з дод. умовами",
+            "Made by @dkramochka · GPL-3.0 with additional terms");
 
     static final String TAGS = pick("Фильтр хештегов", "Фільтр хештегів", "Hashtag filter");
 
@@ -625,7 +625,7 @@ final class Text {
             "Сообщения каналу", "Повідомлення каналу", "Message the channel");
 
     static final String DONATE_STEP_PAY = pick(
-            "1. Переведите от 250 ₽", "1. Переказати від 250 ₽", "1. Send 250 ₽ or more");
+            "1. Переведите через CryptoBot", "1. Переказати через CryptoBot", "1. Send via CryptoBot");
 
     static final String DONATE_STEP_ID = pick(
             "2. Скопируйте свой ID", "2. Скопіюйте свій ID", "2. Copy your ID");
@@ -900,9 +900,9 @@ final class Text {
     static final String CAT_FROM = pick("Принёс", "Приніс", "Brought by");
 
     static final String CAT_YOURS = pick(
-            "Хочешь своего кота здесь? Напиши @narezany в Telegram",
-            "Хочеш свого кота тут? Напиши @narezany в Telegram",
-            "Want your cat here? Write to @narezany on Telegram");
+            "Хочешь своего кота здесь? Напиши @dkramochka в Telegram",
+            "Хочеш свого кота тут? Напиши @dkramochka в Telegram",
+            "Want your cat here? Write to @dkramochka on Telegram");
 
     static final String CAT_WAIT = pick(
             "Коты ещё едут, попробуй ещё раз", "Коти ще їдуть, спробуй ще раз",
@@ -1159,7 +1159,13 @@ final class Text {
 
     static final String CHANNEL = pick("Канал", "Канал", "Channel");
 
+    static final String MAIN_CHANNEL = pick("Основной канал", "Основний канал", "Main channel");
+
     static final String FORUM = pick("Форум", "Форум", "Forum");
+
+    static final String OFFICIAL_SITE = pick("Официальный сайт", "Офіційний сайт", "Official site");
+
+    static final String PERSONAL_SITE = pick("Личный сайт", "Особистий сайт", "Personal site");
 
     // ----------------------------------------------------------- the streaks
 
@@ -1318,12 +1324,16 @@ final class Text {
     static final String DONATE = pick("Поддержать", "Підтримати", "Support the project");
 
     static final String DONATE_NOTE = pick(
-            "Каждый ваш рубль помогает держать проект на плаву и развивать открытое "
-                    + "сообщество моддинга. Спасибо.",
-            "Кожен ваш рубль допомагає тримати проєкт на плаву та розвивати відкриту "
-                    + "спільноту модингу. Дякуємо.",
-            "Every rouble keeps the project afloat and goes back into the open source "
-                    + "modding community. Thank you.");
+            "Каждый донат помогает держать проект на плаву и развивать сообщество. Спасибо.",
+            "Кожен донат допомагає тримати проєкт на плаву та розвивати спільноту. Дякуємо.",
+            "Every donation keeps the project afloat and supports the community. Thank you.");
+
+    static final String CRYPTO_BOT = pick("CryptoBot", "CryptoBot", "CryptoBot");
+
+    static final String CRYPTO_BOT_NOTE = pick(
+            "Донат через Telegram (@CryptoBot)",
+            "Донат через Telegram (@CryptoBot)",
+            "Donate via Telegram (@CryptoBot)");
 
     static final String CARD = pick("Карта", "Картка", "Card");
 

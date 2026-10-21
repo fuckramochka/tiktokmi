@@ -3,11 +3,12 @@
 <img src="assets/banner.png" alt="TikTok Mi" width="640">
 
 **A TikTok mod for Android.**
-The second in the line after [Margy](https://github.com/narezany/Margelet).
 Built from the official apk with the patches in this repository.
 
-[![channel](https://img.shields.io/badge/channel-tiktokmiiktok-8DD1B0?style=flat-square)](https://t.me/tiktokmiiktok)
-[![forum](https://img.shields.io/badge/forum-margeletforum-8DD1B0?style=flat-square)](https://t.me/margeletforum)
+[![channel](https://img.shields.io/badge/channel-dktiktokmi-8DD1B0?style=flat-square)](https://t.me/dktiktokmi)
+[![main channel](https://img.shields.io/badge/main%20channel-fuckramochka-8DD1B0?style=flat-square)](https://t.me/fuckramochka)
+[![forum](https://img.shields.io/badge/forum-dkamegram-8DD1B0?style=flat-square)](https://t.me/dkamegram)
+[![site](https://img.shields.io/badge/site-github%20pages-8DD1B0?style=flat-square)](https://fuckramochka.github.io/tiktokmi/)
 [![plugins](https://img.shields.io/badge/plugins-docs-8DD1B0?style=flat-square)](docs/plugins.md)
 [![licence](https://img.shields.io/badge/licence-MIT-8DD1B0?style=flat-square)](#licence)
 
@@ -253,10 +254,8 @@ files, and the switch loads it with `DexClassLoader` and starts calling its
 hooks. There is no storage permission involved: the document picker is the only
 way in.
 
-Margy's plugins are Python, and these are not, for a reason that is about
-repacking rather than taste — a Python runtime goes into a fork at build time,
-and this is somebody else's apk. The format is the same shape with a dex where
-the `main.py` would be.
+The format is a clean `.mtp` bundle with a manifest, an icon, and a `classes.dex`
+file where the compiled plugin bytecode lives.
 
 A plugin can hook the start of the process (before TikTok's own
 `Application.onCreate`), the activities as they come and go, every colour on
@@ -276,8 +275,8 @@ the manifest, every hook, and what is deliberately not there.
 <details>
 <summary><b>Its own name and icon</b></summary>
 
-`TikTok Mi`, in the mint the whole line uses — `#8DD1B0`, straight off the Margy
-banner — with a white note where Margy has a white paper plane.
+`TikTok Mi`, in a fresh mint accent (`#8DD1B0`) with a custom launcher icon
+bearing a musical note glyph.
 
 The icon is not added as a new resource; the files behind TikTok's own icon are
 rewritten where they lie. The adaptive icon's two layers become vector
@@ -352,8 +351,7 @@ in this repository were found by reading it rather than by guessing.
 <summary><b>Where to find the mod, and who made it</b></summary>
 
 The last card on the mod's screen: the channel, the forum, the account id you
-would quote when reporting something, and a **Thanks** that opens the names —
-and, for anyone who wants to, a card number and a YooMoney link.
+would quote when reporting something, and a **Thanks** that opens the names.
 </details>
 
 <details>
@@ -477,8 +475,8 @@ version. And a **universal** apk of TikTok — on APKMirror the variant of type
 its own to read.
 
 ```bash
-git clone https://git.narez.xyz/narezany/TikTok Mi
-cd TikTok Mi
+git clone https://github.com/fuckramochka/tiktokmi.git
+cd tiktokmi
 ./build.sh path/to/tiktok.apk
 ```
 

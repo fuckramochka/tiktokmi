@@ -84,8 +84,10 @@ about a plugin is what the phone will load.
 
 ## The bot
 
-`@margy_robot`, by long polling: no certificate, no port, nothing to expose. It
-does two things.
+> **Примечание:** Бот временно выключен.
+
+`@margy_robot` (временно отключён). Ранее работал через long polling. Он
+выполнял две вещи:
 
     профиль <ник в тиктоке или айди>    the name, the picture and the badges
 

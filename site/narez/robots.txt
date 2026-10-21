@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://narez.xyz/sitemap.xml
+Sitemap: https://ramochka.vercel.app/sitemap.xml

@@ -28,9 +28,8 @@ import java.util.Locale;
 /**
  * A cat, for anyone who taps the title enough times.
  *
- * The same cats Margy has: the list and the photographs are read out of that
- * repository rather than copied into this one, so a cat added there turns up
- * here too, with nobody rebuilding anything.
+ * Cats easter egg: the list and photographs are read out of the repository,
+ * so a cat added there turns up here too, with nobody rebuilding anything.
  *
  * The count is five, and they have to be in a row -- more than a second
  * between two taps and the count starts again. Somebody who taps a heading
@@ -97,7 +96,7 @@ public final class Cats {
     }
 
     /**
-     * The sound, which is Margy's own and rides inside the apk.
+     * The meow sound, which rides inside the apk.
      *
      * A player per tap rather than one kept around: tapping quickly should
      * overlap rather than cut the last one off, and each lets itself go when

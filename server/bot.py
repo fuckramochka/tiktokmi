@@ -600,18 +600,8 @@ def apart(update):
 
 
 def main():
-    prepare()
-    print("bot up", flush=True)
-    offset = 0
-    while True:
-        answer = call("getUpdates", offset=offset, timeout=50,
-                      allowed_updates=["message", "inline_query"])
-        for update in answer.get("result", []):
-            offset = update["update_id"] + 1
-            ROOM.acquire()
-            threading.Thread(target=apart, args=(update,), daemon=True).start()
-        if not answer:
-            time.sleep(3)
+    print("Telegram bot is temporarily disabled / Telegram бот временно выключен.", flush=True)
+    return
 
 
 if __name__ == "__main__":

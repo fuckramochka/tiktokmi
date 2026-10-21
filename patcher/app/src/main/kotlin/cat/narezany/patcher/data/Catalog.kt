@@ -126,7 +126,7 @@ data class Catalog(val patcher: PatcherRelease?, val channel: String, val mods: 
                     words(mod.optJSONObject("about")), mod.getString("package"), releases,
                     mod.optBoolean("own_package", false)))
             }
-            return Catalog(patcher, root.optString("channel", "https://t.me/margymods"), mods)
+            return Catalog(patcher, root.optString("channel", "https://t.me/dktiktokmi"), mods)
         }
 
         private fun apk(given: JSONObject): Release {

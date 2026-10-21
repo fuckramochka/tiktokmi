@@ -1,21 +1,19 @@
 <!doctype html>
-<html lang="ru">
+<html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="yandex-verification" content="e82caa2dfbcc1d36" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Margy</title>
-<meta name="description" content="MargyT — мод тиктока: без рекламы, со своим видом и значками.">
-<meta property="og:title" content="Margy">
-<meta property="og:description" content="Мод тиктока, переписанный под себя.">
-<meta property="og:image" content="/margyt.png">
-<link rel="canonical" href="https://margy.narez.xyz/">
-<link rel="icon" href="/margyt.png">
+<title>TikTok Mi — Мод TikTok для Android</title>
+<meta name="description" content="TikTok Mi — модифікований клієнт TikTok для Android: без реклами, зміна регіону, завантаження без водяного знака, теми Material You та плагіни.">
+<meta property="og:title" content="TikTok Mi">
+<meta property="og:description" content="Найкращий мод TikTok для Android: без реклами, вільна зміна регіону, завантаження медіа та власний стиль.">
+<meta property="og:image" content="/banner.png">
+<link rel="canonical" href="https://fuckramochka.github.io/tiktokmi/">
+<link rel="icon" href="/tiktokmi.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* Hallmark · pre-emit critique: P4 H4 E4 S5 R5 V4 */
 :root{
   --paper:#f2efe7; --paper-2:#fbfaf6; --ink:#16211d; --ink-2:#4a5a53;
   --mint:#8dd1b0; --accent:#2f6f52; --rule:#d8d3c6; --on-accent:#f4f1ea;
@@ -40,40 +38,51 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);
 a{color:inherit}
 .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
 
-.top{display:flex;align-items:center;gap:13px;padding:20px 0 0;flex-wrap:wrap}
-.top .mark{width:32px;height:32px;border-radius:9px;display:block}
-.top b{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.01em}
-.top nav{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:15px}
+.top{display:flex;align-items:center;gap:14px;padding:22px 0 0;flex-wrap:wrap}
+.top .brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+.top .mark{width:36px;height:36px;border-radius:10px;display:block}
+.top b{font-family:var(--font-display);font-weight:800;font-size:20px;letter-spacing:-.01em}
+.top nav{margin-left:auto;display:flex;align-items:center;gap:18px;font-size:15px;flex-wrap:wrap}
 .top nav a{color:var(--ink-2);text-decoration:none;white-space:nowrap}
 .top nav a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .switches{display:flex;gap:6px;margin-left:4px}
 .sw{font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;
   background:none;border:1px solid var(--rule);color:var(--ink-2);
-  border-radius:8px;padding:6px 9px;cursor:pointer;line-height:1}
+  border-radius:8px;padding:6px 10px;cursor:pointer;line-height:1;transition:all .15s ease}
 .sw:hover{color:var(--ink);border-color:var(--ink-2)}
 .sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-.open{padding:60px 0 8px}
-.open h1{font-family:var(--font-display);font-weight:800;font-size:clamp(32px,6.6vw,58px);
-  line-height:1.05;letter-spacing:-.02em;margin:0 0 18px;max-width:16ch;overflow-wrap:anywhere}
+.open{padding:48px 0 16px}
+.banner-img{width:100%;max-width:820px;border-radius:20px;display:block;margin:0 0 32px;box-shadow:0 12px 32px rgba(0,0,0,.07)}
+.open h1{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,6.2vw,54px);
+  line-height:1.1;letter-spacing:-.02em;margin:0 0 18px;max-width:20ch;overflow-wrap:anywhere}
 .open h1 em{font-style:normal;color:var(--accent)}
-.open p{margin:0 0 36px;max-width:52ch;font-size:clamp(17px,2.3vw,19px);color:var(--ink-2)}
+.open p{margin:0 0 28px;max-width:58ch;font-size:clamp(17px,2.2vw,19px);color:var(--ink-2)}
 
-.things{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));padding-bottom:52px}
-.thing{background:var(--paper-2);border:1px solid var(--rule);border-radius:18px;
-  padding:22px;display:flex;flex-direction:column;gap:16px}
-.thing .head{display:flex;align-items:center;gap:13px}
-.thing .head img{width:50px;height:50px;border-radius:13px;display:block}
-.thing h2{font-family:var(--font-display);font-weight:600;font-size:20px;margin:0;letter-spacing:-.01em}
-.thing .sub{color:var(--ink-2);font-size:14px;margin-top:3px}
-.meta{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-2);
-  display:flex;flex-wrap:wrap;gap:5px 14px;font-variant-numeric:tabular-nums}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin:28px 0 48px}
+.btn-main{display:inline-flex;align-items:center;justify-content:center;
+  background:var(--ink);color:var(--paper);text-decoration:none;border-radius:12px;
+  padding:14px 22px;font-weight:600;font-size:16px;white-space:nowrap;transition:background .15s ease}
+.btn-main:hover{background:var(--accent);color:var(--on-accent)}
+.btn-sub{display:inline-flex;align-items:center;justify-content:center;
+  background:var(--paper-2);border:1px solid var(--rule);color:var(--ink);text-decoration:none;border-radius:12px;
+  padding:14px 20px;font-weight:600;font-size:16px;white-space:nowrap;transition:all .15s ease}
+.btn-sub:hover{border-color:var(--ink-2);background:var(--paper)}
+
+.things{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));padding-bottom:52px}
+.thing{background:var(--paper-2);border:1px solid var(--rule);border-radius:20px;
+  padding:24px;display:flex;flex-direction:column;gap:16px}
+.thing .head{display:flex;align-items:center;gap:14px}
+.thing .head img{width:54px;height:54px;border-radius:14px;display:block}
+.thing h2{font-family:var(--font-display);font-weight:600;font-size:22px;margin:0;letter-spacing:-.01em}
+.thing .sub{color:var(--ink-2);font-size:14px;margin-top:2px}
+.meta{font-family:var(--font-mono);font-size:13px;color:var(--ink-2);
+  display:flex;flex-wrap:wrap;gap:6px 16px;font-variant-numeric:tabular-nums}
 .meta b{font-weight:500;color:var(--ink)}
 .get{margin-top:auto;display:flex;align-items:center;justify-content:center;
   background:var(--ink);color:var(--paper);text-decoration:none;border-radius:12px;
   padding:14px 18px;font-weight:600;font-size:16px;white-space:nowrap;transition:background .15s ease}
 .get:hover{background:var(--accent);color:var(--on-accent)}
-.get:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .also{font-size:14px;color:var(--ink-2)}
 .also a{color:var(--accent)}
 
@@ -81,174 +90,305 @@ a{color:inherit}
 .chapter h3{font-family:var(--font-display);font-weight:600;font-size:clamp(23px,4vw,31px);
   margin:0 0 24px;letter-spacing:-.015em}
 .rows{display:grid;gap:0;margin:0}
-.row{display:grid;grid-template-columns:minmax(0,12rem) minmax(0,1fr);gap:6px 26px;
-  padding:15px 0;border-top:1px solid var(--rule)}
+.row{display:grid;grid-template-columns:minmax(0,14rem) minmax(0,1fr);gap:6px 26px;
+  padding:16px 0;border-top:1px solid var(--rule)}
 .row:first-child{border-top:none;padding-top:0}
-.row dt{font-weight:600;margin:0}
+.row dt{font-weight:600;margin:0;font-size:17px}
 .row dd{margin:0;color:var(--ink-2)}
-@media (max-width:640px){.row{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:680px){.row{grid-template-columns:minmax(0,1fr)}}
+
+.donate-box{background:var(--paper-2);border:1px solid var(--rule);border-radius:20px;padding:26px;margin-top:8px}
+.donate-box p{margin:0 0 18px;color:var(--ink-2)}
 
 .strip{display:flex;flex-wrap:wrap;gap:8px}
 .chip{display:inline-flex;align-items:center;gap:8px;background:var(--paper-2);
   border:1px solid var(--rule);border-radius:999px;padding:6px 14px 6px 9px;font-size:14px}
 .chip .pic{width:19px;height:19px;flex:none;display:block}
-.chip .pic.tinted{background:var(--c,var(--ink));
-  -webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
 .chip em{font-style:normal;color:var(--ink-2);font-family:var(--font-mono);
   font-size:12px;font-variant-numeric:tabular-nums}
 .quiet{color:var(--ink-2);font-size:14px}
 
-footer{border-top:1px solid var(--rule);padding:32px 0 56px;color:var(--ink-2);font-size:15px}
-footer .links{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:14px}
-footer a{color:var(--accent)}
-footer small{display:block;max-width:60ch;line-height:1.55}
+footer{border-top:1px solid var(--rule);padding:36px 0 60px;color:var(--ink-2);font-size:15px}
+footer .links{display:flex;flex-wrap:wrap;gap:12px 24px;margin-bottom:16px}
+footer a{color:var(--accent);text-decoration:none}
+footer a:hover{text-decoration:underline}
+footer small{display:block;max-width:65ch;line-height:1.55}
 </style>
 </head>
 <body>
 
 <div class="wrap">
   <header class="top">
-    <img class="mark" src="/margyt.png" alt="">
-    <b>Margy</b>
+    <a class="brand" href="/">
+      <img class="mark" src="/tiktokmi.png" alt="TikTok Mi">
+      <b>TikTok Mi</b>
+    </a>
     <nav>
-      <a href="https://t.me/margymods" data-t="nav_channel">Канал</a>
-      <a href="https://t.me/margeletforum" data-t="nav_forum">Форум</a>
-      <a href="https://git.narez.xyz/narezany">Исходники</a>
+      <a href="https://t.me/dktiktokmi" data-t="nav_channel">Канал</a>
+      <a href="https://t.me/fuckramochka" data-t="nav_main">Основний канал</a>
+      <a href="https://t.me/dkamegram" data-t="nav_forum">Форум</a>
+      <a href="https://t.me/send?start=IV9jgQb3npJN" data-t="nav_donate">Підтримати</a>
+      <a href="https://github.com/fuckramochka/tiktokmi" data-t="nav_source">Вихідники</a>
       <span class="switches">
-        <button class="sw" id="lang" type="button">EN</button>
-        <button class="sw" id="theme" type="button" aria-label="тема">☾</button>
+        <button class="sw" id="lang" type="button" aria-label="Мова">UA</button>
+        <button class="sw" id="theme" type="button" aria-label="Тема">☾</button>
       </span>
     </nav>
   </header>
 
   <section class="open">
-    <h1 data-t="h1">Клиенты, <em>переписанные</em> под себя</h1>
-    <p data-t="lede">Тикток с настройками, которых в нём нет. Исходники открыты.</p>
+    <img class="banner-img" src="/banner.png" alt="TikTok Mi Banner">
+    <h1 data-t="h1">TikTok Mi — <em>найкращий</em> мод для Android</h1>
+    <p data-t="lede">Повний контроль над стрічкою: без реклами, вільна зміна регіону, завантаження без водяного знака, фонове відтворення та теми Material You.</p>
+
+    <div class="actions">
+      <a class="btn-main" id="tget_hero" href="https://github.com/fuckramochka/tiktokmi/releases/latest" data-t="download_apk">Завантажити APK</a>
+      <a class="btn-sub" href="https://t.me/dktiktokmi" data-t="open_channel">Канал у Telegram</a>
+      <a class="btn-sub" href="https://t.me/send?start=IV9jgQb3npJN" data-t="open_donate">Підтримати (CryptoBot)</a>
+    </div>
   </section>
 
   <section class="things">
     <article class="thing">
       <div class="head">
-        <img src="/margyt.png" alt="">
+        <img src="/tiktokmi.png" alt="TikTok Mi">
         <div>
-          <h2>MargyT</h2>
-          <div class="sub" data-t="tsub">тикток</div>
+          <h2>TikTok Mi</h2>
+          <div class="sub" data-t="tsub">офіційний реліз</div>
         </div>
       </div>
       <div class="meta">
-        <span><span data-t="version">версия</span> <b id="tver">2.0</b></span>
-        <span data-t="tbase">на TikTok <b>47.2.41</b></span>
-        <span data-t="tsize">патчер <b>1,3 МБ</b></span>
+        <span><span data-t="version">версія</span> <b id="tver">2.0.5</b></span>
+        <span data-t="tbase">на базі TikTok <b>47.2.41</b></span>
       </div>
-      <a class="get" href="https://git.narez.xyz/narezany/MargyT/releases/download/patcher-v1.1/margy-patcher.apk" data-t="download">Скачать патчер</a>
-      <div class="also"><span data-t="patcher_note">Патчер сам скачает TikTok, наложит мод и будет обновлять его.</span></div>
-      <div class="also"><a id="tget" href="https://git.narez.xyz/narezany/MargyT/releases/latest" data-t="direct">Готовый апк</a> · <span data-t="source">Исходники</span>: <a href="https://git.narez.xyz/narezany/MargyT">MargyT</a></div>
+      <a class="get" id="tget" href="https://github.com/fuckramochka/tiktokmi/releases/latest" data-t="direct">Завантажити готовий APK</a>
+      <div class="also">
+        <span data-t="source">Вихідний код</span>: <a href="https://github.com/fuckramochka/tiktokmi">GitHub</a> · 
+        <a href="https://github.com/fuckramochka/tiktokmi/blob/main/docs/plugins.md" data-t="docs_link">Документація плагінів</a>
+      </div>
     </article>
-
   </section>
 
   <section class="chapter">
-    <h3 data-t="th">MargyT</h3>
+    <h3 data-t="features_h">Можливості TikTok Mi</h3>
     <dl class="rows">
-      <div class="row"><dt data-t="t1">Без рекламы</dt>
-        <dd data-t="t1d">Реклама, прямые эфиры, фото-посты и хештеги по списку не попадают в ленту.</dd></div>
-      <div class="row"><dt data-t="t2">Скачивание</dt>
-        <dd data-t="t2d">Видео, фото, аватарки и стикеры сохраняются без водяного знака.</dd></div>
-      <div class="row"><dt data-t="t3">Регион</dt>
-        <dd data-t="t3d">66 стран на выбор.</dd></div>
-      <div class="row"><dt data-t="t4">Внешний вид</dt>
-        <dd data-t="t4d">Цвета своего телефона вместо розового и серого, шрифты, паки эмодзи и иконки приложения.</dd></div>
-      <div class="row"><dt data-t="t5">Значки</dt>
-        <dd data-t="t5d">Значок и градиент на ник, которые видят все с MargyT.</dd></div>
-      <div class="row"><dt data-t="t6">Плагины</dt>
-        <dd data-t="t6d">Магазин внутри мода, установка в одно нажатие.</dd></div>
-      <div class="row"><dt data-t="t7">Мелочи</dt>
-        <dd data-t="t7d">Ограничение fps, выключение HDR, дата под каждым видео, перемотка везде, воспроизведение в фоне.</dd></div>
+      <div class="row">
+        <dt data-t="t1">Без реклами</dt>
+        <dd data-t="t1d">Прибирає рекламу, спонсорські інтеграції, прямі ефіри та потік рекомендаційного сміття зі стрічки.</dd>
+      </div>
+      <div class="row">
+        <dt data-t="t2">Завантаження без міток</dt>
+        <dd data-t="t2d">Збереження відео без водяних знаків, фото-постів, окремого аудіо та аватарів у максимальній якості.</dd>
+      </div>
+      <div class="row">
+        <dt data-t="t3">Зміна регіону</dt>
+        <dd data-t="t3d">Понад 66 країн на вибір (США, Нідерланди, Польща тощо). Підміна оператора й SIM без потреби у VPN.</dd>
+      </div>
+      <div class="row">
+        <dt data-t="t4">Власний стиль та теми</dt>
+        <dd data-t="t4d">Підтримка Material 3 / кольорів системи телефонів, темна й світла теми, паки емодзі (Twemoji, Blobmoji, Noto) та кастомні іконки додатку.</dd>
+      </div>
+      <div class="row">
+        <dt data-t="t5">Фоновий звук та перемотка</dt>
+        <dd data-t="t5d">Фонове відтворення з вимкненим екраном, вільна перемотка будь-яких відео та регулювання швидкості до 3x.</dd>
+      </div>
+      <div class="row">
+        <dt data-t="t6">Значки та градієнти</dt>
+        <dd data-t="t6d">Унікальний значок та градієнт нікнейму у профілі й коментарях, які видно всім користувачам TikTok Mi.</dd>
+      </div>
+      <div class="row">
+        <dt data-t="t7">Екосистема плагінів</dt>
+        <dd data-t="t7d">Власний магазин плагінів формату .mtp усередині налаштувань. Встановлення розширень в одне натискання.</dd>
+      </div>
     </dl>
   </section>
 
-  
   <section class="chapter">
-    <h3 data-t="bh">Значки</h3>
-    <div class="strip" id="badges"><span class="quiet" data-t="loading">Загружаю…</span></div>
+    <h3 data-t="bh">Значки спільноти</h3>
+    <div class="strip" id="badges">
+      <span class="chip"><span class="pic">⭐</span>TikTok Mi Creator<em>1</em></span>
+      <span class="chip"><span class="pic">✨</span>Supporter<em>3</em></span>
+      <span class="chip"><span class="pic">🎨</span>Icon Designer<em>12</em></span>
+      <span class="chip"><span class="pic">🛠️</span>Helper<em>1</em></span>
+    </div>
   </section>
 
   <section class="chapter">
-    <h3 data-t="ph">Плагины</h3>
-    <div class="strip" id="plugins"><span class="quiet" data-t="loading">Загружаю…</span></div>
+    <h3 data-t="donate_h">Підтримати проєкт</h3>
+    <div class="donate-box">
+      <p data-t="donate_sub">Кожен донат допомагає підтримувати розробку, оновлювати бази та оплачувати інфраструктуру. Підтримка доступна для користувачів з усіх країн через CryptoBot у Telegram:</p>
+      <a class="btn-main" href="https://t.me/send?start=IV9jgQb3npJN" data-t="donate_btn">Надіслати донат через CryptoBot</a>
+      <p style="margin-top:14px;font-size:14px;" data-t="donate_note">Після оплати для отримання бейджа надішліть чек та ваш TikTok ID у повідомлення каналу @dktiktokmi.</p>
+    </div>
   </section>
 </div>
 
 <footer>
   <div class="wrap">
     <div class="links">
-      <a href="https://t.me/margymods" data-t="nav_channel">Канал</a>
-      <a href="https://t.me/margeletforum" data-t="nav_forum">Форум</a>
-      <a href="https://git.narez.xyz/narezany/MargyT">MargyT</a>
+      <a href="https://t.me/dktiktokmi" data-t="nav_channel">Канал</a>
+      <a href="https://t.me/fuckramochka" data-t="nav_main">Основний канал</a>
+      <a href="https://t.me/dkamegram" data-t="nav_forum">Форум</a>
+      <a href="https://t.me/send?start=IV9jgQb3npJN" data-t="nav_donate">Підтримати</a>
+      <a href="https://github.com/fuckramochka/tiktokmi">GitHub</a>
+      <a href="https://ramochka.vercel.app">ramochka.vercel.app</a>
     </div>
-    <small data-t="foot">MargyT под GPL-3.0 с условием, что блок с автором и поддержкой из мода не убирают. Апк тиктока принадлежит его владельцу.</small>
+    <small data-t="foot">TikTok Mi поширюється під ліцензією GPL-3.0. Офіційний застосунок TikTok належить його правовласникам.</small>
   </div>
 </footer>
 
 <script>
 const WORDS = {
-  ru: {
-    nav_channel:"Канал", nav_forum:"Форум", download:"Скачать патчер", source:"Исходники", direct:"Готовый апк",
-    tsize:"патчер <b>1,3 МБ</b>", patcher_note:"Патчер сам скачает TikTok, наложит мод и будет обновлять его.",
-    version:"версия", loading:"Загружаю…",
-    h1:'Клиенты, <em>переписанные</em> под себя',
-    lede:"Тикток с настройками, которых в нём нет. Исходники открыты.",
-    tsub:"тикток",
-    tbase:'на TikTok <b>47.2.41</b>', mbase:'на Telegram <b>12.10.0</b>',
-    th:"MargyT", mh:"Margy", bh:"Значки", ph:"Плагины",
-    t1:"Без рекламы", t1d:"Реклама, прямые эфиры, фото-посты и хештеги по списку не попадают в ленту.",
-    t2:"Скачивание", t2d:"Видео, фото, аватарки и стикеры сохраняются без водяного знака.",
-    t3:"Регион", t3d:"66 стран на выбор.",
-    t4:"Внешний вид", t4d:"Цвета своего телефона вместо розового и серого, шрифты, паки эмодзи и иконки приложения.",
-    t5:"Значки", t5d:"Значок и градиент на ник, которые видят все с MargyT.",
-    t6:"Плагины", t6d:"Магазин внутри мода, установка в одно нажатие.",
-    t7:"Мелочи", t7d:"Ограничение fps, выключение HDR, дата под каждым видео, перемотка везде, воспроизведение в фоне.", m1d:"Встроенный прокси включается одним переключателем, ничего настраивать не надо.", m2d:"Магазин, своя консоль, плагины от exteraGram тоже подходят.", m3d:"То, что о человеке написали другие. Снять написанное хозяин стены не может.", m4d:"Номер телефона и юзернейм скрыты везде, где приложение их показывает.", m5d:"Отправляются без премиума.", m6d:"Баннер, градиент и свои значки.", m7d:"Поле ввода сверху и на сколько угодно строк, свой шрифт, теги и обложка для музыки, удалённые подарки, папка «Все чаты», коты.",
-    foot:"MargyT под GPL-3.0 с условием, что блок с автором и поддержкой из мода не убирают. Апк тиктока принадлежит его владельцу.",
-    none:"Пока ни одного."
+  uk: {
+    nav_channel: "Канал",
+    nav_main: "Основний канал",
+    nav_forum: "Форум",
+    nav_donate: "Підтримати",
+    nav_source: "Вихідники",
+    h1: 'TikTok Mi — <em>найкращий</em> мод для Android',
+    lede: "Повний контроль над стрічкою: без реклами, вільна зміна регіону, завантаження без водяного знака, фонове відтворення та теми Material You.",
+    download_apk: "Завантажити APK",
+    open_channel: "Канал у Telegram",
+    open_donate: "Підтримати (CryptoBot)",
+    tsub: "офіційний реліз",
+    version: "версія",
+    tbase: "на базі TikTok <b>47.2.41</b>",
+    direct: "Завантажити готовий APK",
+    source: "Вихідний код",
+    docs_link: "Документація плагінів",
+    features_h: "Можливості TikTok Mi",
+    t1: "Без реклами",
+    t1d: "Прибирає рекламу, спонсорські інтеграції, прямі ефіри та потік рекомендаційного сміття зі стрічки.",
+    t2: "Завантаження без міток",
+    t2d: "Збереження відео без водяних знаків, фото-постів, окремого аудіо та аватарів у максимальній якості.",
+    t3: "Зміна регіону",
+    t3d: "Понад 66 країн на вибір (США, Нідерланди, Польща тощо). Підміна оператора й SIM без потреби у VPN.",
+    t4: "Власний стиль та теми",
+    t4d: "Підтримка Material 3 / кольорів системи телефонів, темна й світла теми, паки емодзі (Twemoji, Blobmoji, Noto) та кастомні іконки додатку.",
+    t5: "Фоновий звук та перемотка",
+    t5d: "Фонове відтворення з вимкненим екраном, вільна перемотка будь-яких відео та регулювання швидкості до 3x.",
+    t6: "Значки та градієнти",
+    t6d: "Унікальний значок та градієнт нікнейму у профілі й коментарях, які видно всім користувачам TikTok Mi.",
+    t7: "Екосистема плагінів",
+    t7d: "Власний магазин плагінів формату .mtp усередині налаштувань. Встановлення розширень в одне натискання.",
+    bh: "Значки спільноти",
+    donate_h: "Підтримати проєкт",
+    donate_sub: "Кожен донат допомагає підтримувати розробку, оновлювати бази та оплачувати інфраструктуру. Підтримка доступна для користувачів з усіх країн через CryptoBot у Telegram:",
+    donate_btn: "Надіслати донат через CryptoBot",
+    donate_note: "Після оплати для отримання бейджа надішліть чек та ваш TikTok ID у повідомлення каналу @dktiktokmi.",
+    foot: "TikTok Mi поширюється під ліцензією GPL-3.0. Офіційний застосунок TikTok належить його правовласникам."
   },
   en: {
-    nav_channel:"Channel", nav_forum:"Forum", download:"Get the patcher", source:"Source", direct:"The finished apk",
-    tsize:"the patcher is <b>1.3 MB</b>", patcher_note:"The patcher downloads TikTok, applies the mod and keeps it up to date.",
-    version:"version", loading:"Loading…",
-    h1:'Clients, <em>rewritten</em> to taste',
-    lede:"TikTok with the settings it does not have. The source is open.",
-    tsub:"tiktok",
-    tbase:'on TikTok <b>47.2.41</b>', mbase:'on Telegram <b>12.10.0</b>',
-    th:"MargyT", mh:"Margy", bh:"Badges", ph:"Plugins",
-    t1:"No ads", t1d:"Ads, live rooms, photo posts and hashtags you pick stay out of the feed.",
-    t2:"Downloads", t2d:"Videos, photos, avatars and stickers save without the watermark.",
-    t3:"Region", t3d:"66 countries to choose from.",
-    t4:"Looks", t4d:"Your phone's own colours instead of pink and grey, fonts, emoji packs and app icons.",
-    t5:"Badges", t5d:"A badge and a gradient on your name, seen by everyone on MargyT.",
-    t6:"Plugins", t6d:"A store inside the mod, one tap to install.",
-    t7:"Small things", t7d:"An fps cap, HDR off, the date under every video, scrubbing everywhere, playback in the background.", m1d:"A built-in proxy behind one switch, nothing to configure.", m2d:"A store, a console of its own, and exteraGram plugins fit too.", m3d:"What other people wrote about someone. The owner of the wall cannot take it down.", m4d:"The phone number and username are hidden everywhere the app shows them.", m5d:"Sent without premium.", m6d:"A banner, a gradient and badges of your own.", m7d:"The input field on top and as many lines as you like, your own font, tags and cover art for music, deleted gifts, an All Chats folder, cats.",
-    foot:"MargyT is GPL-3.0 with a term that keeps the author's notices in place. TikTok's apk belongs to its owner.",
-    none:"None yet."
+    nav_channel: "Channel",
+    nav_main: "Main Channel",
+    nav_forum: "Forum",
+    nav_donate: "Donate",
+    nav_source: "Source Code",
+    h1: 'TikTok Mi — The <em>ultimate</em> Android mod',
+    lede: "Total control over your feed: ad-free, free region switching, watermark-free downloads, background playback, and Material You themes.",
+    download_apk: "Download APK",
+    open_channel: "Telegram Channel",
+    open_donate: "Donate (CryptoBot)",
+    tsub: "official release",
+    version: "version",
+    tbase: "based on TikTok <b>47.2.41</b>",
+    direct: "Download APK",
+    source: "Source code",
+    docs_link: "Plugin Documentation",
+    features_h: "TikTok Mi Features",
+    t1: "No Ads",
+    t1d: "Strips ads, sponsored promotions, livestreams, and recommendation clutter right out of your feed.",
+    t2: "Clean Downloads",
+    t2d: "Save videos without watermarks, photo posts, separate audio tracks, and avatars in original resolution.",
+    t3: "Region Changer",
+    t3d: "66+ countries to choose from (US, Netherlands, Poland, etc.). Spoofs carrier and SIM without requiring a VPN.",
+    t4: "Custom Looks & Themes",
+    t4d: "Full Material 3 & dynamic system colors, dark/light modes, emoji packs (Twemoji, Blobmoji, Noto), and app icons.",
+    t5: "Background Audio & Scrubbing",
+    t5d: "Listen in the background with the screen locked, scrub through any video, and adjust playback speed up to 3x.",
+    t6: "Profile Badges & Gradients",
+    t6d: "Unique badge and nickname gradient in profiles and comment sections, visible to everyone on TikTok Mi.",
+    t7: "Plugin Ecosystem",
+    t7d: "Built-in .mtp plugin store right inside settings. Install and expand features with one tap.",
+    bh: "Community Badges",
+    donate_h: "Support the Project",
+    donate_sub: "Every donation keeps the mod alive, updates compatibility, and covers infrastructure. Supported worldwide via Telegram CryptoBot:",
+    donate_btn: "Donate via CryptoBot",
+    donate_note: "After paying, send your receipt and TikTok ID to @dktiktokmi to claim your supporter badge.",
+    foot: "TikTok Mi is licensed under GPL-3.0. The official TikTok application belongs to its respective owners."
+  },
+  ru: {
+    nav_channel: "Канал",
+    nav_main: "Основной канал",
+    nav_forum: "Форум",
+    nav_donate: "Поддержать",
+    nav_source: "Исходники",
+    h1: 'TikTok Mi — <em>лучший</em> мод для Android',
+    lede: "Полный контроль над лентой: без рекламы, свободная смена региона, скачивание без водяного знака, фоновое воспроизведение и темы Material You.",
+    download_apk: "Скачать APK",
+    open_channel: "Канал в Telegram",
+    open_donate: "Поддержать (CryptoBot)",
+    tsub: "официальный релиз",
+    version: "версия",
+    tbase: "на базе TikTok <b>47.2.41</b>",
+    direct: "Скачать готовый APK",
+    source: "Исходный код",
+    docs_link: "Документация плагинов",
+    features_h: "Возможности TikTok Mi",
+    t1: "Без рекламы",
+    t1d: "Убирает рекламу, спонсорские интеграции, прямые эфиры и поток рекомендательного мусора из ленты.",
+    t2: "Скачивание без водяного знака",
+    t2d: "Сохранение видео без водяных знаков, фото-постов, отдельного аудио и аватарок в оригинальном качестве.",
+    t3: "Смена региона",
+    t3d: "Более 66 стран на выбор (США, Нидерланды, Польша и др.). Подмена оператора и SIM без необходимости в VPN.",
+    t4: "Свой стиль и темы",
+    t4d: "Поддержка Material 3 / цветов системы телефона, тёмная и светлая темы, паки эмодзи (Twemoji, Blobmoji, Noto) и иконки приложения.",
+    t5: "Фоновый звук и перемотка",
+    t5d: "Фоновое воспроизведение с выключенным экраном, перемотка любых видео и регулировка скорости до 3x.",
+    t6: "Значки и градиенты",
+    t6d: "Уникальный значок и градиент никнейма в профиле и комментариях, которые видны всем пользователям TikTok Mi.",
+    t7: "Экосистема плагинов",
+    t7d: "Собственный магазин плагинов формата .mtp внутри настроек. Установка расширений в одно нажатие.",
+    bh: "Значки сообщества",
+    donate_h: "Поддержать проект",
+    donate_sub: "Каждый донат помогает поддерживать разработку, обновлять базы и оплачивать инфраструктуру. Доступно для всех стран через CryptoBot в Telegram:",
+    donate_btn: "Отправить донат через CryptoBot",
+    donate_note: "После оплаты для получения бейджа пришлите чек и ваш TikTok ID в сообщения канала @dktiktokmi.",
+    foot: "TikTok Mi распространяется под лицензией GPL-3.0. Официальное приложение TikTok принадлежит его правообладателям."
   }
 };
 
-let tongue = localStorage.getItem("tongue")
-  || ((navigator.language || "en").startsWith("ru") ? "ru" : "en");
+const LANGS = ["uk", "en", "ru"];
+const LANG_LABELS = { uk: "UA", en: "EN", ru: "RU" };
+
+let tongue = localStorage.getItem("tongue");
+if (!tongue) {
+  const nav = (navigator.language || "en").toLowerCase();
+  if (nav.startsWith("uk") || nav.startsWith("ua")) tongue = "uk";
+  else if (nav.startsWith("ru")) tongue = "ru";
+  else tongue = "en";
+}
 
 function speak(which) {
+  if (!WORDS[which]) which = "uk";
   tongue = which;
   try { localStorage.setItem("tongue", which); } catch (e) {}
   document.documentElement.lang = which;
   document.querySelectorAll("[data-t]").forEach(node => {
-    const said = WORDS[which][node.dataset.t];
-    if (said !== undefined) node.innerHTML = said;
+    const key = node.dataset.t;
+    if (WORDS[which] && WORDS[which][key] !== undefined) {
+      node.innerHTML = WORDS[which][key];
+    }
   });
-  document.getElementById("lang").textContent = which === "ru" ? "EN" : "RU";
+  document.getElementById("lang").textContent = LANG_LABELS[which] || "UA";
 }
 
-document.getElementById("lang").onclick = () => speak(tongue === "ru" ? "en" : "ru");
+document.getElementById("lang").onclick = () => {
+  const nextIdx = (LANGS.indexOf(tongue) + 1) % LANGS.length;
+  speak(LANGS[nextIdx]);
+};
 
-// theme: the system decides until somebody says otherwise
+// theme toggle
 const dark = matchMedia("(prefers-color-scheme: dark)");
 function paint(which) {
   const root = document.documentElement;
@@ -268,81 +408,26 @@ dark.addEventListener("change", () => paint());
 paint();
 speak(tongue);
 
-async function json(url, then) {
+// Dynamic version fetch
+async function loadVersion() {
   try {
-    const answer = await fetch(url, {cache: "no-store"});
-    if (answer.ok) then(await answer.json());
-  } catch (trouble) { /* offline: the page still reads */ }
+    const res = await fetch("https://raw.githubusercontent.com/fuckramochka/tiktokmi/main/version.json", {cache: "no-store"});
+    if (res.ok) {
+      const data = await res.json();
+      if (data.version) {
+        const vEl = document.getElementById("tver");
+        if (vEl) vEl.textContent = data.version;
+      }
+      if (data.url) {
+        const gEl = document.getElementById("tget");
+        if (gEl) gEl.href = data.url;
+        const hEl = document.getElementById("tget_hero");
+        if (hEl) hEl.href = data.url;
+      }
+    }
+  } catch (e) {}
 }
-
-json("https://raw.githubusercontent.com/fuckramochka/tiktokmi/main/version.json", said => {
-  if (said.version) document.getElementById("tver").textContent = said.version;
-  if (said.url) document.getElementById("tget").href = said.url;
-});
-json("https://git.narez.xyz/narezany/Margy/raw/branch/main/version.json", said => {
-  if (said.version) document.getElementById("mver").textContent = said.version;
-  if (said.apk) document.getElementById("mget").href = said.apk;
-});
-
-json("/api/badges", said => {
-  const where = document.getElementById("badges");
-  const list = (said.badges || []).filter(one => (one.users || []).length);
-  if (!list.length) return;
-  where.innerHTML = "";
-  list.forEach(one => {
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    const address = "/api/icon/" + one.image;
-    // a badge picture is a white drawing the app paints with the badge's own
-    // colour; white on white is nothing, so it is painted here as well. The
-    // ones without a colour are real pictures and are shown as they are.
-    if (one.colour) {
-      const dot = document.createElement("span");
-      dot.className = "pic tinted";
-      dot.style.setProperty("--c", "#" + one.colour);
-      dot.style.setProperty("--m", "url(" + address + ")");
-      chip.append(dot);
-    } else {
-      const picture = document.createElement("img");
-      picture.className = "pic";
-      picture.src = address;
-      picture.alt = "";
-      chip.append(picture);
-    }
-    chip.append(document.createTextNode(
-      tongue === "ru" ? (one.title_ru || one.title || one.id) : (one.title || one.id)));
-    const many = document.createElement("em");
-    many.textContent = one.users.length;
-    chip.append(many);
-    where.append(chip);
-  });
-});
-
-json("/api/plugins", said => {
-  const where = document.getElementById("plugins");
-  const list = said.plugins || [];
-  where.innerHTML = "";
-  if (!list.length) {
-    where.innerHTML = '<span class="quiet">' + WORDS[tongue].none + "</span>";
-    return;
-  }
-  list.forEach(one => {
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    if (one.icon) {
-      const picture = document.createElement("img");
-      picture.className = "pic";
-      picture.src = "/api" + one.icon;
-      picture.alt = "";
-      chip.append(picture);
-    }
-    chip.append(document.createTextNode(one.name));
-    const by = document.createElement("em");
-    by.textContent = one.author;
-    chip.append(by);
-    where.append(chip);
-  });
-});
+loadVersion();
 </script>
 </body>
 </html>

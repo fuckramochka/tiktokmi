@@ -11,12 +11,12 @@
    "en": "Margy Patcher is now Margy Store: a store of open source apps and mods, with accounts, reviews and messages. Mods install as before."
   }
  },
- "channel": "https://t.me/margymods",
+ "channel": "https://t.me/dktiktokmi",
  "mods": [
   {
-   "id": "margyt",
-   "name": "MargyT",
-   "icon": "margyt",
+   "id": "tiktokmi",
+   "name": "TikTok Mi",
+   "icon": "tiktokmi",
    "package": "com.zhiliaoapp.musically",
    "about": {
     "ru": "Мод TikTok: оформление Material 3, скачивание без водяного знака, подмена региона, значки и многое другое.",
@@ -33,14 +33,14 @@
       "size": 346017026,
       "sources": [
        {
-        "name": "margy.narez.xyz",
-        "url": "https://margy.narez.xyz/original/tiktok-47-2-41.apk",
+        "name": "GitHub Releases",
+        "url": "https://github.com/fuckramochka/tiktokmi/releases/download/official-47.2.41/com.zhiliaoapp.musically_47.2.41-2024702410_minAPI23.arm64-v8a.nodpi.apk",
         "direct": true
        }
       ]
      },
      "patch": {
-      "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.0.5/margyt-2.0.5.mpatch",
+      "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.0.5/tiktokmi.apk",
       "sha256": "b200084e75ca80633f37c416eca44f916a8416724c4fccd832c584685329b48d",
       "size": 71795912
      },
@@ -57,9 +57,9 @@
    ]
   },
   {
-   "id": "margyt-lite",
-   "name": "MargyT Lite",
-   "icon": "margyt-lite",
+   "id": "tiktokmi-lite",
+   "name": "TikTok Mi Lite",
+   "icon": "tiktokmi-lite",
    "package": "com.zhiliaoapp.musically.go",
    "about": {
     "ru": "Лёгкий мод на TikTok Lite: подмена региона, тема и акцент, значки.",
@@ -76,14 +76,14 @@
       "size": 90464759,
       "sources": [
        {
-        "name": "margy.narez.xyz",
-        "url": "https://margy.narez.xyz/original/tiktok-lite-47-1-4.apk",
+        "name": "GitHub Releases",
+        "url": "https://github.com/fuckramochka/tiktokmi/releases/download/official-47.2.41/tiktok-lite-47-1-4.apk",
         "direct": true
        }
       ]
      },
      "patch": {
-      "url": "https://git.narez.xyz/narezany/MargyT/releases/download/lite-v0.1/margyt-lite-0.1.mpatch",
+      "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.0.5/tiktokmi.apk",
       "sha256": "73dfad5b880930720d0486ba4620d1e6c3ab3ae6a4c2802fe641519496a80646",
       "size": 32509991
      },
@@ -95,35 +95,6 @@
       "ru": "Первая бета. Подмена региона, тема по цветам телефона, акцент, значки.",
       "uk": "Перша бета. Підміна регіону, тема за кольорами телефона, акцент, значки.",
       "en": "The first beta. A region of your choice, a theme in the phone's colours, an accent, badges."
-     }
-    }
-   ]
-  },
-  {
-   "id": "margyc",
-   "name": "MargyC",
-   "icon": "margyc",
-   "package": "cat.narezany.claude",
-   "own_package": true,
-   "about": {
-    "ru": "Мод на приложение Claude: русский интерфейс, свои темы и обои, Clawd у поля ввода, мем-модели и свои моды. Ставится отдельным приложением рядом с оригиналом, вход по почте.",
-    "uk": "Мод на застосунок Claude: свої теми й шпалери, Clawd біля поля введення, мем-моделі та свої моди. Ставиться окремим застосунком поруч з оригіналом, вхід за поштою.",
-    "en": "A mod of the Claude app: your own themes and wallpapers, Clawd by the message box, meme models and mods of your own. Installs as a separate app beside the original; sign in by e-mail."
-   },
-   "releases": [],
-   "apks": [
-    {
-     "version": "1.3.1",
-     "beta": false,
-     "apk": {
-      "url": "https://github.com/narezy/MargyC/raw/69d62f2e9631ee8f9b9c14daf1d56e864dd35c7b/MargyC.apk",
-      "sha256": "9639ce98e2dcb7d4473f3117c678a4da4bb08b71e31f56f35180166933b356b0",
-      "size": 30800540
-     },
-     "notes": {
-      "ru": "Исправлен вылет после входа в аккаунт. Обои в чате, выбор иконки, виджет и мини-игра с Clawd, поиск в чате, статистика, режим стримера.",
-      "uk": "Виправлено виліт після входу в акаунт. Шпалери в чаті, вибір іконки, віджет і мінігра з Clawd, пошук у чаті, статистика, режим стримера.",
-      "en": "No more crash after signing in. Chat wallpapers, a choice of icon, a Clawd widget and mini-game, search in a chat, statistics, streamer mode."
      }
     }
    ]

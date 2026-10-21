@@ -1,14 +1,11 @@
 # Additional terms
 
-MargyT is under the GNU General Public License, version 3, which is in
+TikTok Mi is under the GNU General Public License, version 3, which is in
 [LICENSE](LICENSE). These are additional terms under its section 7. They apply
-to MargyT and to every work based on it.
+to TikTok Mi and to every work based on it.
 
-Why they exist, in one paragraph. MargyT used to be under MIT. People took the
-whole mod, moved the author's name into small print at the bottom of a screen
-nobody opens, removed the part that asks for support, and shipped it as their
-own. That is within MIT and it is not what the licence was for. Section 7 of
-the GPL exists for exactly this: it lets an author require that attribution
+Why they exist, in one paragraph. TikTok Mi is an open-source mod. Section 7 of
+the GPL exists for this: it lets an author require that attribution
 stay where people can see it.
 
 ---
@@ -16,7 +13,7 @@ stay where people can see it.
 ## 1. Keep the author's notices where they are (section 7b)
 
 The mod's own settings screen carries a section that names the author of
-MargyT, links to the project, and carries the author's donation links. That
+TikTok Mi, links to the project, and carries the author's support links. That
 section is the **Appropriate Legal Notices** of this program.
 
 If you convey a modified version, you must keep that section:
@@ -34,14 +31,14 @@ page that nothing links to, or make them unreadable.
 ## 2. Say that it is yours, not the author's (section 7b, 7c)
 
 A modified version must state, in that same section, that it is modified and
-that it does not come from the author of MargyT. Somebody looking at your build
-must be able to tell whose work they are running and whom to blame for it.
+that it does not come from the author of TikTok Mi. Somebody looking at your build
+must be able to tell whose work they are running.
 
 ## 3. The names are not part of the licence (section 7e)
 
-"Margy", "MargyT" and the mod's icon are the author's. A modified version may
-not carry those names or that icon as its own name and face. Saying "based on
-MargyT" is fine and is encouraged.
+"TikTok Mi" and the mod's icon are the author's. A modified version may
+not carry those names or that icon as its own name and face without permission.
+Saying "based on TikTok Mi" is fine and is encouraged.
 
 ---
 

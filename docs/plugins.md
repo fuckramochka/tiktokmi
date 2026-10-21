@@ -3,14 +3,10 @@
 A plugin is code that runs inside TikTok, in the same process the app does,
 loaded by the mod when the app starts.
 
-Margy's plugins are Python. These are not, and the reason is repacking rather
-than taste. Margy is a fork: it builds its own apk, so a Python runtime goes in
-at build time. TikTok Mi edits an apk somebody else built — carrying CPython's
-native libraries and its standard library into a 340 MB archive whose alignment
-is not ours to decide is a different project with a doubtful ending.
+Plugins in TikTok Mi are compiled Android bytecode (`.dex`).
 `DexClassLoader` is an ordinary Android API that costs nothing and needs no
-root, so the format here is the same shape as `.marp` — a manifest, an icon,
-metadata, a list with switches — with a dex where the `main.py` would be.
+root, so the `.mtp` format contains a manifest, an icon,
+metadata, and a `classes.dex` binary.
 
 ## Honestly, about safety
 
@@ -44,7 +40,7 @@ Without one the list draws a dot in the accent colour.
   "name": "Hello",
   "name_ru": "Привет",
   "version": "1.0",
-  "author": "narezany",
+  "author": "ramochka",
   "description": "Writes a line in the mod's diary every time TikTok starts.",
   "description_ru": "Пишет строку в журнал мода при каждом запуске TikTok.",
   "entry": "mi.tiktokmi.hello.Hello",

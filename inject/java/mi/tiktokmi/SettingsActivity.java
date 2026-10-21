@@ -86,19 +86,21 @@ public class SettingsActivity extends Activity {
     private static boolean pending;
 
     /** Where the mod, its people and its money live. */
-    private static final String CHANNEL = "https://t.me/margytiktok";
-    private static final String FORUM = "https://t.me/margeletforum";
-    private static final String OWNER_TELEGRAM = "https://t.me/narezany";
+    private static final String CHANNEL = "https://t.me/dktiktokmi";
+    private static final String MAIN_CHANNEL = "https://t.me/fuckramochka";
+    private static final String FORUM = "https://t.me/dkamegram";
+    private static final String OWNER_TELEGRAM = "https://t.me/dkramochka";
     private static final String OWNER_TIKTOK =
-            "https://tiktok.com/@narezany?_r=1&_t=ZT-99hPDJ26hji_";
+            "https://www.tiktok.com/@fuckramochka";
     /** Where a receipt goes: the channel's own messages, not somebody's inbox. */
-    private static final String CHANNEL_WRITE = "https://t.me/margytiktok?direct";
-    private static final String TTCUZ = "https://t.me/ttcuzmod";
-    private static final String GIT = "https://git.narez.xyz/narezany/MargyT";
+    private static final String CHANNEL_WRITE = "https://t.me/dktiktokmi?direct";
+    private static final String TTCUZ = null;
+    private static final String GIT = "https://github.com/fuckramochka/tiktokmi";
+    private static final String SITE = "https://fuckramochka.github.io/tiktokmi/";
+    private static final String PERSONAL_SITE = "https://ramochka.vercel.app";
     private static final String DOCS_PLUGINS =
-            "https://git.narez.xyz/narezany/MargyT/src/branch/main/docs/plugins.md";
-    private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
-    private static final String CARD_NUMBER = "2204120143055305";
+            "https://github.com/fuckramochka/tiktokmi/blob/main/docs/plugins.md";
+    private static final String CRYPTO_BOT = "https://t.me/send?start=IV9jgQb3npJN";
 
     private boolean countriesOpen;
     private boolean accentOpen;
@@ -601,9 +603,15 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.LINKS));
         LinearLayout links = card();
-        links.addView(linkRow("group", Text.FORUM, "@margeletforum", FORUM));
+        links.addView(linkRow("group", Text.FORUM, "@dkamegram", FORUM));
         links.addView(line());
-        links.addView(linkRow("extension", Text.SOURCE, "narezany/MargyT", GIT));
+        links.addView(linkRow("link", Text.MAIN_CHANNEL, "@fuckramochka", MAIN_CHANNEL));
+        links.addView(line());
+        links.addView(linkRow("language", Text.OFFICIAL_SITE, "fuckramochka.github.io/tiktokmi", SITE));
+        links.addView(line());
+        links.addView(linkRow("place", Text.PERSONAL_SITE, "ramochka.vercel.app", PERSONAL_SITE));
+        links.addView(line());
+        links.addView(linkRow("extension", Text.SOURCE, "fuckramochka/tiktokmi", GIT));
         column.addView(wrap(links));
 
         column.addView(section(Text.DIAGNOSTICS));
@@ -1203,9 +1211,7 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.DONATE_STEP_PAY));
         LinearLayout pay = card();
-        pay.addView(linkRow("star", Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
-        pay.addView(line());
-        pay.addView(cardRow());
+        pay.addView(linkRow("star", Text.CRYPTO_BOT, Text.CRYPTO_BOT_NOTE, CRYPTO_BOT));
         column.addView(wrap(pay));
 
         column.addView(section(Text.DONATE_STEP_ID));
@@ -1220,17 +1226,6 @@ public class SettingsActivity extends Activity {
                 () -> open(CHANNEL_WRITE)));
         write.addView(quiet(Text.DONATE_AFTER));
         column.addView(wrap(write));
-    }
-
-    private View cardRow() {
-        LinearLayout card = row();
-        LinearLayout cardText = new LinearLayout(this);
-        cardText.setOrientation(LinearLayout.VERTICAL);
-        cardText.addView(label(spaced(CARD_NUMBER)));
-        cardText.addView(detail(Text.CARD + "  ·  " + Text.TAP_TO_COPY));
-        card.addView(cardText, grow());
-        card.setOnClickListener(v -> copy(Text.CARD, CARD_NUMBER));
-        return sized(card, 64);
     }
 
     private void rebuildAfterSwitchAnimation() {
@@ -2781,9 +2776,7 @@ public class SettingsActivity extends Activity {
 
         rows.addView(quiet(Text.DONATE_NOTE));
 
-        rows.addView(cardRow());
-
-        rows.addView(linkRow("star", Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
+        rows.addView(linkRow("star", Text.CRYPTO_BOT, Text.CRYPTO_BOT_NOTE, CRYPTO_BOT));
         return rows;
     }
 
@@ -2793,7 +2786,7 @@ public class SettingsActivity extends Activity {
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
-        text.addView(label("@narezany"));
+        text.addView(label("@dkramochka"));
         text.addView(detail(Text.THANKS_OWNER));
         row.addView(text, grow());
         row.addView(away());
@@ -2801,7 +2794,7 @@ public class SettingsActivity extends Activity {
         row.setOnClickListener(v -> {
             try {
                 new ModDialog.Builder(this, skin)
-                        .setTitle("@narezany")
+                        .setTitle("@dkramochka")
                         .setItems(new CharSequence[]{"Telegram", "TikTok"}, (dialog, which) ->
                                 open(which == 0 ? OWNER_TELEGRAM : OWNER_TIKTOK))
                         .setNegativeButton(Text.CANCEL, null)

@@ -1,7 +1,6 @@
-"""What MargyT looks like.
+"""What TikTok Mi looks like.
 
-The mint is the Margy banner's background, straight off `assets/banner.png` in
-narezany/Margelet; the glyph is a note where Margy has a paper plane. It is
+The mint is `#8DD1B0`; the glyph is a musical note. It is
 drawn in a 108-unit square, the same viewport an adaptive icon uses, and all of
 it sits inside the middle 72 units -- the safe zone, the part no launcher mask
 can cut off.
