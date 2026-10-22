@@ -71,7 +71,7 @@ STUBS['android/widget/FrameLayout.java']='package android.widget;public class Fr
 STUBS['android/view/Gravity.java']='package android.view;public class Gravity {public static int CENTER=1;}'
 STUBS['android/view/MotionEvent.java']='package android.view;public class MotionEvent {public static final int ACTION_DOWN=0,ACTION_UP=1,ACTION_MOVE=2,ACTION_CANCEL=3;int action;float y;long time;public MotionEvent(int a,float n,long t){action=a;y=n;time=t;}public int getActionMasked(){return action;}public float getRawY(){return y;}public long getEventTime(){return time;}}'
 STUBS['android/graphics/drawable/GradientDrawable.java']='package android.graphics.drawable;public class GradientDrawable {public void setColor(int c){}public void setCornerRadius(int r){}}'
-STUBS['cat/narezany/margyt/Skin.java']='package cat.narezany.margyt;class Skin {int text=-1;static Skin remembered(android.content.Context c){return new Skin();}}'
+STUBS['cat/narezany/margyt/Skin.java']='package cat.narezany.margyt;class Skin {int text=-1,card=0xff202020;static Skin remembered(android.content.Context c){return new Skin();}}'
 STUBS['android/app/Dialog.java']=STUBS['android/app/Dialog.java'].replace('public void show(){','public void setCanceledOnTouchOutside(boolean allow){}public void show(){')
 STUBS['android/view/ViewPropertyAnimator.java']=STUBS['android/view/ViewPropertyAnimator.java'].replace('public Runnable end;', 'public float targetY;public Runnable end;').replace('translationY(float f){return this;}', 'translationY(float f){targetY=f;return this;}')
 STUBS['android/view/View.java']=STUBS['android/view/View.java'].replace('public float y;', 'public float y;public float getTranslationY(){return y;}')

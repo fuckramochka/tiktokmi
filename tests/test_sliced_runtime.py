@@ -5,6 +5,9 @@ STUBS = {
  'android/os/SystemClock.java': 'package android.os;public class SystemClock{public static long now;public static long uptimeMillis(){return now;}}',
  'android/view/View.java': '''package android.view;public class View{public static java.util.ArrayDeque<Runnable> frames=new java.util.ArrayDeque<>();
   public boolean attached=true;public boolean isAttachedToWindow(){return attached;}public void postOnAnimation(Runnable r){frames.add(r);}}''',
+ 'android/view/Choreographer.java': '''package android.view;public class Choreographer{public interface FrameCallback{void doFrame(long t);}
+  private static final Choreographer ONE=new Choreographer();public static Choreographer getInstance(){return ONE;}
+  public void postFrameCallback(final FrameCallback c){View.frames.add(new Runnable(){public void run(){c.doFrame(0);}});}}''',
  'android/view/ViewGroup.java': 'package android.view;public class ViewGroup extends View{public java.util.List<View> kids=new java.util.ArrayList<>();public int getChildCount(){return kids.size();}public View getChildAt(int i){return kids.get(i);}}',
  'cat/narezany/margyt/Version.java': 'package cat.narezany.margyt;final class Version{static final boolean TEST=false;}',
 }

@@ -44,6 +44,56 @@ public final class Launcher {
         return out;
     }
 
+    /** The two Material icons as they were until 2.1.0, kept for whoever had them. */
+    static final String[] LEGACY = {"materialyou", "material3"};
+
+    /** Each old one, and the one redrawn in its place. */
+    private static final String[] REDRAWN = {"margyrialyou", "margyrial3"};
+
+    private static final String KEY_LEGACY = "icons_legacy";
+
+    static boolean legacy(String which) {
+        for (String old : LEGACY) if (old.equals(which)) return true;
+        return false;
+    }
+
+    /** In the order the settings show them: the redrawn ones where the old ones stood, the old ones left out. */
+    static String[] shown() {
+        java.util.List<String> out = new java.util.ArrayList<String>();
+        for (String which : all()) {
+            boolean redrawn = false;
+            for (String fresh : REDRAWN) if (fresh.equals(which)) redrawn = true;
+            if (redrawn) continue;
+            int old = -1;
+            for (int i = 0; i < LEGACY.length; i++) if (LEGACY[i].equals(which)) old = i;
+            if (old < 0) out.add(which);
+            else if (indexOf(REDRAWN[old]) >= 0) out.add(REDRAWN[old]);
+        }
+        return out.toArray(new String[0]);
+    }
+
+    /**
+     * Whether this phone had the mod before the icons were redrawn: only then
+     * is Legacy offered. Decided once, the first time 2.1.0 or later starts:
+     * an update keeps the first install time it had, a new install does not.
+     */
+    static void settle(Context context) {
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE);
+            if (prefs.contains(KEY_LEGACY)) return;
+            android.content.pm.PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            boolean updated = info.lastUpdateTime - info.firstInstallTime > 60000L;
+            prefs.edit().putBoolean(KEY_LEGACY, updated || legacy(prefs.getString(KEY, DEFAULT))).apply();
+        } catch (Throwable error) {
+            Diary.note("icon legacy: " + error);
+        }
+    }
+
+    static boolean legacyOffered() {
+        SharedPreferences prefs = prefs();
+        return legacy(chosen()) || (prefs != null && prefs.getBoolean(KEY_LEGACY, false));
+    }
+
     public static String nameOf(String which) {
         int at = indexOf(which);
         return at < 0 ? Text.ICON_DEFAULT : Local.of(Shots.LABELS[at]);

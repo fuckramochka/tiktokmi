@@ -427,6 +427,7 @@ public final class Popup {
             LinearLayout card = new LinearLayout(context);
             card.setOrientation(LinearLayout.VERTICAL);
             card.setPadding(dp(context, 16), dp(context, 16), dp(context, 16), dp(context, 12));
+            inside(context, card, true);
             GradientDrawable background = new GradientDrawable();
             background.setColor(skin.card);
             background.setCornerRadius(Math.max(skin.radius, dp(context, 28)));
@@ -439,6 +440,7 @@ public final class Popup {
             head.setTypeface(Typeface.DEFAULT_BOLD);
             head.setGravity(Gravity.CENTER);
             head.setPadding(0, 0, 0, dp(context, 12));
+            headline(head);
             card.addView(head);
 
             final android.widget.EditText field = new android.widget.EditText(context);
@@ -462,6 +464,7 @@ public final class Popup {
             go.setTypeface(Typeface.DEFAULT_BOLD);
             go.setGravity(Gravity.CENTER);
             go.setPadding(0, dp(context, 12), 0, dp(context, 12));
+            action(context, go);
             GradientDrawable pill = new GradientDrawable();
             pill.setColor(Accent.colour());
             pill.setCornerRadius(dp(context, 20));
@@ -545,7 +548,7 @@ public final class Popup {
                     dp(context, 16));
             GradientDrawable background = new GradientDrawable();
             background.setColor(skin.card);
-            background.setCornerRadius(Math.max(skin.radius, dp(context, 16)));
+            background.setCornerRadius(Math.max(skin.radius, dp(context, m3() ? 28 : 16)));
             card.setBackground(background);
 
             TextView head = new TextView(context);
@@ -554,6 +557,7 @@ public final class Popup {
             head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
             head.setTypeface(Typeface.DEFAULT_BOLD);
             head.setGravity(Gravity.CENTER);
+            if (m3()) { M3Type.headlineSmall(head); }
             card.addView(head);
 
             TextView how = new TextView(context);
@@ -629,7 +633,8 @@ public final class Popup {
             go.setPadding(0, dp(context, 12), 0, dp(context, 12));
             GradientDrawable pill = new GradientDrawable();
             pill.setColor(Accent.colour());
-            pill.setCornerRadius(dp(context, 12));
+            pill.setCornerRadius(dp(context, m3() ? 20 : 12));
+            action(context, go);
             go.setBackground(pill);
             go.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -768,6 +773,7 @@ public final class Popup {
             } : new LinearLayout(context);
             card.setOrientation(LinearLayout.VERTICAL);
             card.setPadding(dp(context, 16), dp(context, 16), dp(context, 16), dp(context, 12));
+            inside(context, card, true);
             GradientDrawable background = new GradientDrawable();
             background.setColor(skin.card);
             background.setCornerRadius(Math.max(skin.radius, dp(context, 28)));
@@ -781,6 +787,7 @@ public final class Popup {
                 head.setTypeface(Typeface.DEFAULT_BOLD);
                 head.setGravity(Gravity.CENTER);
                 head.setPadding(0, 0, 0, dp(context, 8));
+                headline(head);
                 card.addView(head);
             }
 
@@ -789,6 +796,7 @@ public final class Popup {
             body.setTextColor(skin.text);
             body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             body.setGravity(pinned ? Gravity.START : Gravity.CENTER);
+            supporting(body, skin);
             if (pinned) {
                 android.widget.ScrollView notes=new android.widget.ScrollView(context);
                 notes.setFillViewport(false);
@@ -841,6 +849,7 @@ public final class Popup {
                 refuse.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
                 refuse.setGravity(Gravity.CENTER);
                 refuse.setPadding(0, dp(context, 12), 0, dp(context, 12));
+                action(context, refuse);
                 refuse.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -860,6 +869,7 @@ public final class Popup {
             accept.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             accept.setGravity(Gravity.CENTER);
             accept.setPadding(0, dp(context, 12), 0, dp(context, 12));
+            action(context, accept);
             GradientDrawable pill = new GradientDrawable();
             pill.setColor(Accent.colour());
             pill.setCornerRadius(dp(context, 24));
@@ -910,6 +920,7 @@ public final class Popup {
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(context, 16), dp(context, 16), dp(context, 16), dp(context, 12));
+        inside(context, card, false);
 
         GradientDrawable background = new GradientDrawable();
         background.setColor(skin.card);
@@ -924,6 +935,7 @@ public final class Popup {
             head.setTypeface(Typeface.DEFAULT_BOLD);
             head.setGravity(Gravity.CENTER);
             head.setPadding(0, 0, 0, dp(context, 8));
+            headline(head);
             card.addView(head);
         }
 
@@ -933,6 +945,7 @@ public final class Popup {
             body.setTextColor(skin.text);
             body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             body.setGravity(Gravity.CENTER);
+            supporting(body, skin);
             // long update notes used to push the button off the bottom of the
             // screen, where nothing could be done about them
             body.setMaxHeight((int) (context.getResources()
@@ -948,6 +961,7 @@ public final class Popup {
         close.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         close.setGravity(Gravity.CENTER);
         close.setPadding(0, dp(context, 12), 0, dp(context, 12));
+        action(context, close);
 
         GradientDrawable pill = new GradientDrawable();
         pill.setColor(Accent.colour());
@@ -968,6 +982,43 @@ public final class Popup {
         params.topMargin = dp(context, 12);
         card.addView(close, params);
         return card;
+    }
+
+    // ------------------------------------------------- Material 3 dialogs
+
+    /** Liquid Glass and Fluent keep their own measures; Material 3 goes by the dialog tokens. */
+    private static boolean m3() {
+        return !Design.frosted();
+    }
+
+    /** 24 inside; a sheet's handle already stands above the title. */
+    private static void inside(Context context, LinearLayout card, boolean sheet) {
+        if (m3()) card.setPadding(dp(context, 24), dp(context, sheet ? 8 : 24), dp(context, 24), dp(context, 20));
+    }
+
+    /** Headline small, at the start. */
+    private static void headline(TextView head) {
+        if (!m3()) return;
+        M3Type.headlineSmall(head);
+        head.setGravity(Gravity.START);
+    }
+
+    /** Body medium in on-surface-variant, at the start. */
+    private static void supporting(TextView body, Skin skin) {
+        if (!m3()) return;
+        M3Type.bodyMedium(body);
+        body.setTextColor(skin.muted());
+        body.setGravity(Gravity.START);
+    }
+
+    /** The small button: 40 tall, label large. */
+    private static void action(Context context, TextView button) {
+        if (!m3()) return;
+        M3Type.line(button, 14, 0.1f);
+        button.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        button.setPadding(dp(context, 16), 0, dp(context, 16), 0);
+        button.setMinHeight(dp(context, 40));
+        button.setMinimumHeight(dp(context, 40));
     }
 
     /** Dark letters on a light accent, white on a dark one. */

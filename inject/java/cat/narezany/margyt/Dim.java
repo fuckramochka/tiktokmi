@@ -74,12 +74,12 @@ public final class Dim {
         SharedPreferences prefs = prefs();
         if (prefs == null) return DEFAULT; // not remembered: the saved value is read once the context exists
         int value = prefs.getInt(KEY_HOW, DEFAULT);
-        how = Math.max(0, Math.min(90, value));
+        how = Math.max(0, Math.min(100, value));
         return how;
     }
 
     public static void setStrength(int percent) {
-        how = Math.max(0, Math.min(90, percent));
+        how = Math.max(0, Math.min(100, percent));
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putInt(KEY_HOW, how).apply();
         refresh();
@@ -123,6 +123,9 @@ public final class Dim {
             if(!activity.hasWindowFocus()){if(!isEnabled())restore();return;}
             if(!isConfigured()){retryEye=false;BurnEye.hide(root);restore();return;}
             if(ProfileLayout.visible(root)){retryEye=false;BurnEye.hide(root);restore();return;}
+            // No column of likes and comments, no anti burn-in: neither the eye nor the dimming.
+            // That column is only there while a post is on the screen, and it is the one sure sign.
+            if(!RailPresence.onScreen(root)){retryEye=false;BurnEye.hideSoon(root);restore();return;}
             inspection=passInspection;inspection.clear();commentSources.clear();commentZone=Integer.MAX_VALUE;
             int protection=protectedFlags(root,0,new int[]{10000});
             // A permanent comment composer below a search video is not an open sheet.
@@ -995,6 +998,14 @@ public final class Dim {
         } catch (Throwable ignored) {
             return asked;
         }
+    }
+
+    /** A view's alpha as TikTok has it, with this pass's dimming taken back out. */
+    static float undimmed(View view) {
+        if (view == null) return 0f;
+        float now = view.getAlpha();
+        Dimmed dimmed = android.os.Looper.myLooper() == android.os.Looper.getMainLooper() ? faded.get(view) : null;
+        return dimmed != null && Math.abs(now - dimmed.applied) < 0.001f ? dimmed.original : now;
     }
 
     private static int childShape(View view){

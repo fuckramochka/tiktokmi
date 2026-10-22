@@ -59,6 +59,8 @@ public final class Flags {
     // Switched on here for whoever asks, left as TikTok decided otherwise.
     public static final String KEY_COMMENT_REPOST = "flag_comment_repost";
     public static final String KEY_SELF_REPOST = "flag_self_repost";
+    public static final String KEY_COMMENT_PHOTOS = "flag_comment_photos";
+    public static final String KEY_HASHTAGS = "flag_hashtags_unlimited";
     public static final String KEY_TRANSLATE_COMMENTS = "flag_translate_comments";
 
     // The new profile. On unless switched off, and off means the old one even
@@ -66,7 +68,8 @@ public final class Flags {
     public static final String KEY_NEW_PROFILE = "flag_new_profile";
 
     private static final Set<String> ON_BY_DEFAULT = new HashSet<String>(Arrays.asList(
-            KEY_VOICE, KEY_BANNER, KEY_SPEED_LOCK, KEY_NEW_PROFILE, KEY_TRANSLATE_COMMENTS));
+            KEY_VOICE, KEY_BANNER, KEY_NEW_PROFILE, KEY_TRANSLATE_COMMENTS, KEY_COMMENT_REPOST,
+            KEY_COMMENT_PHOTOS, KEY_HASHTAGS));
 
     /** Where the developer's own answers are kept, one entry a flag. */
     static final String OVERRIDES = Margy.PREFS + "_flags";
@@ -127,7 +130,18 @@ public final class Flags {
         forget();
     }
 
+    /**
+     * Only the new profile and the speed lock are choices. Every other experiment the mod answers is simply on:
+     * a switch for each of them was a page of settings nobody could make sense of.
+     */
+    private static boolean chosen(String key) {
+        // the speed lock is a choice too, and off to begin with: holding the edge and
+        // swiping down by accident left some people stuck at double speed
+        return KEY_NEW_PROFILE.equals(key) || KEY_SPEED_LOCK.equals(key);
+    }
+
     private static boolean bool(String key) {
+        if (!chosen(key)) return true;
         try {
             SharedPreferences prefs = prefs();
             return prefs != null && prefs.getBoolean(key, ON_BY_DEFAULT.contains(key));
@@ -206,6 +220,19 @@ public final class Flags {
                 made.put("tt_audio_comment_repost", one);
             }
             if (on(prefs, KEY_SELF_REPOST)) made.put("enable_self_repost", one);
+            // Several photos in one comment: the comment's picture button opens the
+            // album that lets more than one be picked when this experiment says 2.
+            if (on(prefs, KEY_COMMENT_PHOTOS)) made.put("comment_multi_photo_group", Integer.valueOf(2));
+            // The five-hashtag limit on a caption is the app's own, switched on by
+            // an experiment; with it off the counter is never consulted.
+            if (on(prefs, KEY_HASHTAGS)) made.put("studio_publish_limit_hashtag_switch", none);
+            // The teleprompter in the camera: the script scrolls over the preview while recording.
+            made.put("camera_teleprompter_mode", one);
+            // The front "flash" that lights the face from the screen, with its colour and
+            // brightness to choose instead of plain white.
+            made.put("studio_selfie_fill_light_config", "{\"support_selfie_light_adjust\":true,\"selfie_fill_light_persist_memory\":true,"
+                    + "\"selfie_fill_light_tab_memory\":true,\"selfie_fill_light_shutter_ring_shadow_order_fix\":true,\"lazy_load_flash_front_scene\":true,"
+                    + "\"auto_adjust_full_brightness\":true}");
             // A button in the head of the comments that turns the translation
             // of all of them on and off, where TikTok otherwise translates one
             // at a time. TikTok has it as an experiment with several arms, and
@@ -231,7 +258,24 @@ public final class Flags {
             // which is why some people had it and most did not. Nobody gets it.
             made.put("circle_search_block", none);
 
+            // The new profile. Its group ("profile_left_align_ab_group") is left as
+            // TikTok has it: the group decides parts of the new profile, the banner
+            // on top among them, and putting everybody in group 1 took the banner
+            // away from those TikTok had put in another.
             made.put("profile_left_align", on(prefs, KEY_NEW_PROFILE) ? one : none);
+            // As an account in the new group has them (read off one): the avatar
+            // and the name merged into one row -- without it the avatar there is
+            // left empty -- pronouns, and the recommendation card. An account the
+            // server keeps in the old group gets no banner from the server either;
+            // with "avatar_opt" TikTok builds it from the account's own background.
+            if (on(prefs, KEY_NEW_PROFILE)) {
+                made.put("profile_left_align_avatar_and_info_merge", one);
+                made.put("profile_left_align_pronouns", one);
+                made.put("profile_left_align_recommend_card", one);
+                if (prefs.getBoolean(ProfileHeader.OLD_GROUP, false))
+                    made.put("profile_left_align_avatar_opt", one);
+            }
+
 
             // last, so that a developer's answer beats a switch
             if (DevMode.isOn()) {
@@ -247,7 +291,75 @@ public final class Flags {
         }
     }
 
+    // --------------------------------------------------- the new profile, always
+
+
+    /**
+     * What every read of TikTok's own "is this the new profile" goes to.
+     *
+     * TikTok decides it once, in a static, from "profile_left_align", and keeps
+     * the answer until the app is closed. Asked in the first moments of a start,
+     * before the mod has a context to read its settings with, the mod used to
+     * say nothing, TikTok kept the server's no, and the switch here did nothing
+     * for that whole run -- for some people every run. The build now sends the
+     * read of that static here, and the switch is read even that early.
+     */
+    public static boolean newProfile() {
+        try {
+            SharedPreferences prefs = prefs();
+            if (prefs != null) return prefs.getBoolean(KEY_NEW_PROFILE, ON_BY_DEFAULT.contains(KEY_NEW_PROFILE));
+            Boolean said = fromFile(KEY_NEW_PROFILE);
+            return said != null ? said : ON_BY_DEFAULT.contains(KEY_NEW_PROFILE);
+        } catch (Throwable ignored) {
+            return ON_BY_DEFAULT.contains(KEY_NEW_PROFILE);
+        }
+    }
+
+    /** Before there is a context: the profile's flag, from the settings file itself. */
+    private static Object early(String key) {
+        if (!"profile_left_align".equals(key)) return null;
+        return Integer.valueOf(newProfile() ? 1 : 0);
+    }
+
+    private static volatile java.util.Map<String, Boolean> fileSwitches;
+
+    /** A switch read straight off the mod's settings file, which needs no context to find. */
+    private static Boolean fromFile(String key) {
+        java.util.Map<String, Boolean> known = fileSwitches;
+        if (known == null) {
+            known = new HashMap<String, Boolean>();
+            try {
+                String process = new String(whole(new java.io.File("/proc/self/cmdline")), "UTF-8");
+                int end = process.indexOf('\0');
+                if (end >= 0) process = process.substring(0, end);
+                int colon = process.indexOf(':');
+                if (colon >= 0) process = process.substring(0, colon);
+                java.io.File file = new java.io.File("/data/user/" + (android.os.Process.myUid() / 100000)
+                        + "/" + process + "/shared_prefs/" + Margy.PREFS + ".xml");
+                if (!file.canRead()) file = new java.io.File("/data/data/" + process + "/shared_prefs/" + Margy.PREFS + ".xml");
+                String xml = new String(whole(file), "UTF-8");
+                java.util.regex.Matcher m = java.util.regex.Pattern
+                        .compile("<boolean name=\"([^\"]+)\" value=\"(true|false)\"").matcher(xml);
+                while (m.find()) known.put(m.group(1), Boolean.valueOf("true".equals(m.group(2))));
+            } catch (Throwable ignored) {
+                // no file yet: the defaults stand
+            }
+            fileSwitches = known;
+        }
+        return known.get(key);
+    }
+
+    private static byte[] whole(java.io.File file) throws java.io.IOException {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        try (java.io.FileInputStream in = new java.io.FileInputStream(file)) {
+            byte[] chunk = new byte[4096];
+            for (int n; (n = in.read(chunk)) > 0; ) out.write(chunk, 0, n);
+        }
+        return out.toByteArray();
+    }
+
     private static boolean on(SharedPreferences prefs, String key) {
+        if (!chosen(key)) return true;
         return prefs.getBoolean(key, ON_BY_DEFAULT.contains(key));
     }
 
@@ -256,7 +368,7 @@ public final class Flags {
             Map<String, Object> known = table;
             if (known == null) {
                 known = table();
-                if (known == null) return null;
+                if (known == null) return early(key);
             }
             Object value = known.get(key);
             if (value == null || asking == Thread.currentThread()) return null;
@@ -312,6 +424,28 @@ public final class Flags {
     public static String forcedString(String key) {
         Object value = forced(key);
         return value instanceof String ? (String) value : null;
+    }
+
+    private static final Map<String, Object> BUILT = new java.util.concurrent.ConcurrentHashMap<String, Object>();
+
+    /**
+     * A flag that is a whole settings object, read by TikTok's object reader: the mod keeps it
+     * as JSON and it is built here into the class asked for, once.
+     */
+    public static Object forcedObject(Class<?> type, String key) {
+        if (type == null || key == null) return null;
+        Object value = forced(key);
+        if (!(value instanceof String) || !((String) value).startsWith("{")) return null;
+        String cacheKey = type.getName() + "\n" + key;
+        Object made = BUILT.get(cacheKey);
+        if (made != null) return made;
+        try {
+            made = FlagObjects.build((String) value, type);
+            if (made != null && type.isInstance(made)) { BUILT.put(cacheKey, made); return made; }
+        } catch (Throwable error) {
+            Diary.note("flag object " + key + ": " + error);
+        }
+        return null;
     }
 
     // ------------------------------------------------- the developer's list

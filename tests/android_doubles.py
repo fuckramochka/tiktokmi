@@ -68,7 +68,27 @@ def with_mod(sources):
         # the words as they were written: the tests read the Russian
         sources.setdefault('cat/narezany/margyt/Local.java',
                            'package cat.narezany.margyt;final class Local{static String of(String russian){return russian;}}')
+    if 'ProfileHeader.' in everything:
+        sources.setdefault('cat/narezany/margyt/ProfileHeader.java',
+                           'package cat.narezany.margyt;final class ProfileHeader{static final String OLD_GROUP="profile_old_group";}')
+    if 'android.os.Process.' in everything:
+        sources.setdefault('android/os/Process.java',
+                           'package android.os;public class Process{public static int myUid(){return 10000;}}')
     if 'Names.' in everything:
         sources.setdefault('cat/narezany/margyt/Names.java', doubles['cat/narezany/margyt/Names.java'])
         sources.setdefault('android/util/SparseArray.java', doubles['android/util/SparseArray.java'])
+    if 'Design.' in everything:
+        surface = ''
+        if 'new Design.Surface' in everything:
+            surface = ('static final class Surface extends android.graphics.drawable.Drawable{'
+                       'Surface(Object host,Object before){}public void draw(android.graphics.Canvas c){}'
+                       'public void setAlpha(int a){}public void setColorFilter(android.graphics.ColorFilter f){}'
+                       'public int getOpacity(){return -3;}}')
+        sources.setdefault('cat/narezany/margyt/Design.java',
+            'package cat.narezany.margyt;final class Design{static boolean active,fluentActive;static boolean glass(){return active;}'
+            'static boolean fluent(){return fluentActive;}static boolean frosted(){return active||fluentActive;}'
+            'static boolean draw(Object... args){return false;}static void dialog(Object dialog,int colour){}'+surface+'}')
+    if 'GlassOptics.' in everything:
+        sources.setdefault('cat/narezany/margyt/GlassOptics.java',
+            'package cat.narezany.margyt;final class GlassOptics{static float viewTouchX,viewTouchY;}')
     return sources

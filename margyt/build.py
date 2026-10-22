@@ -245,6 +245,11 @@ class Build:
             self.detail("%s declared, reached from TikTok's own settings" % SETTINGS_ACTIVITY)
         manifest_module.add_activity(manifest, STORE_ACTIVITY, SETTINGS_LABEL, theme)
         manifest_module.add_activity(manifest, PACKAGE + ".PluginEditorActivity", SETTINGS_LABEL, theme)
+        # a .mtp opened from a file manager comes to the mod (Theme.NoDisplay: it only hands the file on)
+        manifest_module.add_file_opener(manifest, PACKAGE + ".PluginOpenActivity", "Плагин MargyT", 0x01030055, "mtp", ["application/octet-stream", "application/zip", "application/x-zip-compressed"])
+        # Margy Store under its new name and its old one: without this Android 11
+        # and later will not tell the mod whether the store is there at all
+        manifest_module.add_queries(manifest, ["cat.narezany.store", "cat.narezany.patcher"])
         self.detail("%s declared, the plugin store" % STORE_ACTIVITY)
 
         if not self.lite and not manifest_module.has_activity(manifest, TIKTOK_SETTINGS):
@@ -317,6 +322,12 @@ class Build:
         self.detail("the mod's classes go in as %s" % name)
 
         self.say("Writing the apk")
+        # TikTok's shipped ART profile describes the original dex checksums.
+        # After patching it is invalid; let ART profile the installed mod normally.
+        for profile in ("assets/dexopt/baseline.prof", "assets/dexopt/baseline.profm"):
+            if apk.has(profile):
+                apk.remove(profile)
+                self.detail("dropped stale %s" % profile)
         for gone in apk.drop_signature():
             self.detail("dropped %s" % gone)
         # deflated by the compressor the patcher app carries, so that the app
@@ -556,6 +567,8 @@ class Build:
         asset_root = os.path.join(self.root, "assets")
         entries = emoji_asset_entries(asset_root)
         entries.append(("assets/margyt/meow.ogg", os.path.join(asset_root, "meow.ogg")))
+        entries.append(("assets/margyt/licenses/liquid-glass-MIT.txt",
+                        os.path.join(self.root, "third_party", "liquid-glass", "LICENSE")))
         # the anti-burn eye: two small transparent PNGs, drawn as they are
         for eye in ("burn_eye_open.png", "burn_eye_closed.png"):
             entries.append(("assets/margyt/" + eye, os.path.join(asset_root, eye)))
@@ -624,6 +637,11 @@ class Build:
         ("govno", "че за говно"),
         ("glamour", "Гламурная"),
         ("tilcayo", "Толстый тилкайо"),
+        # redrawn in 2.1.0. New ones go at the end: a launcher entry is named
+        # by its place here, and a place that changed would change the icon of
+        # whoever had picked it. The old two stay as they were, under Legacy
+        ("margyrialyou", "Margyrial You"),
+        ("margyrial3", "Margyrial 3"),
     ]
 
     ICON_PACKAGE = 0x30
@@ -817,11 +835,13 @@ class Build:
         feature_hits["native card corners"]=0
         feature_hits["native right-area slots"]=0
         feature_hits["native player resume"]=0
+        feature_hits["native new profile"]=0
+        feature_hits["native profile header"]=0
         feature_hits["native offline choices"]=0
         feature_hits["native offline row"]=0
         feature_hits["native offline count accepted"]=0
         feature_hits["native offline comments response"]=0
-        for feature in ("native repost","native repost avatar","native profile layout","native message timestamps","native notification guide","native friends order","native notification filters","native author date slot"):feature_hits[feature]=0
+        for feature in ("native repost","native repost avatar","native profile layout","native message timestamps","native notification guide","native notification filters","native author date slot"):feature_hits[feature]=0
         total = 0
         patched_dex_count = 0
         # all of them at once, as many side by side as the machine has room
@@ -860,13 +880,14 @@ class Build:
             feature_hits["native card corners"] += counts.get("native card corners",0)
             feature_hits["native right-area slots"] += counts.get("native right-area slots",0)
             feature_hits["native player resume"] += counts.get("native player resume",0)
+            feature_hits["native new profile"] += counts.get("071Z.LIZ",0)
+            feature_hits["native profile header"] += counts.get("0sm9->LJIILIIL",0)
             feature_hits["native offline choices"] += counts.get("native offline choices",0)
             feature_hits["native offline row"] += counts.get("native offline row",0)
             feature_hits["native offline count accepted"] += counts.get("native offline count accepted",0)
             feature_hits["native offline comments response"] += counts.get("native offline comments response",0)
             for feature in ("native repost","native repost avatar","native profile layout","native message timestamps","native notification guide"):feature_hits[feature]+=counts.get(feature,0)
             feature_hits["native author date slot"]+=counts.get("native author date slot",0)
-            feature_hits["native friends order"]+=sum(v for key,v in counts.items() if "FriendsListResponse" in key and "getUserList" in key)
             feature_hits["native notification filters"]+=sum(v for key,v in counts.items() if "NotificationManager" in key and "notify" in key)
             feature_hits["visible publication date"] += counts.get("visible publication date",0)
             feature_hits["ads"] += sum(v for key,v in counts.items() if "FeedItemList" in key and "getItems" in key)

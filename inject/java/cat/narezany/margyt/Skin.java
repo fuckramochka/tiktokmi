@@ -63,7 +63,7 @@ final class Skin {
             SharedPreferences prefs =
                     context.getSharedPreferences(Margy.PREFS, Context.MODE_PRIVATE);
             if (prefs.contains("skin_card")) {
-                return new Skin(
+                Skin kept = new Skin(
                         prefs.getInt("skin_page", 0xFF000000),
                         prefs.getInt("skin_card", 0xFF1C1C1E),
                         prefs.getInt("skin_text", 0xFFFFFFFF),
@@ -72,6 +72,10 @@ final class Skin {
                         prefs.getInt("skin_radius", Math.round(
                                 12 * context.getResources().getDisplayMetrics().density)),
                         true);
+                // Measured once, in whichever theme TikTok had then. After a switch to
+                // the other one it was still drawing dark sheets on a light TikTok, and the
+                // other way round: a measure taken in the other theme is not used.
+                if (kept.dark() == dark(context)) return kept;
             }
         } catch (Throwable ignored) {
         }
@@ -109,9 +113,15 @@ final class Skin {
         return fallback(screen.getContext());
     }
 
-    private static Skin fallback(Context context) {
-        boolean dark = (context.getResources().getConfiguration().uiMode
+    /** TikTok's own theme as the mod knows it, the phone's when it knows nothing yet. */
+    private static boolean dark(Context context) {
+        try { return Themes.isDark(); } catch (Throwable ignored) {}
+        return (context.getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    private static Skin fallback(Context context) {
+        boolean dark = dark(context);
         float density = context.getResources().getDisplayMetrics().density;
         return new Skin(
                 dark ? 0xFF000000 : 0xFFFFFFFF,

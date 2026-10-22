@@ -110,9 +110,14 @@ public final class Looks {
     private static final int PAINTED = 0x4D61726C;
 
     public static void paint(TextView view, int[] colours) {
+        paint(view, colours, view == null ? null : view.getText());
+    }
+
+    /** `text` is what the view is about to show: measured instead of what it shows now. */
+    public static void paint(TextView view, int[] colours, CharSequence text) {
         if (view == null || colours == null || colours.length < 2) return;
         try {
-            float width = view.getPaint().measureText(view.getText().toString());
+            float width = view.getPaint().measureText(String.valueOf(text == null ? view.getText() : text));
             if (width <= 0) width = view.getWidth();
             if (width <= 0) return;
             view.getPaint().setShader(new LinearGradient(

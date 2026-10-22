@@ -76,6 +76,8 @@ final class Diagnostics {
 
         out.append("\n== region ==\n").append(region(context));
 
+        out.append("\n== profile page ==\n").append(ProfilePage.report());
+
         out.append("\n== appearance ==\n");
         out.append("accent: #").append(String.format(java.util.Locale.US, "%06X",
                 Accent.colour() & 0xFFFFFF)).append(" (built with #")

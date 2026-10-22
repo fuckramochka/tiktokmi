@@ -55,7 +55,23 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         long probe = Probe.start();
         Plugins.onActivityResumed(activity);
         Plugins.screen(activity);
+        Rubble.resumed(activity);
+        SimpleFeed.attach(activity);
+        WavySeek.attach(activity);
+        Avariyka.resumed(activity);
+        // TikTok's theme is read off its own screen, and only while one is on top. Read here,
+        // once the screen has drawn, so the mod's settings opened next already know it: they
+        // used to come up in the old theme after a switch until a TikTok screen was looked at.
+        if (!activity.getClass().getName().startsWith("cat.narezany.margyt.")) {
+            View decor = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
+            if (decor != null) decor.post(() -> { try { Themes.relook(); } catch (Throwable ignored) {} });
+        }
         Screen.at(activity);
+        if(activity.getClass().getName().startsWith("cat.narezany.margyt.")){
+            View owned=activity.findViewById(android.R.id.content);
+            if(owned instanceof ViewGroup && ((ViewGroup)owned).getChildCount()>0)
+                Design.page(activity,((ViewGroup)owned).getChildAt(0),Skin.remembered(activity).page);
+        }
         Themes.watch(activity);
         PinkButtons.watch(activity);
         if (!Version.LITE) {

@@ -80,8 +80,16 @@ public final class Streaks {
 
     private static final long EVERY = 15 * 60 * 1000L;
 
-    /** A conversation that is still grey after this many sends is left alone until tomorrow. */
-    private static final int MAX_ATTEMPTS = 3;
+    /**
+     * One sticker a day to a conversation, and no more.
+     *
+     * It used to be three, five minutes apart, while the flame stayed grey. But a TikTok
+     * streak only lights up once both people have written that day, so after our sticker
+     * the flame stays grey until the friend answers, and the mod took that for a lost send:
+     * people got exactly three stickers, exactly five minutes apart. A send that did not go
+     * through is not counted (see deliver), so it is still tried again.
+     */
+    private static final int MAX_ATTEMPTS = 1;
     /** How long to give a send before looking at the flame again, and sending once more if it is still grey. */
     private static final long RECHECK = 4 * 60 * 1000L;
     /** How long to watch the flame right after a send. */
@@ -632,53 +640,14 @@ public final class Streaks {
 
     private static volatile Method status;
 
-    /**
-     * Send to every conversation the mod knows about, whatever its state.
-     *
-     * A button rather than a schedule: the point is to find out whether
-     * sending works at all, so it skips every condition -- not grey, already
-     * sent today, none of it -- and writes down what happened to each one.
-     */
-    public static void test(final Context context) {
-        currentAccount();if(Account.liveId()==null)return;
-        FavouriteStickers.read();
-        final boolean byText = BY_TEXT.equals(mode());
-        final StickerItem sticker = byText ? null : sticker(chosen());
-        final String owner=Account.liveId();
-        final List<String> all = conversations();
-        Diary.note("streak test: " + all.size() + " conversation(s) known, sending "
-                + (byText ? "text"
-                          : "a sticker " + (sticker == null ? "NOT chosen" : "chosen"))
-                + ", service " + (service == null ? "not seen yet" : "seen")
-                + ", network " + (StreakAlarm.online(context) ? "up" : "DOWN"));
-        describe();
-        if (all.isEmpty()) return;
-        if (!byText && sticker == null) return;
-
-        Net.away("streak test", new Runnable() {
-            @Override
-            public void run() {
-                for (String conversation : all) {
-                    if(!owner.equals(Account.liveId()))return;
-                    String state = statusOf(ask(conversation));
-                    boolean sent = deliver(context, sticker, conversation);
-                    Diary.note("streak test: " + conversation + " (" + state + ") -> "
-                            + (sent ? "request submitted, delivery unconfirmed"
-                                    : "request failed"));
-                }
-            }
-        });
-    }
-
     private static final java.util.concurrent.atomic.AtomicBoolean allRunning =
             new java.util.concurrent.atomic.AtomicBoolean();
 
     /**
      * Send the chosen sticker, now, to everyone there is a streak with.
      *
-     * Unlike the test button this looks at what TikTok says about each
-     * conversation and leaves out the ones without a streak (no streak, or
-     * one that is already over). Lit and grey flames both get the sticker.
+     * It looks at what TikTok says about each conversation and leaves out the
+     * ones without a streak (no streak, or one that is already over). Lit and grey flames both get the sticker.
      * It does not wait for the schedule and does not need the switch on.
      */
     public static void sendAll(final Context context) {

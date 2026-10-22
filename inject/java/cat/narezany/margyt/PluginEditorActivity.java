@@ -105,7 +105,7 @@ public final class PluginEditorActivity extends Activity {
   LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(skin.page);
   ScrollView scroll=new ScrollView(this);body=new LinearLayout(this);body.setOrientation(1);body.setPadding(dp(14),dp(4),dp(14),dp(20));scroll.addView(body);
   bar=new LinearLayout(this);bar.setOrientation(0);bar.setPadding(dp(8),dp(6),dp(8),dp(10));bar.setBackgroundColor(skin.page);
-  root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1f));root.addView(bar,new LinearLayout.LayoutParams(-1,-2));setContentView(root);
+  root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1f));root.addView(bar,new LinearLayout.LayoutParams(-1,-2));setContentView(root);Design.page(this,root,skin.page);
   getWindow().setStatusBarColor(skin.page);getWindow().setNavigationBarColor(skin.page);
 
   LinearLayout top=new LinearLayout(this);top.setOrientation(0);top.setGravity(Gravity.CENTER_VERTICAL);

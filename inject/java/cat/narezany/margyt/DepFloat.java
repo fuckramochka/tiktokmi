@@ -30,7 +30,9 @@ final class DepFloat {
     private DepFloat() {}
 
     private static final long[] STAKES = {10, 50, 100, 500, 1000};
-    private static final WeakHashMap<Activity, View> SHOWN = new WeakHashMap<Activity, View>();
+    /** Held weakly: the window's view keeps its activity, and as a plain value it kept every screen it was ever on. */
+    private static final WeakHashMap<Activity, java.lang.ref.WeakReference<View>> SHOWN =
+            new WeakHashMap<Activity, java.lang.ref.WeakReference<View>>();
 
     // where it was left and what was being staked, the same on every screen
     private static float x = -1, y = -1;
@@ -56,7 +58,8 @@ final class DepFloat {
     /** A screen came up, or the switch was moved: put the window on it or take it off. */
     static void attach(final Activity activity) {
         try {
-            View had = SHOWN.get(activity);
+            java.lang.ref.WeakReference<View> held = SHOWN.get(activity);
+            View had = held == null ? null : held.get();
             boolean wanted = isOn(activity)
                     && !activity.getClass().getName().startsWith("cat.narezany.margyt.");
             if (!wanted) {
@@ -74,7 +77,7 @@ final class DepFloat {
             ((FrameLayout) decor).addView(made, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
                     Gravity.TOP | Gravity.LEFT));
-            SHOWN.put(activity, made);
+            SHOWN.put(activity, new java.lang.ref.WeakReference<View>(made));
             place(made, (FrameLayout) decor);
         } catch (Throwable error) {
             Diary.note("dep window: " + error);

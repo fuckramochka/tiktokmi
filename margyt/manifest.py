@@ -345,6 +345,68 @@ def add_activity(axml: Axml, class_name: str, label: str, theme: int,
     axml.insert_into(application(axml), subtree)
 
 
+VIEW_ACTION = "android.intent.action.VIEW"
+DEFAULT_CATEGORY = "android.intent.category.DEFAULT"
+
+
+def add_file_opener(axml: Axml, class_name: str, label: str, theme: int,
+                    extension: str, mimes: List[str]) -> None:
+    """Declare an activity that file managers offer for files with one extension.
+
+    Two filters, because file managers say different things about a file nobody
+    registered. Most of them call it application/octet-stream or a zip, so the
+    first filter takes those types. Some give a path that still has the file's
+    name in it, so the second takes any type when the path ends in the extension.
+    The pattern is written three times for names with dots before the extension:
+    a path pattern stops at the first dot it can match, not the last.
+    """
+    activity = axml.make_element("activity")
+    axml.set_attr(activity, "theme", TYPE_REFERENCE, theme)
+    axml.set_attr_string(activity, "label", label)
+    axml.set_attr_string(activity, "name", class_name)
+    axml.set_attr_bool(activity, "exported", True)
+
+    def element(tag, **attrs):
+        node = axml.make_element(tag)
+        for key, value in attrs.items():
+            axml.set_attr_string(node, key, value)
+        return [node, axml.close_element(node)]
+
+    by_type = axml.make_element("intent-filter")
+    subtree = [activity, by_type] + element("action", name=VIEW_ACTION) + element("category", name=DEFAULT_CATEGORY)
+    subtree += element("data", scheme="content") + element("data", scheme="file")
+    for mime in mimes:
+        subtree += element("data", mimeType=mime)
+    subtree.append(axml.close_element(by_type))
+
+    by_name = axml.make_element("intent-filter")
+    subtree += [by_name] + element("action", name=VIEW_ACTION) + element("category", name=DEFAULT_CATEGORY)
+    subtree += element("data", scheme="content") + element("data", scheme="file")
+    subtree += element("data", host="*") + element("data", mimeType="*/*")
+    dots = "\\." + extension
+    for pattern in (".*" + dots, ".*\\..*" + dots, ".*\\..*\\..*" + dots):
+        subtree += element("data", pathPattern=pattern)
+    subtree.append(axml.close_element(by_name))
+    subtree.append(axml.close_element(activity))
+    axml.insert_into(application(axml), subtree)
+
+
+def add_queries(axml: Axml, packages: List[str]) -> None:
+    """Let the app see other apps by name, as a <queries> child of <manifest>.
+
+    From Android 11 an app cannot find out whether another one is installed,
+    or open it by package, unless it says beforehand which ones it looks for.
+    """
+    queries = axml.make_element("queries")
+    subtree = [queries]
+    for name in packages:
+        node = axml.make_element("package")
+        axml.set_attr_string(node, "name", name)
+        subtree += [node, axml.close_element(node)]
+    subtree.append(axml.close_element(queries))
+    axml.insert_into(axml.elements("manifest")[0], subtree)
+
+
 def add_widget(axml: Axml, class_name: str, info: int) -> None:
     """Declare a home-screen widget: a receiver, and where its description is.
 

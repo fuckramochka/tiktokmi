@@ -108,6 +108,16 @@ public final class Feed {
         }
     }
 
+    /** Made outside the dates the person chose; their own posts and live rooms stay. */
+    private static boolean outOfDates(Aweme post) {
+        try {
+            if (mine(post) || isLive(post) || advert(post)) return false;
+            return FeedDates.leavesOut(NativeRead.number(NativeRead.get(post, "getCreateTime")));
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     /** Whether this post is one the person asked not to see. */
     private static boolean unwanted(Object item, boolean ads, boolean live, boolean photos) {
         if (!(item instanceof Aweme)) return false;
@@ -206,7 +216,8 @@ public final class Feed {
         boolean authors=!FeedBlacklist.items().isEmpty() || !FeedBlacklist.cards().isEmpty();
         // a hashtag somebody blocked is a reason to look at the page too
         boolean others=!Tags.all().isEmpty();
-        if (!ads && !live && !photos && !stories && !suggestions && !authors && !others) {
+        boolean dated=FeedDates.active();
+        if (!ads && !live && !photos && !stories && !suggestions && !authors && !others && !dated) {
             return Plugins.feed(items);
         }
         try {
@@ -215,7 +226,8 @@ public final class Feed {
             for(Object item:items) {
                 boolean extra=item instanceof Aweme && ((stories && !socialRepost(item) && Boolean.TRUE.equals(NativeRead.get(item,"getIsTikTokStory")))
                         || (suggestions && suggestion(item))
-                        || (authors && FeedBlacklist.hides(item)));
+                        || (authors && FeedBlacklist.hides(item))
+                        || (dated && outOfDates((Aweme)item)));
                 if(extra || unwanted(item,ads,live,photos)) {
                     if(kept==null){kept=new ArrayList(items.size());kept.addAll(items.subList(0,index));}
                     out++;

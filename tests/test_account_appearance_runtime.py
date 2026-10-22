@@ -32,7 +32,6 @@ STUBS['cat/narezany/margyt/Version.java']='package cat.narezany.margyt;class Ver
 STUBS['cat/narezany/margyt/FeedBlacklist.java']='package cat.narezany.margyt;class FeedBlacklist{static void reload(){}}'
 STUBS['cat/narezany/margyt/PlayerTools.java']='package cat.narezany.margyt;class PlayerTools{static void accountChanged(){} static void cancelSmooth(){}}'
 STUBS['cat/narezany/margyt/VideoActions.java']='package cat.narezany.margyt;class VideoActions{static void accountChanged(){} static void bindNative(Object c){} static void selected(Object c,Object p){}}'
-STUBS['cat/narezany/margyt/PinnedFriends.java']='package cat.narezany.margyt;class PinnedFriends{static void reload(){}}'
 STUBS['cat/narezany/margyt/ProfileLayout.java']='package cat.narezany.margyt;class ProfileLayout{static void reload(){}}'
 STUBS['cat/narezany/margyt/MessageTimes.java']='package cat.narezany.margyt;class MessageTimes{static void reload(){}}'
 STUBS['cat/narezany/margyt/ModNotifications.java']='package cat.narezany.margyt;class ModNotifications{static void reload(){}}'

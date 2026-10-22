@@ -69,6 +69,7 @@ public class StoreActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(scroll);
         setContentView(root);
+        Design.page(this,root,skin.page);
 
         try {
             getWindow().setStatusBarColor(skin.page);

@@ -53,6 +53,8 @@ import dep
 import guard
 import panel
 import patcher
+import mc
+import admin_mod
 import tiktok
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -195,6 +197,12 @@ def prepare():
             ip      TEXT PRIMARY KEY,
             written INTEGER NOT NULL DEFAULT 0
         );
+        CREATE TABLE IF NOT EXISTS verdict (
+            uid    TEXT PRIMARY KEY,
+            good   INTEGER NOT NULL,
+            reason TEXT NOT NULL DEFAULT '',
+            at     INTEGER NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS plugin (
             id      TEXT PRIMARY KEY,
             name    TEXT NOT NULL DEFAULT '',
@@ -232,6 +240,7 @@ def prepare():
         if column not in owner_columns:
             db.execute("ALTER TABLE owner ADD COLUMN %s %s" % (column, kind))
     dep.prepare(db)
+    admin_mod.prepare(db)
     db.commit()
     db.close()
     take_in_admin()
@@ -353,10 +362,13 @@ def public():
     gradients = {uid: colours.split(",") for uid, colours
                  in db.execute("SELECT uid, colours FROM gradient")
                  if uid in paid and colours}
+    # what the administration says about an account, shown on its profile
+    verdicts = {uid: {"good": bool(good), "reason": reason}
+                for uid, good, reason in db.execute("SELECT uid, good, reason FROM verdict")}
     db.close()
 
     out = [badges[key] for key in sorted(badges)]
-    return {"badges": out, "gradients": gradients,
+    return {"badges": out, "gradients": gradients, "verdicts": verdicts,
             "free_until": FREE_UNTIL, "now": int(time.time())}
 
 
@@ -706,6 +718,16 @@ def gradient(body, ip):
 
 #: address -> (the hour it was last counted in, how many it sent in it)
 CRASHED = {}
+
+
+def verdict(body, ip):
+    """Where marks were set from inside TikTok with the owner's token alone.
+
+    Shut since 2.1.0: the admin inside TikTok asks for an approved phone as
+    well, and marks go through it (admin_mod). Kept as a name so an older mod
+    is told plainly rather than handed a 404.
+    """
+    return 410, {"error": "device"}
 
 
 def crash(body, raw, ip):
@@ -1167,9 +1189,12 @@ class Handler(BaseHTTPRequestHandler):
                        for r in db.execute(
                            "SELECT uid, colours, changed FROM gradient"
                            " ORDER BY changed DESC")]
+            verdicts = [{"uid": r[0], "good": bool(r[1]), "reason": r[2], "at": r[3]}
+                        for r in db.execute("SELECT uid, good, reason, at FROM verdict"
+                                            " ORDER BY at DESC")]
             db.close()
             self.html(panel.main_page(badges, plugins()["plugins"], colours,
-                                      query.get("said", [""])[0], crashes()))
+                                      query.get("said", [""])[0], crashes(), verdicts))
             return
 
         if path == "/admin/badge":
@@ -1191,6 +1216,13 @@ class Handler(BaseHTTPRequestHandler):
             self.html(panel.badge_page(
                 {"id": row[0], "colour": row[1], "image": row[2].split("?")[0],
                  "text": row[3]}, wearers))
+            return
+
+        if path == "/admin/devices":
+            db = connect()
+            rows = admin_mod.devices_all(db)
+            db.close()
+            self.html(panel.devices_page(rows, query.get("said", [""])[0]))
             return
 
         if path == "/admin/out":
@@ -1332,6 +1364,14 @@ class Handler(BaseHTTPRequestHandler):
             self.go("/admin/badge?id=%s" % said.get("id", ""))
             return
 
+        if path == "/admin/device/forget":
+            said = self.form()
+            db = connect()
+            admin_mod.forget(db, said.get("id", ""))
+            db.close()
+            self.go("/admin/devices?said=устройство отключено")
+            return
+
         if path == "/admin/gradient/drop":
             said = self.form()
             uid = said.get("uid", "")
@@ -1341,6 +1381,34 @@ class Handler(BaseHTTPRequestHandler):
                 db.commit()
                 db.close()
             self.go("/admin?said=градиент снят")
+            return
+
+        if path == "/admin/verdict/set":
+            said = self.form()
+            uids = [uid for uid in (said.get("uids") or "").replace(",", " ").split() if sane(uid)]
+            reason = " ".join((said.get("reason") or "").split())[:300]
+            if not uids:
+                self.go("/admin?said=айди: только цифры")
+                return
+            good = 1 if said.get("good") == "1" else 0
+            db = connect()
+            now = int(time.time())
+            for uid in uids:
+                db.execute("INSERT INTO verdict (uid, good, reason, at) VALUES (?, ?, ?, ?)"
+                           " ON CONFLICT(uid) DO UPDATE SET good=excluded.good,"
+                           " reason=excluded.reason, at=excluded.at", (uid, good, reason, now))
+            db.commit()
+            db.close()
+            self.go("/admin?said=%s: %d" % ("рекомендуемые" if good else "не рекомендуемые", len(uids)))
+            return
+
+        if path == "/admin/verdict/drop":
+            said = self.form()
+            db = connect()
+            db.execute("DELETE FROM verdict WHERE uid = ?", (said.get("uid", ""),))
+            db.commit()
+            db.close()
+            self.go("/admin?said=пометка снята")
             return
 
         if path == "/admin/plugin/drop":
@@ -1493,12 +1561,21 @@ class Handler(BaseHTTPRequestHandler):
             code, out = free(body, ip)
         elif path == "/dep":
             code, out = dep_play(body, ip)
+        elif path == "/verdict":
+            code, out = verdict(body, ip)
+        elif path == "/mod/device":
+            code, out = admin_mod.device(body)
+        elif path == "/mod/admin":
+            code, out = admin_mod.act(body)
         elif path == "/gradient":
             code, out = gradient(body, ip)
         elif path == "/crash":
             code, out = crash(body, raw.decode("utf-8", "replace"), ip)
         elif path == "/patcher/login/start":
             code, out = patcher.start(ip)
+        elif path.startswith("/mc/"):
+            # the game server's, with a key only it has
+            code, out = mc.handle(path, body, self.headers.get("X-MC-Key", ""))
         elif path == "/patches":
             # 1.x asked here for fixes that travel without an apk. There are
             # none any more, and "nothing new" keeps those phones quiet
@@ -1509,6 +1586,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    admin_mod.use.update(connect=connect, vouched=vouched, sane=sane,
+                         telegram=patcher._telegram, owner_tg=guard.OWNER)
     prepare()
     server = ThreadingHTTPServer(("127.0.0.1", 8080), Handler)
     server.serve_forever()

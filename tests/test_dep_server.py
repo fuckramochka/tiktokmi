@@ -34,9 +34,18 @@ DAY = 86400.0
 
 
 class DepServerTests(unittest.TestCase):
-    def test_the_rules_leave_the_house_a_little_ahead(self):
+    # the turns below are worked out from a purse of a thousand; what an account
+    # really starts with is checked on its own in the first test
+    def setUp(self):
+        self.start = dep.START
+        dep.START = 1000
+
+    def tearDown(self):
+        dep.START = self.start
+
+    def test_the_reels_are_even(self):
         paid = sum(dep.pays(a, b, c) for a in range(6) for b in range(6) for c in range(6))
-        self.assertEqual(paid, 210)   # for 216 staked
+        self.assertEqual(paid, 216)   # for 216 staked: even
         self.assertEqual(sum(dep.red(n) for n in range(37)), 18)
         self.assertEqual(dep.score([0, 12]), 21)
         self.assertEqual(dep.score([0, 13, 8]), 21)
@@ -65,12 +74,12 @@ class DepServerTests(unittest.TestCase):
     def test_the_reels_are_turned_here_and_the_stake_is_cut_to_what_there_is(self):
         db = table()
         code, said = dep.play(db, "1", {"do": "spin", "stake": 5000}, now=DAY, luck=Told(5, 5, 5))
-        self.assertEqual((code, said["stake"], said["times"], said["won"]), (200, 1000, 60, 60000))
-        self.assertEqual(said["balance"], 60000)
+        self.assertEqual((code, said["stake"], said["times"], said["won"]), (200, 1000, 66, 66000))
+        self.assertEqual(said["balance"], 66000)
         code, said = dep.play(db, "1", {"do": "spin", "stake": 100}, now=DAY + 1, luck=Told(0, 1, 2))
-        self.assertEqual((said["won"], said["balance"]), (0, 59900))
+        self.assertEqual((said["won"], said["balance"]), (0, 65900))
         code, said = dep.play(db, "1", {"do": "spin", "stake": 100}, now=DAY + 2, luck=Told(3, 3, 0))
-        self.assertEqual((said["times"], said["balance"]), (1, 59900))
+        self.assertEqual((said["times"], said["balance"]), (1, 65900))
 
     def test_a_turn_too_soon_after_the_last_is_refused_and_costs_nothing(self):
         db = table()

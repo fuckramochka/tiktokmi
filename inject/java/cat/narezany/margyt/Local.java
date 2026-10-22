@@ -567,9 +567,9 @@ final class Local {
         add("Обучение",
                 "Навчання",
                 "Tutorial");
-        add("Глаз в ленте и на видео включает и выключает затемнение на лету. Поле ввода комментария не затемняется. Нижняя панель при затемнении прячется и возвращается на несколько секунд, если нажать на её место.",
-                "Око у стрічці та на відео вмикає й вимикає затемнення на льоту. Поле введення коментаря не затемнюється. Нижня панель під час затемнення ховається й повертається на кілька секунд, якщо натиснути на її місце.",
-                "The eye in the feed and on a video turns the dimming on and off as you go. The comment box is never dimmed. The bottom bar goes while the screen is dimmed, and comes back for a few seconds when you touch where it was.");
+        add("Глаз в ленте включает и выключает приглушение на лету.",
+                "Око в стрічці вмикає й вимикає приглушення на льоту.",
+                "The eye in the feed turns dimming on and off.");
         add("Тормозит приложение: подвисаний за этот запуск",
                 "Гальмує застосунок: підвисань за цей запуск",
                 "Slows the app down: stalled this run for");
@@ -592,9 +592,9 @@ final class Local {
         add("Отчёты о сбоях",
                 "Звіти про збої",
                 "Crash reports");
-        add("Отправлять разработчику технический стек сбоя. Без сообщений, аккаунта и текста ошибки.",
-                "Надсилати розробнику технічний стек збою. Без повідомлень, акаунта й тексту помилки.",
-                "Send the developer the technical stack of a crash. No messages, no account, no error text.");
+        add("Технический стек сбоя, без сообщений и аккаунта.",
+                "Технічний стек збою, без повідомлень і акаунта.",
+                "A technical crash trace, without messages or account.");
         add("Выше",
                 "Вище",
                 "Up");
@@ -700,30 +700,30 @@ final class Local {
         add("Плагины",
                 "Плагіни",
                 "Plugins");
-        add("Друзья и чаты",
-                "Друзі та чати",
-                "Friends and chats");
-        add("Акцент меняет цвет кнопок и вкладок. Готовые картинки могут сохранять свой цвет. Тема и шрифты настраиваются отдельно.",
-                "Акцент змінює колір кнопок і вкладок. Готові картинки можуть зберігати свій колір. Тема та шрифти налаштовуються окремо.",
-                "The accent changes the colour of buttons and tabs. Ready-made pictures may keep their own colour. The theme and fonts are set separately.");
-        add("Значки, их порядок и градиент на ник. Чтобы что-то менять, аккаунт надо один раз подтвердить.",
-                "Значки, їхній порядок і градієнт на нік. Щоб щось змінювати, акаунт треба один раз підтвердити.",
-                "Badges, their order and the gradient on your name. To change any of it the account has to be confirmed once.");
-        add("Глаз меняет прозрачность кнопок поверх видео; «Защита экрана» теперь здесь же. Удержание «Отправить» открывает скачивание и перемотку. Удерживайте край видео, чтобы ускорить, и потяните вниз, чтобы закрепить скорость.",
-                "Око змінює прозорість кнопок поверх відео; «Захист екрана» тепер тут само. Утримання «Надіслати» відкриває завантаження й перемотування. Утримуйте край відео, щоб прискорити, і потягніть униз, щоб закріпити швидкість.",
-                "The eye changes how see-through the buttons over a video are; screen protection lives here too. Holding Share opens downloading and seeking. Hold the edge of a video to speed it up, and swipe down to lock the speed.");
-        add("Скачивание, резервные копии, диагностика и журнал. Сохраните копию перед экспериментами.",
-                "Завантаження, резервні копії, діагностика й журнал. Збережіть копію перед експериментами.",
-                "Downloads, backups, diagnostics and the diary. Save a backup before experimenting.");
+        add("Серии и уведомления",
+                "Серії та сповіщення",
+                "Streaks and notifications");
+        add("Акцент меняет цвет кнопок и вкладок. Тема и шрифты отдельно.",
+                "Акцент змінює колір кнопок і вкладок. Тема й шрифти окремо.",
+                "The accent recolours buttons and tabs. Theme and fonts are separate.");
+        add("Значки и градиент на ник. Сначала надо один раз подтвердить аккаунт.",
+                "Значки й градієнт на нік. Спершу треба один раз підтвердити акаунт.",
+                "Badges and a gradient name. Confirm the account once first.");
+        add("Удержание «Отправить» открывает скачивание и перемотку, удержание края видео ускоряет его.",
+                "Утримання «Надіслати» відкриває завантаження й перемотування, утримання краю відео пришвидшує його.",
+                "Hold Share for downloading and seeking; hold the edge of a video to speed it up.");
+        add("Скачивание, копии настроек, диагностика и журнал.",
+                "Завантаження, копії налаштувань, діагностика й журнал.",
+                "Downloads, settings backups, diagnostics and the diary.");
         add("Здесь находятся версия мода, обновления, журнал и участники.",
                 "Тут версія мода, оновлення, журнал і учасники.",
                 "The mod's version, updates, the diary and the people behind it.");
-        add("Магазин, установка и настройки плагинов. Плагины запускают дополнительный код; устанавливайте только те, которым доверяете.",
-                "Магазин, встановлення й налаштування плагінів. Плагіни запускають додатковий код; встановлюйте лише ті, яким довіряєте.",
-                "The store, installing and setting up plugins. Plugins run extra code; install only the ones you trust.");
-        add("Закреплённые друзья, автопродление серий и уведомления мода.",
-                "Закріплені друзі, автопродовження серій і сповіщення мода.",
-                "Pinned friends, keeping streaks alive and the mod's notifications.");
+        add("Магазин и настройки плагинов. Ставь только те, которым доверяешь.",
+                "Магазин і налаштування плагінів. Став лише ті, яким довіряєш.",
+                "Plugin store and settings. Install only what you trust.");
+        add("Автопродление серий и уведомления мода.",
+                "Автопродовження серій і сповіщення мода.",
+                "Streaks kept going on their own, and the mod's notifications.");
         add("Понятно",
                 "Зрозуміло",
                 "Got it");
@@ -745,9 +745,9 @@ final class Local {
         add("Магазин и установленные",
                 "Магазин і встановлені",
                 "The store and what is installed");
-        add("Друзья, серии и уведомления",
-                "Друзі, серії та сповіщення",
-                "Friends, streaks and notifications");
+        add("Серии и уведомления",
+                "Серії та сповіщення",
+                "Streaks and notifications");
         add("Защита экрана",
                 "Захист екрана",
                 "Screen protection");

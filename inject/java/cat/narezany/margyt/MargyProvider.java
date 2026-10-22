@@ -47,6 +47,11 @@ public final class MargyProvider extends ContentProvider {
             Diary.note("hook failed: " + error);
         }
         try {
+            Launcher.settle(context);
+        } catch (Throwable error) {
+            Diary.note("icons: " + error);
+        }
+        try {
             Badges.start(context);
         } catch (Throwable error) {
             Diary.note("badges failed to start: " + error);

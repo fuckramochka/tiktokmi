@@ -48,6 +48,8 @@ final class Panel {
     private Expressive.Group group;
     private boolean stayOpen;
     private boolean compact;
+    /** Material 3 by the tokens; Liquid Glass and Fluent keep their own measures. */
+    private final boolean m3 = !Design.frosted();
 
     private Panel(Context context, Skin skin, String title) {
         this.context = context;
@@ -72,18 +74,28 @@ final class Panel {
         card.setPadding(dp(16), dp(10), dp(16), dp(14));
         GradientDrawable background = new GradientDrawable();
         background.setColor(skin.card);
-        background.setCornerRadii(new float[]{dp(32),dp(32),dp(32),dp(32),dp(28),dp(28),dp(28),dp(28)});
-        background.setStroke(dp(1), (skin.text & 0xFFFFFF) | 0x18000000);
+        if (m3) {
+            // extra large corners, and no outline: a sheet stands out by its tone
+            background.setCornerRadius(dp(28));
+        } else {
+            background.setCornerRadii(new float[]{dp(32),dp(32),dp(32),dp(32),dp(28),dp(28),dp(28),dp(28)});
+            background.setStroke(dp(1), (skin.text & 0xFFFFFF) | 0x18000000);
+        }
         card.setBackground(background);
 
         if (title != null && title.length() > 0) {
             TextView head = new TextView(context);
             head.setText(title);
             head.setTextColor(skin.text);
-            head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
-            head.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            if (m3) {
+                M3Type.headlineSmall(head);
+                head.setPadding(dp(8), dp(4), dp(8), dp(12));
+            } else {
+                head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+                head.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+                head.setPadding(dp(4), dp(4), dp(4), dp(10));
+            }
             head.setGravity(Gravity.START);
-            head.setPadding(dp(4), dp(4), dp(4), dp(10));
             card.addView(head);
             this.head = head;
         }
@@ -100,7 +112,10 @@ final class Panel {
     Panel compact() {
         compact = true;
         card.setPadding(dp(14), dp(8), dp(14), dp(10));
-        if (head != null) {
+        if (head != null && m3) {
+            M3Type.titleLarge(head);
+            head.setPadding(dp(8), dp(2), dp(8), dp(8));
+        } else if (head != null) {
             head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
             head.setPadding(dp(4), dp(2), dp(4), dp(6));
         }
@@ -111,10 +126,17 @@ final class Panel {
     Panel text(String words) {
         TextView body = new TextView(context);
         body.setText(words);
-        body.setTextColor(skin.text);
-        body.setAlpha(0.84f);
-        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        body.setLineSpacing(0, 1.12f);
+        if (m3) {
+            // supporting text: body medium in on-surface-variant
+            body.setTextColor(skin.muted());
+            M3Type.bodyMedium(body);
+            body.setPadding(dp(8), 0, dp(8), 0);
+        } else {
+            body.setTextColor(skin.text);
+            body.setAlpha(0.84f);
+            body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            body.setLineSpacing(0, 1.12f);
+        }
         body.setGravity(Gravity.START);
         LinearLayout.LayoutParams where = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -140,12 +162,17 @@ final class Panel {
     /** A quiet second line under the title. */
     Panel subtitle(String words) {
         if (head == null || words == null || words.length() == 0) return this;
-        head.setPadding(dp(4), dp(4), dp(4), dp(2));
+        head.setPadding(head.getPaddingLeft(), dp(4), head.getPaddingRight(), dp(2));
         TextView line = new TextView(context);
         line.setText(words);
         line.setTextColor(skin.muted());
-        line.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        line.setPadding(dp(4), 0, dp(4), dp(10));
+        if (m3) {
+            M3Type.bodyMedium(line);
+            line.setPadding(dp(8), 0, dp(8), dp(12));
+        } else {
+            line.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            line.setPadding(dp(4), 0, dp(4), dp(10));
+        }
         card.addView(line, card.indexOfChild(head) + 1);
         return this;
     }
@@ -157,13 +184,16 @@ final class Panel {
             TextView label = new TextView(context);
             label.setText(heading);
             label.setTextColor(Accent.colour());
-            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-            label.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            if (m3) M3Type.titleSmall(label);
+            else {
+                label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+                label.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            }
             // room for the whole line: a tight height let the next row cover half of it
             label.setIncludeFontPadding(true);
             label.setGravity(Gravity.BOTTOM);
             label.setMinHeight(dp(compact ? 28 : 34));
-            label.setPadding(dp(8), dp(compact ? 8 : 12), dp(8), dp(6));
+            label.setPadding(dp(m3 ? 16 : 8), dp(compact ? 8 : 12), dp(8), dp(6));
             card.addView(label, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         }
@@ -237,13 +267,14 @@ final class Panel {
         }
         mark.setBackground(ring);
         LinearLayout.LayoutParams markWhere = new LinearLayout.LayoutParams(dp(24), dp(24));
-        markWhere.rightMargin = dp(14);
+        markWhere.rightMargin = dp(m3 ? 12 : 14);
         row.addView(mark, markWhere);
         TextView name = new TextView(context);
         name.setText(title);
         name.setTextColor(chosen ? Accent.colour() : skin.text);
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        name.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        if (m3) M3Type.line(name, 16, 0.5f);
+        name.setTypeface(Typeface.create(m3 && !chosen ? "sans-serif" : "sans-serif-medium", Typeface.NORMAL));
         row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         row.setClickable(true);
         row.setFocusable(true);
@@ -271,8 +302,15 @@ final class Panel {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         int padY = compact ? (hero ? 8 : 6) : (hero ? 12 : 10);
-        row.setPadding(dp(14), dp(padY), dp(16), dp(padY));
-        row.setMinimumHeight(dp(compact ? (hero ? 56 : 48) : (hero ? 68 : 60)));
+        boolean two = detail != null && detail.length() > 0;
+        if (m3 && !compact) {
+            // a list item: 16 at the ends, 10 above and below, 56 or 72 tall
+            row.setPadding(dp(16), dp(10), dp(16), dp(10));
+            row.setMinimumHeight(dp(two ? 72 : 56));
+        } else {
+            row.setPadding(dp(14), dp(padY), dp(16), dp(padY));
+            row.setMinimumHeight(dp(compact ? (hero ? 56 : 48) : (hero ? 68 : 60)));
+        }
         row.setClickable(true);
         row.setFocusable(true);
         row.setContentDescription(detail == null ? title : title + ", " + detail);
@@ -284,7 +322,7 @@ final class Panel {
                 hero ? ink : tone, hero ? ink : tone);
         LinearLayout.LayoutParams badgeWhere = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        badgeWhere.rightMargin = dp(compact ? 10 : 14);
+        badgeWhere.rightMargin = dp(compact ? 10 : m3 ? 12 : 14);
         row.addView(badge, badgeWhere);
 
         LinearLayout words = new LinearLayout(context);
@@ -294,7 +332,9 @@ final class Panel {
         name.setText(title);
         name.setTextColor(ink);
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, compact ? (hero ? 17 : 15) : (hero ? 20 : 16));
-        name.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        // body large, regular: the weight is kept for the one row that matters most
+        if (m3 && !compact && !hero) M3Type.line(name, 16, 0.5f);
+        name.setTypeface(Typeface.create(m3 && !hero ? "sans-serif" : "sans-serif-medium", Typeface.NORMAL));
         name.setSingleLine(true);
         name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         words.addView(name, new LinearLayout.LayoutParams(
@@ -305,6 +345,10 @@ final class Panel {
             small.setTextColor(ink);
             small.setAlpha(hero ? 0.82f : 0.62f);
             small.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            if (m3 && !compact) {
+                M3Type.line(small, 14, 0.2f);
+                if (!hero && !danger) { small.setTextColor(skin.muted()); small.setAlpha(1f); }
+            }
             small.setSingleLine(true);
             small.setEllipsize(android.text.TextUtils.TruncateAt.END);
             words.addView(small, new LinearLayout.LayoutParams(
@@ -328,7 +372,8 @@ final class Panel {
         LinearLayout.LayoutParams where = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         if (hero) {
-            row.setBackground(Expressive.tile(context, accent, 0x33FFFFFF, dp(28), dp(28), dp(14)));
+            row.setBackground(Expressive.tile(context, accent, 0x33FFFFFF,
+                    dp(m3 ? 16 : 28), dp(m3 ? 16 : 28), dp(14)));
             where.topMargin = dp(compact ? 2 : 4);
             where.bottomMargin = dp(compact ? 6 : 8);
             card.addView(row, where);
@@ -351,13 +396,22 @@ final class Panel {
         field.setHintTextColor(skin.muted());
         field.setTextColor(skin.text);
         field.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        if (m3) M3Type.line(field, 16, 0.5f);
         field.setSingleLine(true);
         field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
                 | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        field.setPadding(dp(12), dp(12), dp(12), dp(12));
         GradientDrawable box = new GradientDrawable();
-        box.setColor(skin.page);
-        box.setCornerRadius(dp(16));
+        if (m3) {
+            // the outlined text field: 56 tall, 16 inside, extra small corners
+            field.setPadding(dp(16), dp(8), dp(16), dp(8));
+            field.setMinHeight(dp(56));
+            box.setColor(0);
+            box.setCornerRadius(dp(4));
+        } else {
+            field.setPadding(dp(12), dp(12), dp(12), dp(12));
+            box.setColor(skin.page);
+            box.setCornerRadius(dp(16));
+        }
         box.setStroke(dp(1), skin.muted());
         field.setBackground(box);
         view(field);
@@ -388,22 +442,28 @@ final class Panel {
         b.setGravity(Gravity.CENTER);
         b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         b.setPadding(dp(12), dp(compact ? 8 : 10), dp(12), dp(compact ? 8 : 10));
+        // the small button of M3: 40 tall, fully round, label large, small corners while held
+        float round = dp(m3 ? 20 : 24), held = dp(m3 ? 8 : 12);
+        if (m3) {
+            M3Type.line(b, 14, 0.1f);
+            b.setPadding(dp(16), 0, dp(16), 0);
+        }
         if (main) {
             int accent = Accent.colour();
             b.setTextColor(onAccent(accent));
             b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             // a full pill that squares off a little while it is held
-            b.setBackground(Expressive.tile(context, accent, 0x33FFFFFF, dp(24), dp(24), dp(12)));
+            b.setBackground(Expressive.tile(context, accent, 0x33FFFFFF, round, round, held));
         } else {
             // a tonal pill, so that every sheet ends the same way
             b.setTextColor(skin.text);
             b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             b.setBackground(Expressive.tile(context, (skin.text & 0xFFFFFF) | 0x14000000,
-                    (Accent.colour() & 0xFFFFFF) | 0x33000000, dp(24), dp(24), dp(12)));
+                    (Accent.colour() & 0xFFFFFF) | 0x33000000, round, round, held));
             b.setFocusable(true);
         }
         Motion.touch(b);
-        b.setMinHeight(dp(compact ? 40 : 48));
+        b.setMinHeight(dp(m3 || compact ? 40 : 48));
         b.setFocusable(true);
         b.setOnClickListener(v -> {
             if (!stay) close();
@@ -459,6 +519,7 @@ final class Panel {
             dialog.setContentView(card);
             dialog.setCanceledOnTouchOutside(true);
             dialog.show();
+            Design.dialog(dialog,skin.card);
             Window window = dialog.getWindow();
             if (window != null) {
                 WindowManager.LayoutParams params = window.getAttributes();

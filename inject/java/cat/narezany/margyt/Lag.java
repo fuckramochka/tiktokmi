@@ -101,6 +101,7 @@ public final class Lag {
                 }
                 Thread.sleep(LOOK);
                 if (Probe.ON) sample(main.getStackTrace());
+                if (Probe.ON) HeapShot.tick(Lag::profile);
                 long now = SystemClock.uptimeMillis(), since = asked;
                 if (since == 0) {
                     early = null;

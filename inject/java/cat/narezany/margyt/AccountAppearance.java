@@ -41,7 +41,7 @@ public final class AccountAppearance {
         Accent.reload();AppearanceColors.reload();Fonts.reload();Themes.forget();LikeColors.reload();
         FeedRail.reloadSettings();
         FeedBlacklist.reload();PlayerTools.accountChanged();
-        VideoActions.accountChanged();PinnedFriends.reload();ProfileLayout.reload();MessageTimes.reload();ModNotifications.reload();Repost.reload();
+        VideoActions.accountChanged();ProfileLayout.reload();MessageTimes.reload();ModNotifications.reload();Repost.reload();
         new android.os.Handler(android.os.Looper.getMainLooper()).post(()->{
             if (change != revision) return;
             Themes.repaintVisible();Accent.refreshLikeViews();

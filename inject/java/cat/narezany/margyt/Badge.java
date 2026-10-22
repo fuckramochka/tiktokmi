@@ -383,7 +383,7 @@ public final class Badge {
                 out.setSpan(new Tap(badge), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 drew = true;
             }
-            if (gradient != null) Looks.paint(view, gradient);
+            if (gradient != null) Looks.paint(view, gradient, out);
             if (!drew) return tidy(out.toString());
             listen(view);
             return out;
@@ -579,16 +579,39 @@ public final class Badge {
                 Layout layout = view.getLayout();
                 if (layout == null) return null;
 
-                int x = (int) event.getX() - view.getTotalPaddingLeft() + view.getScrollX();
+                float x = event.getX() - view.getTotalPaddingLeft() + view.getScrollX();
                 int y = (int) event.getY() - view.getTotalPaddingTop() + view.getScrollY();
+                if (y < 0 || y > layout.getHeight()) return null;
                 int line = layout.getLineForVertical(y);
-                // an offset is answered even for a miss well past the end of
-                // the line, so the touch has to be inside the line as well
-                if (x < layout.getLineLeft(line) || x > layout.getLineRight(line)) return null;
-
-                int at = layout.getOffsetForHorizontal(line, x);
-                ClickableSpan[] found = ((Spanned) text).getSpans(at, at, ClickableSpan.class);
-                return found.length == 0 ? null : found[0];
+                // Each badge is measured where it is drawn, from the left edge of
+                // its picture to the left edge of what follows it. Asking the
+                // layout for "the offset under the finger" rounds to the nearest
+                // gap between characters, so a tap on the right half of one badge
+                // landed on the start of the next one: the next badge opened, or
+                // nothing did when the badge was the last.
+                Spanned spanned = (Spanned) text;
+                int start = layout.getLineStart(line), end = layout.getLineEnd(line);
+                ClickableSpan[] spans = spanned.getSpans(start, end, ClickableSpan.class);
+                float slop = view.getResources().getDisplayMetrics().density * 4;
+                ClickableSpan best = null;
+                float bestMiss = Float.MAX_VALUE;
+                for (ClickableSpan span : spans) {
+                    int from = Math.max(start, spanned.getSpanStart(span));
+                    int to = Math.min(end, spanned.getSpanEnd(span));
+                    if (to <= from) continue;
+                    float a = layout.getPrimaryHorizontal(from);
+                    float b = to >= end ? layout.getLineRight(line) : layout.getPrimaryHorizontal(to);
+                    if (to >= end && layout.getEllipsisCount(line) == 0) {
+                        // past the end of the line the picture's own width is what counts
+                        ImageSpan[] pictures = spanned.getSpans(from, to, ImageSpan.class);
+                        if (pictures.length > 0 && pictures[0].getDrawable() != null)
+                            b = a + pictures[0].getDrawable().getBounds().width();
+                    }
+                    float left = Math.min(a, b), right = Math.max(a, b);
+                    float miss = x < left ? left - x : x > right ? x - right : 0;
+                    if (miss <= slop && miss < bestMiss) { best = span; bestMiss = miss; }
+                }
+                return best;
             } catch (Throwable ignored) {
                 return null;
             }

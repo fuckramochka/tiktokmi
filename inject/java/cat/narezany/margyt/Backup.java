@@ -19,6 +19,7 @@ public final class Backup {
     private static final int SCHEMA = 1;
     private static final int MOST_BYTES = 512 * 1024;
     private static final String[] SAFE = {
+            Design.KEY,CommentStyle.KEY,
             Accent.KEY,"theme_plexus","theme_plexus_intensity",
             LikeColors.KEY,
             Margy.KEY_ENABLED, Margy.KEY_COUNTRY,
@@ -117,6 +118,8 @@ public final class Backup {
             for (String key : SAFE) {
                 if (!settings.has(key) || settings.isNull(key)) continue;
                 Object value = settings.get(key);
+                if (key.equals(Design.KEY) && (!(value instanceof String) || !Design.valid((String)value)))
+                    return new Review(null,"invalid interface style");
                 if(key.startsWith("rail_")||key.startsWith("notify_")||key.equals("repost_btn")||key.equals("message_times")||key.equals(Feed.KEY_STORIES)||key.equals(Feed.KEY_SUGGESTIONS)) {
                     if(!(value instanceof Boolean))return new Review(null,"invalid boolean: "+key);
                 }
@@ -167,9 +170,9 @@ public final class Backup {
                 else if (value instanceof Float) edit.putFloat(key, ((Float) value).floatValue());
                 else if (value instanceof String) edit.putString(key, (String) value);
             }
-            global.apply();appearance.apply();AppearanceColors.reload();
+            global.apply();appearance.apply();AppearanceColors.reload();Design.reload();
             FeedRail.reloadSettings();AvatarShape.reloadSettings();
-            FeedBlacklist.reload();PlayerTools.accountChanged();PinnedFriends.reload();ProfileLayout.reload();MessageTimes.reload();ModNotifications.reload();Repost.reload();
+            FeedBlacklist.reload();PlayerTools.accountChanged();ProfileLayout.reload();MessageTimes.reload();ModNotifications.reload();Repost.reload();
             Themes.forget();
             Fonts.reload();
             LikeColors.reload();
@@ -185,6 +188,7 @@ public final class Backup {
         if (context == null) return;
         String[] keys;
         if (group == 1) keys = new String[] {
+                Design.KEY,CommentStyle.KEY,
                 Accent.KEY,"theme_plexus","theme_plexus_intensity", LikeColors.KEY, Themes.KEY_ON, Themes.KEY_MATERIAL,
                 Themes.KEY_TEXT, Themes.KEY_BACKGROUND, Themes.KEY_STRENGTH,
                 Themes.KEY_TEXT + "_dark", Themes.KEY_TEXT + "_light",
@@ -215,8 +219,9 @@ public final class Backup {
         for (String key : keys) (AccountAppearance.appearanceKey(key)?appearance:edit).remove(key);
         appearance.apply();AppearanceColors.reload();
         edit.apply();
+        Design.reload();
         FeedRail.reloadSettings();AvatarShape.reloadSettings();
-        FeedBlacklist.reload();PlayerTools.accountChanged();PinnedFriends.reload();ProfileLayout.reload();MessageTimes.reload();ModNotifications.reload();Repost.reload();
+        FeedBlacklist.reload();PlayerTools.accountChanged();ProfileLayout.reload();MessageTimes.reload();ModNotifications.reload();Repost.reload();
         Themes.forget();
         Fonts.reload();
         LikeColors.reload();

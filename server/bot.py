@@ -33,6 +33,7 @@ sys.path.insert(0, HERE)
 
 import badges as service
 import patcher
+import mc
 import tiktok
 
 TOKEN_FILE = os.path.join(HERE, "bot.txt")
@@ -440,9 +441,14 @@ def known_face(url):
 HELP = (
     "<b>MargyT</b>\n\n"
     "<b>профиль</b> &lt;ник в тиктоке или айди&gt; — ник, аватарка и значки\n"
-    "<b>иконка</b> — пришли картинку документом и свой айди, попадёт владельцу\n\n"
+    "<b>иконка</b> — пришли картинку документом и свой айди, попадёт владельцу\n"
+    "<b>/mc</b> &lt;ник&gt; — привязать ник в Minecraft для сервера MargyCraft (для поддержавших)\n\n"
     "В любом чате можно написать <code>@%s ник</code> — покажет то же самое."
 )
+
+
+#: private chats the bot has asked for a Minecraft name, and when
+ASKING = {}
 
 
 def handle(update):
@@ -480,6 +486,34 @@ def handle(update):
             return say(chat, "Готово. Возвращайся в <b>Margy Patcher</b>.")
         return say(chat, "Этот вход уже не действует. Нажми «Войти через Telegram» "
                          "в патчере ещё раз.")
+
+    # MargyCraft: a player ties the name they play under to this Telegram account, once, from
+    # a phone if that is what they have. Only in a private chat, and a bare message is a name
+    # only straight after being asked for one.
+    if message["chat"].get("type") == "private" and from_who.get("id"):
+        word = low.split()[0].split("@")[0] if low else ""
+        rest = text.split(None, 1)[1].strip() if len(text.split(None, 1)) > 1 else ""
+        who, first = from_who["id"], from_who.get("first_name") or from_who.get("username") or ""
+        if word in ("/mc", "/minecraft"):
+            if rest:
+                ASKING.pop(chat, None)
+                return say(chat, mc.bind(who, first, rest))
+            ASKING[chat] = time.time()
+            return say(chat, mc.mine(who) + "\n\nЧтобы привязать ник, пришли его следующим сообщением.")
+        if word == "/mcdel":
+            return say(chat, mc.unbind(who, rest))
+        asked = ASKING.get(chat)
+        if asked and time.time() - asked < 180 and text and not text.startswith("/"):
+            ASKING.pop(chat, None)
+            return say(chat, mc.bind(who, first, text))
+
+    # Somebody opened the link a MargyCraft player was given: pressing Start tells us
+    # who they are, and the answer is the code to type in the game.
+    if low.startswith("/start m_"):
+        token = text.split("m_", 1)[1].strip()
+        if from_who.get("id"):
+            return say(chat, mc.claim(token, from_who["id"], from_who.get("first_name") or from_who.get("username") or ""))
+        return
 
     # The owner says which group is the supporters' one, from inside it.
     if low.split("@")[0] == "/supporters":

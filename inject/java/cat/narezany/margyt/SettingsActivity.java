@@ -98,7 +98,10 @@ public class SettingsActivity extends Activity {
     private static final String DOCS_PLUGINS =
             "https://git.narez.xyz/narezany/MargyT/src/branch/main/docs/plugins.md";
     private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
-    private static final String CARD_NUMBER = "2204120143055305";
+    private static final String BOOSTY = "https://boosty.to/ega_link";
+    private static final String FUNPAY = "https://funpay.com/lots/offer?id=80127335";
+    /** Stars go as gifts to this account; the link opens it in Telegram. */
+    private static final String STARS = "https://t.me/narezany";
 
     private boolean countriesOpen;
     private boolean accentOpen;
@@ -107,10 +110,81 @@ public class SettingsActivity extends Activity {
     private boolean backgroundOpen;
     private boolean themeColoursOpen;
     private boolean fontOpen;
-    private boolean iconOpen;
     private ScrollView page;
     private boolean thanksOpen;
     private int settingsGroup;
+    /** The page open inside a shelf, or null for the shelf's own list of pages. */
+    private String settingsPage;
+
+    /**
+     * A page of a shelf: one subject, with a name and a line that says what is in it.
+     * Its settings are the sections listed, in the order they are built.
+     */
+    private static final class Shelf {
+        final int group; final String id, icon, title, note; final String[] sections;
+        Shelf(int group, String id, String icon, String title, String note, String... sections) {
+            this.group = group; this.id = id; this.icon = icon; this.title = title; this.note = note; this.sections = sections;
+        }
+    }
+
+    private static Shelf[] shelves;
+
+    private Shelf[] shelves() {
+        if (shelves != null) return shelves;
+        shelves = new Shelf[] {
+            new Shelf(1, "style", "palette", Text.PAGE_STYLE, Text.PAGE_STYLE_NOTE, Text.APPEARANCE),
+            new Shelf(1, "accent", "format_color_fill", Text.ACCENT, Text.PAGE_ACCENT_NOTE, Text.ACCENT),
+            new Shelf(1, "md3", "view_compact", Text.MD3_TIKTOK, Text.PAGE_MD3_NOTE, Text.MD3_TIKTOK),
+            new Shelf(1, "theme", "contrast", Text.THEME, Text.PAGE_THEME_NOTE, Text.THEME),
+            new Shelf(1, "font", "text_fields", Text.FONT, Text.PAGE_FONT_NOTE, Text.FONT),
+            new Shelf(2, "badges", "verified", Text.BADGES, Text.PAGE_BADGES_NOTE, Text.BADGES),
+            new Shelf(2, "gradient", "palette", Text.GRADIENT, Text.PAGE_GRADIENT_NOTE, Text.GRADIENT),
+            new Shelf(2, "look", "account_circle", Text.PROFILE_VIEW, Text.PAGE_LOOK_NOTE, Text.PROFILE_VIEW),
+            new Shelf(2, "account", "fingerprint", Text.ACCOUNT, Text.PAGE_ACCOUNT_NOTE, Text.ACCOUNT),
+            new Shelf(3, "feed", "view_compact", Text.FEED, Text.PAGE_FEED_NOTE, Text.FEED, Text.DATE_FILTER, Text.TAGS),
+            new Shelf(3, "video", "play_circle", Text.VIDEO, Text.PAGE_VIDEO_NOTE, Text.RAIL, Text.VIDEO, Text.FPS),
+            new Shelf(3, "comments", "chat", Text.COMMENTS, Text.PAGE_COMMENTS_NOTE, Text.COMMENTS),
+            new Shelf(3, "burn", "eye_open", BURN, Text.PAGE_BURN_NOTE, BURN),
+            new Shelf(3, "region", "public", Text.REGION, Text.PAGE_REGION_NOTE, Text.REGION, Text.COUNTRY),
+            new Shelf(4, "downloads", "download", Text.DOWNLOADS, Text.PAGE_DOWNLOADS_NOTE, Text.DOWNLOADS),
+            new Shelf(4, "backup", "restore", Text.BACKUP, Text.PAGE_BACKUP_NOTE, Text.BACKUP),
+            new Shelf(4, "diagnostics", "bug_report", Text.DIAGNOSTICS, Text.PAGE_DIAGNOSTICS_NOTE, Text.DIAGNOSTICS),
+            new Shelf(4, "diary", "article", Text.DIARY, Text.PAGE_DIARY_NOTE, Text.DIARY),
+            new Shelf(5, "update", "update", Text.UPDATE, Text.PAGE_UPDATE_NOTE, Text.CHANNEL, Text.UPDATE),
+            new Shelf(5, "links", "link", Text.LINKS, Text.PAGE_LINKS_NOTE, Text.LINKS),
+            new Shelf(5, "thanks", "favorite_border", Text.THANKS, Text.PAGE_THANKS_NOTE, Text.THANKS),
+            new Shelf(6, "plugins", "extension", Text.PLUGINS, "", Text.PLUGINS),
+            new Shelf(7, "streaks", "schedule", Text.STREAKS, Text.PAGE_STREAKS_NOTE, Text.STREAKS),
+            new Shelf(7, "notifications", "notifications", Text.NOTIFICATIONS, Text.PAGE_NOTIFICATIONS_NOTE, Text.NOTIFICATIONS),
+            new Shelf(8, "dep", "flare", Text.FUN_DEP, Text.PAGE_DEP_NOTE, Text.FUN_DEP),
+            new Shelf(8, "rubble", "open_with", Text.FUN_RUBBLE, Text.PAGE_RUBBLE_NOTE, Text.FUN_RUBBLE),
+            new Shelf(8, "screamers", "animation", Text.FUN_SCREAMERS, Text.PAGE_SCREAMERS_NOTE, Text.FUN_SCREAMERS),
+            new Shelf(8, "avariyka", "notifications", Text.FUN_AVARIYKA, Text.PAGE_AVARIYKA_NOTE, Text.FUN_AVARIYKA),
+            new Shelf(8, "cat", "image", Text.FUN_CAT, Text.PAGE_CAT_NOTE, Text.FUN_CAT),
+        };
+        return shelves;
+    }
+
+    private java.util.List<Shelf> shelvesOf(int group) {
+        java.util.List<Shelf> out = new java.util.ArrayList<>();
+        for (Shelf one : shelves()) {
+            if (one.group != group) continue;
+            if (Version.LITE) { boolean any = false; for (String section : one.sections) any |= inLite(section); if (!any) continue; }
+            out.add(one);
+        }
+        return out;
+    }
+
+    private Shelf shelf(String id) {
+        if (id == null) return null;
+        for (Shelf one : shelves()) if (one.id.equals(id)) return one;
+        return null;
+    }
+
+    private Shelf shelfOfSection(String section) {
+        for (Shelf one : shelves()) for (String name : one.sections) if (name.equals(section)) return one;
+        return null;
+    }
     private boolean mineOpen;
     private java.util.List<Mine.Held> ordering;
     private boolean streakOpen;
@@ -165,9 +239,31 @@ public class SettingsActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         setContentView(root);
+        Design.page(this, root, skin.page);
         rebuild();
         maybeAskForSupport();
         if(getIntent().getBooleanExtra("margyt_tutorial",false))root.postDelayed(()->Tutorial.show(this),350L);
+        openPluginFile(getIntent());
+    }
+
+    /** Set by PluginOpenActivity: a .mtp opened from a file manager, to review as if it were picked here. */
+    static final String OPEN_PLUGIN = "margyt_open_plugin";
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        openPluginFile(intent);
+    }
+
+    private void openPluginFile(Intent intent) {
+        if (intent == null || !intent.getBooleanExtra(OPEN_PLUGIN, false) || intent.getData() == null) return;
+        final Uri file = intent.getData();
+        intent.removeExtra(OPEN_PLUGIN);
+        settingsGroup = 6;
+        settingsPage = "plugins";
+        rebuild();
+        root.post(() -> reviewPlugin(file));
     }
 
     void tutorialStep(int step) {
@@ -233,9 +329,23 @@ public class SettingsActivity extends Activity {
             restoreScroll(previousScroll);
             return;
         }
-        column.addView(title(settingsGroup == 0 ? (Version.LITE ? "MargyT Lite" : "MargyT") : groupName(settingsGroup)));
+        // a shelf with one page opens on it straight away
+        if (settingsGroup != 0 && settingsPage == null && searchQuery.length() == 0) {
+            java.util.List<Shelf> pages = shelvesOf(settingsGroup);
+            if (pages.size() == 1) settingsPage = pages.get(0).id;
+        }
+        Shelf open = shelf(settingsPage);
+        if (open != null && open.group != settingsGroup) { settingsPage = null; open = null; }
+        column.addView(title(settingsGroup == 0 ? (Version.LITE ? "MargyT Lite" : "MargyT") : open != null ? open.title : groupName(settingsGroup)));
         if(settingsGroup==0 || searchQuery.length()>0)column.addView(searchBox());
-        if (settingsGroup != 0) column.addView(wrap(actionRow("info",Local.of("Подсказки"),null,this::showSectionHelp)));
+        if (settingsGroup != 0 && open == null && searchQuery.length() == 0) {
+            column.addView(shelfList(settingsGroup));
+            column.addView(wrap(actionRow("info",Local.of("Подсказки"),null,this::showSectionHelp)));
+            showRestartBar();
+            restoreScroll(0);
+            return;
+        }
+        if (open != null && open.note.length() > 0) { View lead = lead(open.note); lead.setTag(LEAD, Boolean.TRUE); column.addView(lead); }
         if (searchQuery.length() > 0) {
             searchResults();
             restoreScroll(previousScroll);
@@ -244,7 +354,7 @@ public class SettingsActivity extends Activity {
 
         if (settingsGroup == 0) {
             if (Badges.freeStillOpen() && !Mine.hasFree()) column.addView(freeBanner());
-            column.addView(donateBanner());
+            if (!donateClosed && (!supporter() || bannerAlways())) column.addView(donateBanner());
             column.addView(groupNavigation());
             column.addView(wrap(actionRow("info",Local.of("Обучение"),null,() -> Tutorial.show(this))));
             column.addView(versions());
@@ -254,16 +364,16 @@ public class SettingsActivity extends Activity {
         }
 
         column.addView(section(Text.APPEARANCE));
+        column.addView(wrap(designPicker()));
         LinearLayout icons = card();
-        icons.addView(iconHead());
-        if (iconOpen) {
-            icons.addView(line());
-            icons.addView(appear(iconChoices()));
-        }
+        icons.addView(iconCarousel());
+        icons.addView(line());
+        icons.addView(actionRow("wallpaper", Text.CUSTOM_ICON, null, () -> CustomIcon.pick(this)));
         column.addView(wrap(icons));
 
         column.addView(section(Text.ACCENT));
         LinearLayout accent = card();
+        accent.addView(phone("accent").liked(true));
         accent.addView(accentHead());
         if (accentOpen) {
             if (Accent.fromWallpaper() != 0) {
@@ -275,33 +385,62 @@ public class SettingsActivity extends Activity {
         }
         column.addView(wrap(accent));
 
+        column.addView(section(Text.MD3_TIKTOK));
         LinearLayout loading = card();
-        loading.addView(liveToggleRow("palette", Text.LOADING_SHAPES, Loading.isEnabled(),
-                Loading::setEnabled));
-        loading.addView(quiet(Text.LOADING_NOTE));
+        final SettingsArt.Loader loader = new SettingsArt.Loader(this, skin, Loading.isEnabled());
+        loading.addView(loader);
+        loading.addView(liveToggleRow("palette", Design.frosted()?Text.LOADING_INDICATOR:Text.LOADING_SHAPES, Loading.isEnabled(),
+                on -> { Loading.setEnabled(on); loader.set(on); }));
+        loading.addView(quiet(Design.frosted()?Text.LOADING_STYLE_NOTE:Text.LOADING_NOTE));
+        column.addView(wrap(loading));
+
+        LinearLayout cards = card();
+        final SettingsPictures.Grid grid = new SettingsPictures.Grid(this, skin, Corners.isEnabled());
+        cards.addView(grid);
+        cards.addView(toggleRow("image", Text.ROUND_CARDS, Corners.isEnabled(), on -> {
+            Corners.setEnabled(on);
+            grid.set(on);
+        }));
+        column.addView(wrap(cards));
+
+        LinearLayout shapes = card();
+        shapes.addView(avatarShapes());
+        column.addView(wrap(shapes));
+
+        loading = card();
+        final SettingsArt.Phone md3Phone = phone("md3");
+        loading.addView(md3Phone);
+        loading.addView(toggleRow("tune", Text.NAV_CAPSULE, NavBar.isEnabled(), on -> {
+            NavBar.setEnabled(on);
+            md3Phone.capsule(on).settle();
+        }));
         loading.addView(line());
-        loading.addView(toggleRow("image", Text.ROUND_CARDS, Corners.isEnabled(),
-                Corners::setEnabled));
+        loading.addView(toggleRow("tune", Design.caption(Text.MD3_FEED), Md3.isOn(Md3.KEY_FEED), on -> Md3.set(Md3.KEY_FEED, on)));
         loading.addView(line());
-        loading.addView(actionRow("account_circle", Text.AVATAR_SHAPE,
-                AvatarShape.nameOf(AvatarShape.chosen()), this::chooseAvatarShape));
+        loading.addView(toggleRow("tune", Design.caption(Text.MD3_PROFILE), Md3.isOn(Md3.KEY_PROFILE), on -> Md3.set(Md3.KEY_PROFILE, on)));
         loading.addView(line());
-        loading.addView(toggleRow("view_compact", Text.NEW_PROFILE, Flags.isOn(Flags.KEY_NEW_PROFILE),
-                on -> Flags.set(Flags.KEY_NEW_PROFILE, on)));
+        loading.addView(toggleRow("tune", Design.caption(Text.MD3_INBOX), Md3.isOn(Md3.KEY_INBOX), on -> Md3.set(Md3.KEY_INBOX, on)));
         loading.addView(line());
-        loading.addView(toggleRow("tune", Text.NAV_CAPSULE, NavBar.isEnabled(), NavBar::setEnabled));
-        loading.addView(line());
-        loading.addView(toggleRow("tune", Text.MD3_FEED, Md3.isOn(Md3.KEY_FEED), on -> Md3.set(Md3.KEY_FEED, on)));
-        loading.addView(line());
-        loading.addView(toggleRow("tune", Text.MD3_ICONS, Md3.isOn(Md3.KEY_ICONS), on -> Md3.set(Md3.KEY_ICONS, on)));
-        loading.addView(line());
-        loading.addView(toggleRow("tune", Text.MD3_PROFILE, Md3.isOn(Md3.KEY_PROFILE), on -> Md3.set(Md3.KEY_PROFILE, on)));
-        loading.addView(line());
-        loading.addView(toggleRow("tune", Text.MD3_INBOX, Md3.isOn(Md3.KEY_INBOX), on -> Md3.set(Md3.KEY_INBOX, on)));
+        loading.addView(toggleRow("chat_bubble", Design.caption(Text.DESIGN_COMMENTS), CommentStyle.enabled(), CommentStyle::set));
         column.addView(wrap(loading));
 
         column.addView(section(Text.THEME));
         LinearLayout theme = card();
+        final SettingsPictures.Black black = new SettingsPictures.Black(this, skin, Themes.amoledChosen() && Themes.isDark());
+        theme.addView(black);
+        theme.addView(liveToggleRow("contrast", Text.AMOLED, Themes.amoledChosen() && Themes.isDark(), on -> {
+            black.set(on && Themes.isDark());
+            if (on && !Themes.isDark()) {
+                Panel.with(this, skin, Text.AMOLED).text(Text.AMOLED_LIGHT).primary(Local.of("Понятно"), null).show();
+                rebuildAfterSwitchAnimation();
+                return;
+            }
+            Themes.setAmoled(on);
+            markChanged();
+            rebuildAfterSwitchAnimation();
+        }));
+        theme.addView(quiet(Themes.isDark() ? Text.AMOLED_NOTE : Text.AMOLED_LIGHT));
+        theme.addView(line());
         if (Themes.available()) {
             // on, and wearing the phone's own colours: one switch for both,
             // because the other way to be on is to pick a preset below
@@ -332,11 +471,7 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.FONT));
         LinearLayout fonts = card();
-        fonts.addView(fontHead());
-        if (fontOpen) {
-            fonts.addView(line());
-            fonts.addView(appear(fontChoices()));
-        }
+        fonts.addView(fontCarousels());
         column.addView(wrap(fonts));
 
         column.addView(section(Text.GRADIENT));
@@ -344,11 +479,20 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.BADGES));
         LinearLayout badges = card();
-        badges.addView(toggleRow("favorite_border", Text.BADGES_ON, Badges.isEnabled(),
-                Badges::setEnabled));
+        final SettingsPictures.Badged badged = new SettingsPictures.Badged(this, skin, Badges.isEnabled());
+        badges.addView(badged);
+        badges.addView(toggleRow("favorite_border", Text.BADGES_ON, Badges.isEnabled(), on -> {
+            Badges.setEnabled(on);
+            badged.set(on);
+        }));
         badges.addView(line());
         badges.addView(mineHead());
         if (mineOpen) badges.addView(appear(mineRows()));
+        if (AdminPanel.owner()) {
+            // the owner's alone: which phones may use the admin inside TikTok
+            badges.addView(line());
+            badges.addView(actionRow("fingerprint", Text.ADMIN_DEVICES, null, () -> AdminPanel.devices(this)));
+        }
         column.addView(wrap(badges));
 
         column.addView(section(Text.ACCOUNT));
@@ -357,6 +501,17 @@ public class SettingsActivity extends Activity {
         account.addView(line());
         account.addView(idRow(Text.ACCOUNT_SEC_ID, Account.secId()));
         column.addView(wrap(account));
+
+        column.addView(section(Text.PROFILE_VIEW));
+        LinearLayout look = card();
+        final SettingsPictures.Layout layout = new SettingsPictures.Layout(this, skin, Flags.isOn(Flags.KEY_NEW_PROFILE));
+        look.addView(layout);
+        look.addView(toggleRow("view_compact", Text.NEW_PROFILE, Flags.isOn(Flags.KEY_NEW_PROFILE), on -> {
+            Flags.set(Flags.KEY_NEW_PROFILE, on);
+            layout.set(on);
+        }));
+        look.addView(quiet(Text.NEW_PROFILE_NOTE));
+        column.addView(wrap(look));
 
         column.addView(section(Text.REGION));
         LinearLayout head = card();
@@ -376,17 +531,74 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.FEED));
         LinearLayout feed = card();
-        feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), Feed::setEnabled));
+        // the feed as a strip of cards: what is hidden folds out of it
+        final SettingsPictures.Feed strip = new SettingsPictures.Feed(this, skin)
+                .hide(SettingsPictures.Feed.AD, Feed.isEnabled())
+                .hide(SettingsPictures.Feed.LIVE, Feed.hides(Feed.KEY_LIVE))
+                .hide(SettingsPictures.Feed.PHOTO, Feed.hides(Feed.KEY_PHOTOS))
+                .hide(SettingsPictures.Feed.STORY, Feed.hides(Feed.KEY_STORIES))
+                .hide(SettingsPictures.Feed.SUGGEST, Feed.hides(Feed.KEY_SUGGESTIONS));
+        feed.addView(strip);
+        feed.addView(toggleRow("block", Text.HIDE_ADS, Feed.isEnabled(), on -> {
+            Feed.setEnabled(on);
+            strip.hide(SettingsPictures.Feed.AD, on).settle();
+        }));
         feed.addView(line());
-        feed.addView(toggleRow("visibility_off", Text.HIDE_LIVE, Feed.hides(Feed.KEY_LIVE),
-                on -> Feed.setHides(Feed.KEY_LIVE, on)));
+        feed.addView(toggleRow("visibility_off", Text.HIDE_LIVE, Feed.hides(Feed.KEY_LIVE), on -> {
+            Feed.setHides(Feed.KEY_LIVE, on);
+            strip.hide(SettingsPictures.Feed.LIVE, on).settle();
+        }));
         feed.addView(line());
-        feed.addView(toggleRow("image", Text.HIDE_PHOTOS, Feed.hides(Feed.KEY_PHOTOS),
-                on -> Feed.setHides(Feed.KEY_PHOTOS, on)));
+        feed.addView(toggleRow("image", Text.HIDE_PHOTOS, Feed.hides(Feed.KEY_PHOTOS), on -> {
+            Feed.setHides(Feed.KEY_PHOTOS, on);
+            strip.hide(SettingsPictures.Feed.PHOTO, on).settle();
+        }));
         feed.addView(line());
-        feed.addView(liveToggleRow("visibility_off",Text.HIDE_STORIES,Feed.hides(Feed.KEY_STORIES),on->Feed.setHides(Feed.KEY_STORIES,on)));
-        feed.addView(liveToggleRow("visibility_off",Text.HIDE_SUGGESTIONS,Feed.hides(Feed.KEY_SUGGESTIONS),on->Feed.setHides(Feed.KEY_SUGGESTIONS,on)));
+        feed.addView(liveToggleRow("visibility_off",Text.HIDE_STORIES,Feed.hides(Feed.KEY_STORIES),on->{
+            Feed.setHides(Feed.KEY_STORIES,on);
+            strip.hide(SettingsPictures.Feed.STORY, on).settle();
+        }));
+        feed.addView(liveToggleRow("visibility_off",Text.HIDE_SUGGESTIONS,Feed.hides(Feed.KEY_SUGGESTIONS),on->{
+            Feed.setHides(Feed.KEY_SUGGESTIONS,on);
+            strip.hide(SettingsPictures.Feed.SUGGEST, on).settle();
+        }));
         column.addView(wrap(feed));
+
+        column.addView(section(Text.SIMPLE_FEED));
+        LinearLayout simpler = card();
+        final SettingsArt.Phone simpleArt = phone("simple").simple(SimpleFeed.isOn());
+        simpler.addView(simpleArt);
+        simpler.addView(liveToggleRow("view_compact", Text.SIMPLE_FEED, SimpleFeed.isOn(), on -> {
+            SimpleFeed.set(this, on);
+            simpleArt.simple(on).settle();
+        }));
+        simpler.addView(quiet(Text.SIMPLE_FEED_NOTE));
+        column.addView(wrap(simpler));
+
+        column.addView(section(Text.DATE_FILTER));
+        LinearLayout dates = card();
+        final SettingsPictures.Ages ages = new SettingsPictures.Ages(this, skin, FeedDates.hours());
+        dates.addView(ages);
+        LinearLayout datesHead = row();
+        datesHead.addView(icon("schedule"));
+        datesHead.addView(label(Text.DATE_FILTER), grow());
+        final TextView datesNow = detail(FeedDates.describe(FeedDates.hours()));
+        datesNow.setTextColor(skin.text);
+        datesHead.addView(datesNow);
+        dates.addView(sized(datesHead, 52));
+        String[] limits = new String[FeedDates.HOURS.length];
+        int limitAt = 0;
+        for (int i = 0; i < limits.length; i++) {
+            limits[i] = FeedDates.describe(FeedDates.HOURS[i]);
+            if (FeedDates.HOURS[i] == FeedDates.hours()) limitAt = i;
+        }
+        dates.addView(chips(limits, limitAt, index -> {
+            FeedDates.setHours(FeedDates.HOURS[index]);
+            datesNow.setText(FeedDates.describe(FeedDates.HOURS[index]));
+            ages.set(FeedDates.HOURS[index]);
+        }));
+        dates.addView(caption(Text.DATE_FILTER_NOTE));
+        column.addView(wrap(dates));
 
         column.addView(section(Text.TAGS));
         LinearLayout tags = card();
@@ -416,90 +628,163 @@ public class SettingsActivity extends Activity {
 
         column.addView(section(Text.RAIL));
         LinearLayout rail=card();
+        // the buttons can be tapped on the picture itself, and the switches follow
+        final SettingsArt.Phone railArt = phone("rail");
+        rail.addView(railArt);
         String[] railNames={Text.RAIL_LIKE,Text.RAIL_COMMENT,Text.RAIL_FAV,Text.RAIL_SHARE};
         String[] railIcons={"favorite_border","chat","star","share"};
+        final View[] railRows = new View[railNames.length];
         for(int i=0;i<railNames.length;i++){
             final int kind=i;
-            rail.addView(liveToggleRow(railIcons[i],railNames[i],FeedRail.shown(i),on->FeedRail.setShown(kind,on)));
+            railRows[i] = liveToggleRow(railIcons[i],railNames[i],FeedRail.shown(i),on->{
+                FeedRail.setShown(kind,on);
+                railArt.rail(kind,on).settle();
+            });
+            rail.addView(railRows[i]);
         }
+        railArt.onRail(kind -> {
+            boolean now = !FeedRail.shown(kind);
+            FeedRail.setShown(kind, now);
+            railArt.rail(kind, now).settle();
+            M3Switch moved = switchIn(railRows[kind]);
+            if (moved != null) moved.setChecked(now, true);
+        });
+        rail.addView(quiet(Text.RAIL_TAP));
         column.addView(wrap(rail));
 
         column.addView(section(Text.VIDEO));
         LinearLayout video = card();
-        video.addView(actionRow("speed",Text.PLAYER_SPEED,Float.toString(PlayerTools.speed())+"×",()->PlayerTools.choose(this,this::rebuild)));
-        video.addView(toggleRow("lock", Text.SPEED_LOCK, Flags.isOn(Flags.KEY_SPEED_LOCK),
-                on -> Flags.set(Flags.KEY_SPEED_LOCK, on)));
-        video.addView(toggleRow("volume_up", Text.SOUND, Sound.isEnabled(), Sound::setEnabled));
+        // a finger on the edge of a video: the speed while held, and swiped down to keep it
+        final SettingsPictures.Speed speedArt = new SettingsPictures.Speed(this, skin, PlayerTools.speed(),
+                Flags.isOn(Flags.KEY_SPEED_LOCK));
+        video.addView(speedArt);
+        LinearLayout speedHead = row();
+        speedHead.addView(icon("speed"));
+        speedHead.addView(label(Text.PLAYER_SPEED), grow());
+        final TextView speedNow = detail(PlayerTools.speed() + "\u00D7");
+        speedNow.setTextColor(skin.text);
+        speedHead.addView(speedNow);
+        video.addView(sized(speedHead, 52));
+        final float[] speeds = {1f, 1.5f, 2f, 3f};
+        int speedAt = 4;
+        for (int i = 0; i < speeds.length; i++) if (Math.abs(PlayerTools.speed() - speeds[i]) < 0.01f) speedAt = i;
+        video.addView(segmented(new String[] {"1\u00D7", "1.5\u00D7", "2\u00D7", "3\u00D7", "\u2026"}, speedAt, index -> {
+            if (index == 4) { PlayerTools.choose(this, this::rebuild); return; }
+            PlayerTools.setSpeed(speeds[index]);
+            speedNow.setText(speeds[index] + "\u00D7");
+            speedArt.set(speeds[index], Flags.isOn(Flags.KEY_SPEED_LOCK));
+        }));
+        video.addView(toggleRow("lock", Text.SPEED_LOCK, Flags.isOn(Flags.KEY_SPEED_LOCK), on -> {
+            Flags.set(Flags.KEY_SPEED_LOCK, on);
+            speedArt.set(PlayerTools.speed(), on);
+        }));
+
+        video.addView(liveToggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(), on -> {
+            Seekbar.setEnabled(on);
+            railArt.seekbar(on).settle();
+        }));
         video.addView(line());
-        video.addView(liveToggleRow("timeline", Text.SEEKBAR, Seekbar.isEnabled(),
-                Seekbar::setEnabled));
+        video.addView(liveToggleRow("info", Text.ALWAYS_DATE, Dates.isEnabled(), on -> {
+            Dates.setEnabled(on);
+            railArt.date(on).settle();
+        }));
         video.addView(line());
-        video.addView(liveToggleRow("info", Text.ALWAYS_DATE, Dates.isEnabled(),
-                Dates::setEnabled));
-        video.addView(line());
-        video.addView(toggleRow("hdr_off", Text.OWN_BRIGHTNESS, Brightness.isEnabled(), on -> {
+        column.addView(wrap(video));
+
+        LinearLayout sound = card();
+        final SettingsPictures.Sound soundArt = new SettingsPictures.Sound(this, skin, Sound.isEnabled());
+        sound.addView(soundArt);
+        sound.addView(toggleRow("volume_up", Text.SOUND, Sound.isEnabled(), on -> {
+            Sound.setEnabled(on);
+            soundArt.set(on);
+        }));
+        column.addView(wrap(sound));
+
+        LinearLayout bright = card();
+        final SettingsPictures.Bright brightArt = new SettingsPictures.Bright(this, skin, Brightness.isEnabled());
+        bright.addView(brightArt);
+        bright.addView(toggleRow("hdr_off", Text.OWN_BRIGHTNESS, Brightness.isEnabled(), on -> {
             Brightness.setEnabled(on);
+            brightArt.set(on);
             markChanged();
         }));
-        video.addView(caption(Text.OWN_BRIGHTNESS_NOTE));
-        column.addView(wrap(video));
+        bright.addView(caption(Text.OWN_BRIGHTNESS_NOTE));
+        column.addView(wrap(bright));
 
         column.addView(section(Text.FPS));
         LinearLayout fps = card();
-        fps.addView(quiet(Text.FPS_ABOUT));
+        // a ball drawn as often as the chosen rate, beside TikTok's sixty, and the rates in one row
+        final SettingsPictures.Fps fpsArt = new SettingsPictures.Fps(this, skin, Rate.name());
+        fps.addView(fpsArt);
         String rate = Rate.name();
+        String[] rates = new String[Rate.CHOICES.length];
+        int rateAt = 0;
         for (int i = 0; i < Rate.CHOICES.length; i++) {
-            final String which = Rate.CHOICES[i];
-            if (i > 0) fps.addView(line());
-            fps.addView(pickRow(fpsName(which), which.equals(rate), null, () -> {
-                Rate.choose(which);
-                markChanged();
-            }));
+            rates[i] = Rate.CHOICES[i].length() == 0 ? Text.FPS_AUTO : Rate.CHOICES[i];
+            if (Rate.CHOICES[i].equals(rate)) rateAt = i;
         }
+        fps.addView(segmented(rates, rateAt, index -> {
+            Rate.choose(Rate.CHOICES[index]);
+            fpsArt.set(Rate.CHOICES[index]);
+            markChanged();
+        }));
+        fps.addView(quiet(Text.FPS_ABOUT));
         if (!Rate.reachable(this)) fps.addView(quiet(Text.FPS_UNSUPPORTED));
         column.addView(wrap(fps));
 
         column.addView(section(Text.COMMENTS));
         LinearLayout comments = card();
-        comments.addView(liveToggleRow("article", Text.COMMENT_COPY_ON, Comments.isCopyEnabled(),
-                Comments::setCopyEnabled));
+        final SettingsPictures.Copying copying = new SettingsPictures.Copying(this, skin, Comments.isCopyEnabled());
+        comments.addView(copying);
+        comments.addView(liveToggleRow("article", Text.COMMENT_COPY_ON, Comments.isCopyEnabled(), on -> {
+            Comments.setCopyEnabled(on);
+            copying.set(on);
+        }));
+        comments.addView(quiet(Text.COMMENT_COPY_NOTE));
         column.addView(wrap(comments));
-
-        column.addView(section(Text.TIKTOK_FEATURES));
-        LinearLayout features = card();
-        features.addView(quiet(Text.TIKTOK_FEATURES_NOTE));
-        features.addView(toggleRow("repeat", Text.COMMENT_REPOST, Flags.isOn(Flags.KEY_COMMENT_REPOST),
-                on -> Flags.set(Flags.KEY_COMMENT_REPOST, on)));
-        features.addView(line());
-        features.addView(toggleRow("repeat", Text.SELF_REPOST, Flags.isOn(Flags.KEY_SELF_REPOST),
-                on -> Flags.set(Flags.KEY_SELF_REPOST, on)));
-        features.addView(line());
-        features.addView(toggleRow("language", Text.TRANSLATE_COMMENTS, Flags.isOn(Flags.KEY_TRANSLATE_COMMENTS),
-                on -> Flags.set(Flags.KEY_TRANSLATE_COMMENTS, on)));
-        column.addView(wrap(features));
 
         column.addView(section(BURN));
         LinearLayout burn = card();
+        // the phone shows what the switch and the slider do, as they are moved
+        final SettingsArt.Phone burnArt = phone("burn").burn(Dim.isConfigured(), Dim.strength(), NavBar.isKept());
+        burn.addView(burnArt);
         burn.addView(liveToggleRow("eye_open", Text.DIM, Dim.isConfigured(), on -> {
             Dim.setEnabled(on);
+            burnArt.burn(on, Dim.strength(), NavBar.isKept()).settle();
             rebuildAfterSwitchAnimation();
         }));
         if (Dim.isConfigured()) {
             burn.addView(line());
-            burn.addView(slider("contrast", Text.DIM_HOW, Dim.strength(), 90, 0, "%", value -> Dim.setStrength(value)));
+            burn.addView(slider("contrast", Text.DIM_HOW, Dim.strength(), 100, 0, "%", value -> Dim.setStrength(value), false,
+                    value -> burnArt.burn(true, value, NavBar.isKept()).settle()));
             burn.addView(line());
-            burn.addView(toggleRow("visibility_off", Text.KEEP_BAR, NavBar.isKept(), NavBar::setKept));
+            burn.addView(toggleRow("visibility_off", Text.KEEP_BAR, NavBar.isKept(), on -> {
+                NavBar.setKept(on);
+                burnArt.burn(true, Dim.strength(), on).settle();
+            }));
         }
-        burn.addView(quiet(Local.of("Глаз в ленте и на видео включает и выключает затемнение на лету. Поле ввода комментария не затемняется. Нижняя панель при затемнении прячется и возвращается на несколько секунд, если нажать на её место.")));
+        burn.addView(quiet(Local.of("Глаз в ленте включает и выключает приглушение на лету.")));
         column.addView(wrap(burn));
 
         column.addView(section(Text.DOWNLOADS));
         LinearLayout downloads = card();
-        downloads.addView(actionRow("image",Text.FRAME_QUALITY,Integer.toString(FrameCapture.quality()),()->{
-            new ModDialog.Builder(this).setItems(new String[]{"480","720","1080"},(dialog,index)->{AccountAppearance.prefs(this).edit().putInt(FrameCapture.KEY,new int[]{480,720,1080}[index]).apply();rebuild();}).show();
+        downloads.addView(liveToggleRow("download", Text.DOWNLOAD_WINDOW, VideoActions.windowOn(), VideoActions::setWindow));
+        downloads.addView(quiet(Text.DOWNLOAD_WINDOW_NOTE));
+        downloads.addView(line());
+        LinearLayout qualityHead = row();
+        qualityHead.addView(icon("image"));
+        qualityHead.addView(label(Text.FRAME_QUALITY), grow());
+        downloads.addView(sized(qualityHead, 52));
+        final int[] qualities = {480, 720, 1080};
+        int qualityAt = FrameCapture.quality() == 480 ? 0 : FrameCapture.quality() == 1080 ? 2 : 1;
+        downloads.addView(segmented(new String[] {"480p", "720p", "1080p"}, qualityAt, index ->
+                AccountAppearance.prefs(this).edit().putInt(FrameCapture.KEY, qualities[index]).apply()));
+        final SettingsPictures.Watermark mark = new SettingsPictures.Watermark(this, skin, Download.isEnabled());
+        downloads.addView(mark, 0);
+        downloads.addView(toggleRow("image", Text.NO_WATERMARK, Download.isEnabled(), on -> {
+            Download.setEnabled(on);
+            mark.set(on);
         }));
-        downloads.addView(toggleRow("image", Text.NO_WATERMARK, Download.isEnabled(),
-                Download::setEnabled));
         downloads.addView(line());
         downloads.addView(toggleRow("download", Text.DOWNLOAD_ALWAYS, Download.isAlways(),
                 Download::setAlways));
@@ -536,14 +821,19 @@ public class SettingsActivity extends Activity {
         for(Plugins.Info info:installed)plugins.addView(pluginRow(info));
         column.addView(wrap(plugins));
 
-        column.addView(section(Text.PINNED_FRIENDS));
-        LinearLayout friends=card();friends.addView(actionRow("people",Text.PINNED_FRIENDS,null,()->PinnedFriends.show(this)));
-        column.addView(wrap(friends));
-
         column.addView(section(Text.STREAKS));
         LinearLayout streaks = card();
-        streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(),
-                Streaks::setEnabled));
+        final SettingsArt.Chat chat = new SettingsArt.Chat(this, skin);
+        final String sent = Streaks.chosen();
+        chat.state(Streaks.isEnabled(), sent.length() == 0 ? null : Streaks.thumbnail(this, sent, () -> {
+            if (!chat.isAttachedToWindow()) return;
+            chat.state(Streaks.isEnabled(), Streaks.thumbnail(this, sent));
+        }));
+        streaks.addView(chat);
+        streaks.addView(betaRow("repeat", Text.STREAK_AUTO, Streaks.isEnabled(), on -> {
+            Streaks.setEnabled(on);
+            chat.state(on, sent.length() == 0 ? null : Streaks.thumbnail(this, sent)).settle();
+        }));
         streaks.addView(line());
         // What the schedule is standing on, said plainly: an inexact alarm, a
         // battery saver or a muted notification channel each stop the send, and
@@ -564,19 +854,17 @@ public class SettingsActivity extends Activity {
                 () -> Popup.ask(this, Text.STREAK_ALL, Text.STREAK_ALL_ASK,
                         Text.STREAK_ALL_SEND, () -> Streaks.sendAll(this),
                         Text.CANCEL, null, null, null)));
-        streaks.addView(line());
-        streaks.addView(actionRow("play_circle", Text.STREAK_TEST, Text.STREAK_TEST_NOTE,
-                () -> {
-                    Streaks.test(this);
-                    Toast.makeText(this, Text.STREAK_TEST_GOING, Toast.LENGTH_SHORT).show();
-                }));
         column.addView(wrap(streaks));
 
         column.addView(section(Text.NOTIFICATIONS));
         LinearLayout notifications=card();
-        notifications.addView(liveToggleRow("chat",Text.NOTIFY_MESSAGES,ModNotifications.option(0),on->{ModNotifications.set(ModNotifications.MESSAGES,on);rebuildAfterSwitchAnimation();}));
-        notifications.addView(liveToggleRow("notifications",Text.NOTIFY_PROMOS,ModNotifications.option(1),on->{ModNotifications.set(ModNotifications.PROMOS,on);rebuildAfterSwitchAnimation();}));
-        notifications.addView(liveToggleRow("notifications",Text.NOTIFY_OTHER,ModNotifications.option(2),on->{ModNotifications.set(ModNotifications.OTHER,on);rebuildAfterSwitchAnimation();}));
+        // three notifications as the phone shows them: the kinds turned off are struck out
+        final SettingsPictures.Notices notices = new SettingsPictures.Notices(this, skin)
+                .set(0, ModNotifications.option(0)).set(1, ModNotifications.option(1)).set(2, ModNotifications.option(2));
+        notifications.addView(notices);
+        notifications.addView(liveToggleRow("chat",Text.NOTIFY_MESSAGES,ModNotifications.option(0),on->{ModNotifications.set(ModNotifications.MESSAGES,on);notices.set(0,on).settle();if(!on)rebuildAfterSwitchAnimation();}));
+        notifications.addView(liveToggleRow("notifications",Text.NOTIFY_PROMOS,ModNotifications.option(1),on->{ModNotifications.set(ModNotifications.PROMOS,on);notices.set(1,on).settle();if(!on)rebuildAfterSwitchAnimation();}));
+        notifications.addView(liveToggleRow("notifications",Text.NOTIFY_OTHER,ModNotifications.option(2),on->{ModNotifications.set(ModNotifications.OTHER,on);notices.set(2,on).settle();if(!on)rebuildAfterSwitchAnimation();}));
         notifications.addView(liveToggleRow("notifications_off",Text.NOTIFY_NO_PROMPTS,ModNotifications.noPrompts(),on->{AccountAppearance.prefs(this).edit().putBoolean(ModNotifications.NO_PROMPTS,on).apply();ModNotifications.reload();}));
         notifications.addView(actionRow("settings",Text.NOTIFY_SETTINGS,null,()->ModNotifications.settings(this)));
         column.addView(wrap(notifications));
@@ -589,6 +877,13 @@ public class SettingsActivity extends Activity {
         updates.addView(actionRow("download", Text.UPDATE_CHECK,
                 Updater.newer() ? Text.UPDATE_THERE_IS + " " + Updater.latest() : null,
                 () -> Updater.check(this, true)));
+        updates.addView(line());
+        if (Updater.storeInstalled(this)) {
+            updates.addView(actionRow("extension", Text.UPDATE_OPEN_STORE, Text.UPDATE_IN_STORE, () -> Updater.openStore(this)));
+            updates.addView(line());
+        }
+        updates.addView(actionRow("download", Text.UPDATE_DOWNLOAD_STORE,
+                Updater.storeInstalled(this) ? null : Text.UPDATE_IN_STORE, () -> Updater.downloadStore(this)));
         updates.addView(line());
         updates.addView(toggleRow("info", Text.UPDATE_REMIND, Updater.remind(this),
                 on -> Updater.setRemind(this, on)));
@@ -609,7 +904,7 @@ public class SettingsActivity extends Activity {
         column.addView(section(Text.DIAGNOSTICS));
         LinearLayout diagnostics = card();
         diagnostics.addView(liveToggleRow("bug_report", Local.of("Отчёты о сбоях"),CrashReports.enabled(this),on->CrashReports.set(this,on)));
-        diagnostics.addView(quiet(Local.of("Отправлять разработчику технический стек сбоя. Без сообщений, аккаунта и текста ошибки.")));
+        diagnostics.addView(quiet(Local.of("Технический стек сбоя, без сообщений и аккаунта.")));
         diagnostics.addView(quiet(Diagnostics.report()));
         diagnostics.addView(line());
         diagnostics.addView(actionRow("article", Text.COPY_DIAGNOSTICS, null,
@@ -637,6 +932,11 @@ public class SettingsActivity extends Activity {
         }
         donateAnchor = wrap(support);
         column.addView(donateAnchor);
+        LinearLayout offer = card();
+        offer.addView(liveToggleRow("favorite_border", Text.BANNER_ALWAYS, bannerAlways(),
+                on -> AccountAppearance.prefs(this).edit().putBoolean(BANNER_ALWAYS, on).apply()));
+        offer.addView(quiet(Text.BANNER_ALWAYS_NOTE));
+        column.addView(wrap(offer));
 
         column.addView(section(Text.FUN_DEP));
         LinearLayout dep = card();
@@ -644,12 +944,17 @@ public class SettingsActivity extends Activity {
                 this::openDep));
         dep.addView(quiet(Text.DEP_NOTE));
         dep.addView(line());
-        dep.addView(liveToggleRow("open_with", Text.DEP_FLOAT, DepFloat.isOn(this),
-                on -> DepFloat.set(this, on)));
+        final SettingsPictures.DepWindow depArt = new SettingsPictures.DepWindow(this, skin, DepFloat.isOn(this));
+        dep.addView(depArt);
+        dep.addView(liveToggleRow("open_with", Text.DEP_FLOAT, DepFloat.isOn(this), on -> {
+            DepFloat.set(this, on);
+            depArt.set(on);
+        }));
         column.addView(wrap(dep));
 
         column.addView(section(Text.FUN_SCREAMERS));
         LinearLayout screamers = card();
+        screamers.addView(new SettingsPictures.Scream(this, skin));
         screamers.addView(liveToggleRow("animation", Text.FUN_SCREAMERS, Screamer.isOn(this),
                 on -> Screamer.set(this, on)));
         screamers.addView(quiet(Text.SCREAMERS_NOTE));
@@ -659,6 +964,20 @@ public class SettingsActivity extends Activity {
         screamers.addView(line());
         screamers.addView(actionRow("play_arrow", Text.SCREAMER_NOW, null, () -> Screamer.now(this)));
         column.addView(wrap(screamers));
+
+        column.addView(section(Text.FUN_RUBBLE));
+        LinearLayout rubble = card();
+        rubble.addView(new SettingsPictures.Fall(this, skin));
+        rubble.addView(actionRow("open_with", Text.FUN_RUBBLE, null, () -> Rubble.arm(this)));
+        rubble.addView(quiet(Text.RUBBLE_NOTE));
+        column.addView(wrap(rubble));
+
+        column.addView(section(Text.FUN_AVARIYKA));
+        LinearLayout avariyka = card();
+        avariyka.addView(new SettingsPictures.Emergency(this, skin));
+        avariyka.addView(liveToggleRow("notifications", Text.FUN_AVARIYKA, Avariyka.isOn(this), on -> Avariyka.set(this, on)));
+        avariyka.addView(quiet(Text.AVARIYKA_NOTE));
+        column.addView(wrap(avariyka));
 
         column.addView(section(Text.FUN_CAT));
         column.addView(fatCat());
@@ -719,7 +1038,7 @@ public class SettingsActivity extends Activity {
             });
         }
         LinearLayout box = new LinearLayout(this);
-        box.setPadding(dp(12), 0, dp(12), dp(6));
+        box.setPadding(edge(), 0, edge(), dp(6));
         box.addView(cat, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return box;
@@ -869,80 +1188,87 @@ public class SettingsActivity extends Activity {
      * The first thing on the screen, and the only thing here that asks for
      * something. Short, because a long one is an advertisement.
      */
+    /** Closed with its cross: gone until the settings are opened again. */
+    private boolean donateClosed;
+
+    /** A supporter can still ask to see the offer, to show it to a friend or to give again. */
+    static final String BANNER_ALWAYS = "donate_banner_always";
+
+    private boolean bannerAlways() {
+        return AccountAppearance.prefs(this).getBoolean(BANNER_ALWAYS, false);
+    }
+
+    /** Whether this account already wears the supporter's badge, hidden or shown. */
+    private static boolean supporter() {
+        try {
+            if (Mine.holds(Tester.SUPPORTER)) return true;
+            Badges.Badge[] worn = Badges.of(Account.id());
+            if (worn != null) for (Badges.Badge one : worn) if (one != null && Tester.SUPPORTER.equals(one.id)) return true;
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
     private View donateBanner() {
+        // a filled card: a title, one line of what it gives, one button; how to
+        // pay and where to write are on the page the button opens
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(18), dp(16), dp(18), dp(16));
-
+        card.setPadding(dp(16), dp(8), dp(8), dp(16));
         GradientDrawable background = new GradientDrawable();
-        background.setCornerRadius(Math.max(skin.radius, dp(18)));
+        background.setCornerRadius(dp(Design.frosted() ? 18 : 12));
         background.setColor(skin.card);
         card.setBackground(background);
 
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
         TextView head = new TextView(this);
         head.setText(Text.DONATE_BANNER);
         head.setTextColor(skin.text);
-        head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
-        head.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        card.addView(head);
+        M3Type.line(head, 16, 0.15f);
+        head.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        top.addView(head, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        ImageView close = new ImageView(this);
+        close.setImageDrawable(SettingsGlyph.make("close", skin.muted()));
+        close.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        close.setPadding(dp(12), dp(12), dp(12), dp(12));
+        close.setContentDescription(Text.CLOSE);
+        Motion.press(close);
+        close.setOnClickListener(v -> {
+            donateClosed = true;
+            View banner = card;
+            ViewGroup holder = banner.getParent() instanceof ViewGroup ? (ViewGroup) banner.getParent() : null;
+            View gone = holder != null && holder != column ? holder : banner;
+            gone.animate().alpha(0f).setDuration(160).withEndAction(() -> rebuild()).start();
+        });
+        top.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        card.addView(top);
 
         TextView body = new TextView(this);
         body.setText(Text.DONATE_BANNER_TEXT);
-        body.setTextColor(skin.text);
-        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        body.setPadding(0, dp(4), 0, 0);
+        body.setTextColor(skin.muted());
+        M3Type.bodyMedium(body);
+        body.setPadding(0, 0, dp(8), 0);
         card.addView(body);
-
-        TextView how = new TextView(this);
-        how.setText(Text.DONATE_BANNER_HOW);
-        how.setTextColor(skin.muted());
-        how.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        how.setPadding(0, dp(8), 0, 0);
-        card.addView(how);
 
         TextView go = new TextView(this);
         go.setText(Text.DONATE_BANNER_BUTTON);
         go.setTextColor(onAccent());
-        go.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        go.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        M3Type.line(go, 14, 0.1f);
+        go.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         go.setGravity(Gravity.CENTER);
-        go.setPadding(0, dp(11), 0, dp(11));
-        GradientDrawable pill = new GradientDrawable();
-        pill.setColor(Accent.colour());
-        pill.setCornerRadius(dp(14));
-        go.setBackground(pill);
+        go.setPadding(dp(24), 0, dp(24), 0);
+        go.setBackground(Expressive.tile(this, Accent.colour(), 0x33FFFFFF, dp(20), dp(20), dp(8)));
         go.setOnClickListener(v -> showDonations());
-
-        TextView write = new TextView(this);
-        write.setText(Text.DONATE_BANNER_WRITE);
-        write.setTextColor(skin.text);
-        write.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        write.setGravity(Gravity.CENTER);
-        write.setPadding(0, dp(11), 0, dp(11));
-        GradientDrawable quiet = new GradientDrawable();
-        quiet.setColor(0x00000000);
-        quiet.setCornerRadius(dp(14));
-        quiet.setStroke(dp(1), skin.muted());
-        write.setBackground(quiet);
-        write.setOnClickListener(v -> open(CHANNEL_WRITE));
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams below = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        below.topMargin = dp(14);
-
-        LinearLayout.LayoutParams half =
-                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        LinearLayout.LayoutParams second =
-                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        second.leftMargin = dp(8);
-        buttons.addView(go, half);
-        buttons.addView(write, second);
-        card.addView(buttons, below);
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(40));
+        below.topMargin = dp(16);
+        below.gravity = Gravity.END;
+        below.rightMargin = dp(8);
+        card.addView(go, below);
 
         LinearLayout holder = new LinearLayout(this);
-        holder.setPadding(dp(20), dp(14), dp(20), dp(2));
+        holder.setPadding(edge(), dp(8), edge(), dp(2));
         holder.addView(card, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return holder;
@@ -1130,7 +1456,7 @@ public class SettingsActivity extends Activity {
         for (int i = 0; i < colours.length; i++) colours[i] = gradientColours.get(i);
         View bar = new View(this);
         android.graphics.drawable.GradientDrawable paint =
-                new android.graphics.drawable.GradientDrawable(
+                new Design.ColourSample(
                         android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
                         colours);
         paint.setCornerRadius(dp(10));
@@ -1205,7 +1531,11 @@ public class SettingsActivity extends Activity {
         LinearLayout pay = card();
         pay.addView(linkRow("star", Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
         pay.addView(line());
-        pay.addView(cardRow());
+        pay.addView(linkRow("public", Text.BOOSTY, Text.BOOSTY_NOTE, BOOSTY));
+        pay.addView(line());
+        pay.addView(linkRow("public", Text.FUNPAY, Text.FUNPAY_NOTE, FUNPAY));
+        pay.addView(line());
+        pay.addView(linkRow("star", Text.STARS, Text.STARS_NOTE, STARS));
         column.addView(wrap(pay));
 
         column.addView(section(Text.DONATE_STEP_ID));
@@ -1220,17 +1550,6 @@ public class SettingsActivity extends Activity {
                 () -> open(CHANNEL_WRITE)));
         write.addView(quiet(Text.DONATE_AFTER));
         column.addView(wrap(write));
-    }
-
-    private View cardRow() {
-        LinearLayout card = row();
-        LinearLayout cardText = new LinearLayout(this);
-        cardText.setOrientation(LinearLayout.VERTICAL);
-        cardText.addView(label(spaced(CARD_NUMBER)));
-        cardText.addView(detail(Text.CARD + "  ·  " + Text.TAP_TO_COPY));
-        card.addView(cardText, grow());
-        card.setOnClickListener(v -> copy(Text.CARD, CARD_NUMBER));
-        return sized(card, 64);
     }
 
     private void rebuildAfterSwitchAnimation() {
@@ -1435,7 +1754,7 @@ public class SettingsActivity extends Activity {
             if (i > 0) rows.addView(line());
 
             LinearLayout row = row();
-            row.setPadding(dp(12), 0, dp(12), 0);
+            row.setPadding(edge(), 0, edge(), 0);
 
             Badges.Badge badge = Badges.byId(one.id);
             row.addView(badgeDot(badge));
@@ -1489,18 +1808,27 @@ public class SettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(title);
         view.setTextColor(onAccent());
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         view.setGravity(Gravity.CENTER);
-        view.setPadding(0, dp(15), 0, dp(15));
-        // a full pill that squares off a little while it is held
-        view.setBackground(Expressive.tile(this, Accent.colour(), 0x33FFFFFF, dp(28), dp(28), dp(12)));
         view.setOnClickListener(v -> action.run());
-
         LinearLayout holder = new LinearLayout(this);
-        holder.setPadding(dp(16), dp(12), dp(16), dp(16));
-        holder.addView(view, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        if (Design.frosted()) {
+            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            view.setPadding(0, dp(15), 0, dp(15));
+            // a full pill that squares off a little while it is held
+            view.setBackground(Expressive.tile(this, Accent.colour(), 0x33FFFFFF, dp(28), dp(28), dp(12)));
+            holder.setPadding(dp(16), dp(12), dp(16), dp(16));
+            holder.addView(view, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            return holder;
+        }
+        // 40dp, fully round, label large; the margin around it still answers the finger
+        M3Type.line(view, 14, 0.1f);
+        view.setPadding(dp(16), 0, dp(16), 0);
+        view.setBackground(Expressive.tile(this, Accent.colour(), 0x33FFFFFF, dp(20), dp(20), dp(8)));
+        holder.setPadding(edge(), dp(12), edge(), dp(16));
+        holder.setOnClickListener(v -> action.run());
+        holder.addView(view, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
         return holder;
     }
 
@@ -1753,6 +2081,12 @@ public class SettingsActivity extends Activity {
         return slider(picture,title,now,most,shift,unit,chosen,true);
     }
     private View slider(String picture, String title, int now, int most, final int shift, final String unit, final Chosen chosen, final boolean live) {
+        return slider(picture, title, now, most, shift, unit, chosen, live, null);
+    }
+
+    /** `moving` hears every position while the finger is on it: for a picture that follows. */
+    private View slider(String picture, String title, int now, int most, final int shift, final String unit,
+                        final Chosen chosen, final boolean live, final Chosen moving) {
         LinearLayout rows = new LinearLayout(this);
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(dp(16), dp(10), dp(20), dp(10));
@@ -1780,6 +2114,7 @@ public class SettingsActivity extends Activity {
             public void onProgressChanged(android.widget.SeekBar seek, int value, boolean human) {
                 number.setText((value + shift) + unit);
                 if(live && human)chosen.at(value);
+                if(moving != null && human)moving.at(value);
             }
 
             @Override
@@ -1809,7 +2144,7 @@ public class SettingsActivity extends Activity {
 
 
     private GradientDrawable colourPreview(int colour) {
-        GradientDrawable preview = new GradientDrawable();
+        GradientDrawable preview = new Design.ColourSample();
         preview.setColor(colour);
         preview.setCornerRadius(dp(12));
         preview.setStroke(dp(1), skin.muted());
@@ -1907,6 +2242,102 @@ public class SettingsActivity extends Activity {
         return rows;
     }
 
+    /** The fonts and the emoji packs, each a tile written in itself. */
+    private View fontCarousels() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout head = row();
+        head.addView(icon("text_fields"));
+        head.addView(label(Text.FONT), grow());
+        TextView now = detail(fontName(Fonts.name()));
+        now.setTextColor(skin.text);
+        head.addView(now);
+        box.addView(sized(head, 52));
+        LinearLayout letters = new LinearLayout(this);
+        View chosen = null;
+        String font = Fonts.name();
+        for (final String which : Fonts.PRESETS) {
+            Typeface face = Fonts.SYSTEM.equals(which) ? Typeface.DEFAULT : Typeface.create(which, Typeface.NORMAL);
+            View tile = typeTile(face, "\u0410\u0430", fontName(which), which.equals(font), () -> {
+                Fonts.choose(which);
+                markChanged();
+                rebuild();
+            });
+            if (which.equals(font)) chosen = tile;
+            letters.addView(tile);
+        }
+        android.widget.HorizontalScrollView one = carousel(letters);
+        box.addView(one);
+        centre(one, chosen);
+        box.addView(actionRow("download", Text.FONT_PICK, Fonts.FILE.equals(font) ? Text.FONT_FILE : null, this::pickFont));
+        box.addView(line());
+
+        LinearLayout emojiHead = row();
+        emojiHead.addView(icon("star"));
+        emojiHead.addView(label(Text.EMOJI), grow());
+        box.addView(sized(emojiHead, 52));
+        LinearLayout faces = new LinearLayout(this);
+        View chosenPack = null;
+        String emoji = Fonts.emoji();
+        for (EmojiPackManager.Pack pack : EmojiPackManager.packs(this)) {
+            final String which = pack.id;
+            if (Fonts.EMOJI_FILE.equals(which)) continue;
+            View tile = typeTile(Fonts.preview(this, which), "\uD83D\uDE00\uD83D\uDC31", emojiName(pack), which.equals(emoji), () -> {
+                Fonts.chooseEmoji(this, which);
+                markChanged();
+                rebuild();
+            });
+            if (which.equals(emoji)) chosenPack = tile;
+            faces.addView(tile);
+        }
+        android.widget.HorizontalScrollView two = carousel(faces);
+        box.addView(two);
+        centre(two, chosenPack);
+        box.addView(actionRow("download", Text.EMOJI_FILE, Fonts.EMOJI_FILE.equals(emoji) ? Text.EMOJI_FILE : null, this::pickEmoji));
+        box.addView(quiet(Text.EMOJI_NOTE));
+        return box;
+    }
+
+    /**
+     * A sample written in its own font. Fonts passes over a view whose class
+     * is called an icon, as it does TikTok's icon fonts: otherwise the chosen
+     * font was put on every sample, and they all looked the same.
+     */
+    private static final class SampleIcon extends TextView {
+        SampleIcon(Context context) { super(context); }
+    }
+
+    private View typeTile(Typeface face, String sample, String name, boolean on, final Runnable action) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER_HORIZONTAL);
+        tile.setPadding(dp(4), dp(2), dp(4), dp(2));
+        TextView big = new SampleIcon(this);
+        big.setText(sample);
+        big.setTextColor(skin.text);
+        big.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+        if (face != null) big.setTypeface(face);
+        big.setGravity(Gravity.CENTER);
+        GradientDrawable back = new GradientDrawable();
+        back.setCornerRadius(dp(20));
+        back.setColor(on ? accentTonal() : Expressive.mix(skin.card, skin.text, 0.06f));
+        if (on) back.setStroke(dp(2), Accent.colour());
+        big.setBackground(back);
+        tile.addView(big, new LinearLayout.LayoutParams(dp(76), dp(76)));
+        TextView label = new TextView(this);
+        label.setText(name);
+        M3Type.line(label, 12, 0.4f);
+        label.setTextColor(on ? skin.text : skin.muted());
+        label.setGravity(Gravity.CENTER);
+        label.setMaxLines(2);
+        label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        label.setPadding(0, dp(6), 0, 0);
+        tile.addView(label, new LinearLayout.LayoutParams(dp(84), ViewGroup.LayoutParams.WRAP_CONTENT));
+        tile.setOnClickListener(v -> action.run());
+        Motion.press(tile);
+        return tile;
+    }
+
     private String emojiName(EmojiPackManager.Pack pack) {
         if (Fonts.SYSTEM.equals(pack.id)) return Text.EMOJI_SYSTEM;
         return pack.name;
@@ -1931,7 +2362,7 @@ public class SettingsActivity extends Activity {
      */
     private View pickRow(String title, boolean chosen, String preview, final Runnable action) {
         LinearLayout row = row();
-        row.setPadding(dp(12), 0, dp(12), 0);
+        row.setPadding(edge(), 0, edge(), 0);
 
         TextView name = label(title);
         if (preview != null) {
@@ -1960,57 +2391,319 @@ public class SettingsActivity extends Activity {
 
     // ---------------------------------------------------------- the icon
 
-    private View iconHead() {
-        LinearLayout row = row();
-        row.addView(icon("image"));
-        row.addView(label(Text.ICON), grow());
+    // ------------------------------------------------------------ choosing
 
-        TextView now = detail(Launcher.nameOf(Launcher.chosen()));
-        now.setTextColor(skin.text);
-        row.addView(now);
+    /** Told which of several was picked. */
+    private interface Picked { void picked(int index); }
 
-        row.addView(disclosure(iconOpen,"iconOpen"));
-
-        row.setOnClickListener(v -> {
-            disclosureKey = "iconOpen";
-            iconOpen = !iconOpen;
-            rebuildAfterReveal(iconOpen);
-        });
-        return sized(row, 52);
+    /**
+     * Material 3 segmented buttons: one outlined row, the chosen part filled
+     * and ticked. For a choice of a few, in place of a list or a window.
+     */
+    private View segmented(final String[] labels, int chosen, final Picked picked) {
+        LinearLayout box = new LinearLayout(this);
+        box.setPadding(edge(), dp(6), edge(), dp(14));
+        final LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        final TextView[] parts = new TextView[labels.length];
+        for (int i = 0; i < labels.length; i++) {
+            final int index = i;
+            TextView part = new TextView(this);
+            part.setGravity(Gravity.CENTER);
+            part.setSingleLine(true);
+            part.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            M3Type.line(part, 14, 0.1f);
+            part.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            part.setPadding(dp(6), 0, dp(6), 0);
+            parts[i] = part;
+            part.setOnClickListener(v -> {
+                paintSegments(parts, labels, index);
+                picked.picked(index);
+            });
+            LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(0, dp(40), 1f);
+            if (i > 0) place.leftMargin = -dp(1);
+            row.addView(part, place);
+        }
+        paintSegments(parts, labels, chosen);
+        box.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
+        return box;
     }
 
-    private View iconChoices() {
-        LinearLayout rows = new LinearLayout(this);
-        rows.setOrientation(LinearLayout.VERTICAL);
-
-        String now = Launcher.chosen();
-        String[] all = Launcher.all();
-        for (int i = 0; i < all.length; i++) {
-            final String which = all[i];
-            if (i > 0) rows.addView(line());
-            LinearLayout row = row();
-            row.setPadding(dp(12), 0, dp(12), 0);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-
-            android.widget.ImageView shot = new android.widget.ImageView(this);
-            android.graphics.Bitmap picture = Launcher.preview(which);
-            if (picture != null) shot.setImageBitmap(picture);
-            shot.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            LinearLayout.LayoutParams size =
-                    new LinearLayout.LayoutParams(dp(32), dp(32));
-            size.rightMargin = dp(14);
-            row.addView(shot, size);
-
-            row.addView(label(Launcher.nameOf(which)), grow());
-            if (which.equals(now)) row.addView(new Check(this, Accent.colour()));
-            row.setOnClickListener(v -> {
-                Launcher.choose(this, which);
-                rebuild();
-            });
-            rows.addView(sized(row, 56));
+    private void paintSegments(TextView[] parts, String[] labels, int chosen) {
+        for (int i = 0; i < parts.length; i++) {
+            boolean on = i == chosen, first = i == 0, last = i == parts.length - 1;
+            GradientDrawable back = new GradientDrawable();
+            float r = dp(20);
+            back.setCornerRadii(new float[] {first ? r : 0, first ? r : 0, last ? r : 0, last ? r : 0,
+                    last ? r : 0, last ? r : 0, first ? r : 0, first ? r : 0});
+            back.setColor(on ? accentTonal() : 0);
+            back.setStroke(dp(1), skin.muted());
+            parts[i].setBackground(back);
+            parts[i].setTextColor(on ? skin.text : skin.muted());
+            parts[i].setText(on ? "\u2713 " + labels[i] : labels[i]);
         }
-        rows.addView(line());
-        return rows;
+    }
+
+    /** Filter chips in a row that scrolls: for a choice of more than fit across. */
+    private View chips(final String[] labels, int chosen, final Picked picked) {
+        LinearLayout strip = new LinearLayout(this);
+        final java.util.List<TextView> all = new java.util.ArrayList<TextView>();
+        View chosenChip = null;
+        for (int i = 0; i < labels.length; i++) {
+            final int index = i;
+            TextView chip = new TextView(this);
+            chip.setText(labels[i]);
+            M3Type.line(chip, 14, 0.1f);
+            chip.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(16), 0, dp(16), 0);
+            all.add(chip);
+            if (i == chosen) chosenChip = chip;
+            chip.setOnClickListener(v -> {
+                paintChips(all, index);
+                picked.picked(index);
+            });
+            LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
+            place.rightMargin = dp(8);
+            strip.addView(chip, place);
+        }
+        paintChips(all, chosen);
+        android.widget.HorizontalScrollView scroll = carousel(strip);
+        strip.setPadding(edge(), dp(4), edge(), dp(14));
+        centre(scroll, chosenChip);
+        return scroll;
+    }
+
+    private void paintChips(java.util.List<TextView> all, int chosen) {
+        for (int i = 0; i < all.size(); i++) {
+            boolean on = i == chosen;
+            GradientDrawable back = new GradientDrawable();
+            back.setCornerRadius(dp(8));
+            back.setColor(on ? accentTonal() : 0);
+            if (!on) back.setStroke(dp(1), skin.muted());
+            all.get(i).setBackground(back);
+            all.get(i).setTextColor(on ? skin.text : skin.muted());
+        }
+    }
+
+    /**
+     * TikTok's feed on a phone for one card. The bar, the seek bar, the date
+     * and the buttons are drawn as they are set; the screen saver and the
+     * simple feed only on their own cards, or every phone came out faint.
+     */
+    private SettingsArt.Phone phone(String card) {
+        SettingsArt.Phone art = new SettingsArt.Phone(this, skin, card)
+                .burn(false, 0, true).simple(false)
+                .capsule(NavBar.isEnabled()).seekbar(Seekbar.isEnabled()).date(Dates.isEnabled());
+        for (int i = 0; i < 4; i++) art.rail(i, FeedRail.shown(i));
+        return art;
+    }
+
+    /** The switch inside a row, to move it from somewhere else on the page. */
+    private static M3Switch switchIn(View row) {
+        if (row instanceof M3Switch) return (M3Switch) row;
+        if (row instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) row;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                M3Switch found = switchIn(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------ carousels
+
+    /** A row that scrolls sideways, for choosing one of many by its picture. */
+    private android.widget.HorizontalScrollView carousel(LinearLayout strip) {
+        final android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setClipToPadding(false);
+        strip.setOrientation(LinearLayout.HORIZONTAL);
+        strip.setPadding(dp(10), dp(2), dp(10), dp(14));
+        scroll.addView(strip);
+        return scroll;
+    }
+
+    /** Brought to the middle once laid out, so the chosen one is in sight. */
+    private void centre(final android.widget.HorizontalScrollView scroll, final View chosen) {
+        if (chosen == null) return;
+        scroll.post(() -> scroll.scrollTo(Math.max(0,
+                chosen.getLeft() - (scroll.getWidth() - chosen.getWidth()) / 2), 0));
+    }
+
+    /** The launcher icons as pictures to scroll through, the chosen one ringed. */
+    private View iconCarousel() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout head = row();
+        head.addView(icon("image"));
+        head.addView(label(Text.ICON), grow());
+        final TextView named = detail(Launcher.nameOf(Launcher.chosen()));
+        named.setTextColor(skin.text);
+        head.addView(named);
+        box.addView(sized(head, 52));
+
+        LinearLayout strip = new LinearLayout(this);
+        final java.util.List<View> frames = new java.util.ArrayList<View>();
+        View chosen = null;
+        for (String which : Launcher.shown()) {
+            View tile = iconTile(which, frames, named);
+            if (which.equals(Launcher.chosen())) chosen = tile;
+            strip.addView(tile);
+        }
+        // the icons from before 2.1.0, only for whoever had the mod then
+        if (Launcher.legacyOffered()) {
+            TextView legacy = new TextView(this);
+            legacy.setText(Text.ICON_LEGACY);
+            legacy.setTextColor(accentInk());
+            M3Type.titleSmall(legacy);
+            legacy.setGravity(Gravity.CENTER);
+            legacy.setPadding(dp(14), 0, dp(6), dp(22));
+            strip.addView(legacy, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            for (String which : Launcher.LEGACY) {
+                View tile = iconTile(which, frames, named);
+                if (which.equals(Launcher.chosen())) chosen = tile;
+                strip.addView(tile);
+            }
+        }
+        android.widget.HorizontalScrollView scroll = carousel(strip);
+        box.addView(scroll);
+        centre(scroll, chosen);
+        return box;
+    }
+
+    private View iconTile(final String which, final java.util.List<View> frames, final TextView named) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER_HORIZONTAL);
+        tile.setPadding(dp(4), dp(2), dp(4), dp(2));
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.setPadding(dp(4), dp(4), dp(4), dp(4));
+        frame.setTag(which);
+        ImageView picture = new ImageView(this);
+        Bitmap shot = Launcher.preview(which);
+        if (shot != null) picture.setImageBitmap(shot);
+        picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        picture.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(16));
+            }
+        });
+        picture.setClipToOutline(true);
+        frame.addView(picture, new android.widget.FrameLayout.LayoutParams(dp(60), dp(60)));
+        // wrapped, or the column stretched it to the label's width and the ring came out oblong
+        tile.addView(frame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        frames.add(frame);
+        TextView name = new TextView(this);
+        name.setText(Launcher.nameOf(which));
+        M3Type.line(name, 12, 0.4f);
+        name.setGravity(Gravity.CENTER);
+        name.setMaxLines(2);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        name.setPadding(0, dp(4), 0, 0);
+        name.setTag("name");
+        tile.addView(name, new LinearLayout.LayoutParams(dp(80), ViewGroup.LayoutParams.WRAP_CONTENT));
+        ring(frames, Launcher.chosen());
+        tile.setOnClickListener(v -> {
+            Launcher.choose(this, which);
+            ring(frames, which);
+            named.setText(Launcher.nameOf(which));
+        });
+        Motion.press(tile);
+        return tile;
+    }
+
+    /** The chosen one ringed in the accent and named in full colour; the rest quiet. */
+    private void ring(java.util.List<View> frames, String chosen) {
+        for (View frame : frames) {
+            boolean on = chosen.equals(frame.getTag());
+            GradientDrawable ring = new GradientDrawable();
+            ring.setCornerRadius(dp(20));
+            ring.setColor(0);
+            if (on) ring.setStroke(dp(3), Accent.colour());
+            frame.setBackground(ring);
+            View tile = (View) frame.getParent();
+            if (tile instanceof ViewGroup) {
+                View name = ((ViewGroup) tile).findViewWithTag("name");
+                if (name instanceof TextView) ((TextView) name).setTextColor(on ? skin.text : skin.muted());
+            }
+        }
+    }
+
+    /** narezany's profile with the avatar in the chosen shape, and the shapes to choose from under it. */
+    private View avatarShapes() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        final SettingsArt.Profile art = new SettingsArt.Profile(this, skin);
+        box.addView(art);
+        LinearLayout head = row();
+        head.addView(icon("account_circle"));
+        head.addView(label(Text.AVATAR_SHAPE), grow());
+        final TextView named = detail(AvatarShape.nameOf(AvatarShape.chosen()));
+        named.setTextColor(skin.text);
+        head.addView(named);
+        box.addView(sized(head, 52));
+
+        LinearLayout strip = new LinearLayout(this);
+        final java.util.List<View> chips = new java.util.ArrayList<View>();
+        View chosen = null;
+        for (final String shape : AvatarShape.ALL) {
+            LinearLayout chip = new LinearLayout(this);
+            chip.setOrientation(LinearLayout.VERTICAL);
+            chip.setGravity(Gravity.CENTER_HORIZONTAL);
+            chip.setPadding(dp(10), dp(10), dp(10), dp(8));
+            chip.setTag(shape);
+            ImageView picture = new ImageView(this);
+            picture.setTag("picture");
+            chip.addView(picture, new LinearLayout.LayoutParams(dp(36), dp(36)));
+            TextView name = new TextView(this);
+            name.setText(AvatarShape.nameOf(shape));
+            M3Type.line(name, 12, 0.4f);
+            name.setGravity(Gravity.CENTER);
+            name.setMaxLines(2);
+            name.setTag("name");
+            name.setPadding(0, dp(6), 0, 0);
+            // a width of its own: wrapped to the word, letter spacing cut the last letter off
+            chip.addView(name, new LinearLayout.LayoutParams(dp(76), ViewGroup.LayoutParams.WRAP_CONTENT));
+            chips.add(chip);
+            if (shape.equals(AvatarShape.chosen())) chosen = chip;
+            chip.setOnClickListener(v -> {
+                if (shape.equals(AvatarShape.chosen())) return;
+                AvatarShape.choose(this, shape);
+                art.shape(shape);
+                named.setText(AvatarShape.nameOf(shape));
+                shapeChips(chips);
+                // a picture already cut keeps its shape until it is cut again
+                markChanged();
+            });
+            Motion.press(chip);
+            LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            place.rightMargin = dp(4);
+            strip.addView(chip, place);
+        }
+        shapeChips(chips);
+        android.widget.HorizontalScrollView scroll = carousel(strip);
+        box.addView(scroll);
+        centre(scroll, chosen);
+        return box;
+    }
+
+    private void shapeChips(java.util.List<View> chips) {
+        String now = AvatarShape.chosen();
+        for (View chip : chips) {
+            boolean on = now.equals(chip.getTag());
+            GradientDrawable back = new GradientDrawable();
+            back.setCornerRadius(dp(18));
+            back.setColor(on ? accentTonal() : 0);
+            chip.setBackground(back);
+            View picture = chip.findViewWithTag("picture");
+            if (picture instanceof ImageView) ((ImageView) picture).setImageBitmap(
+                    AvatarShape.picture((String) chip.getTag(), dp(36), on ? Accent.colour() : skin.muted()));
+            View name = chip.findViewWithTag("name");
+            if (name instanceof TextView) ((TextView) name).setTextColor(on ? skin.text : skin.muted());
+        }
     }
 
 
@@ -2038,7 +2731,7 @@ public class SettingsActivity extends Activity {
         final int selected = AppearanceColors.ACCENT.equals(role)
                 ? Accent.colour() : AppearanceColors.get(role);
         LinearLayout row = row();
-        row.setPadding(dp(12), 0, dp(12), 0);
+        row.setPadding(edge(), 0, edge(), 0);
         row.addView(label(AppearanceColors.label(role)), grow());
         row.addView(new Dot(this, selected == 0 ? skin.muted() : selected, false));
         TextView value = detail(selected == 0 ? "TikTok" : String.format(Locale.US,
@@ -2182,7 +2875,7 @@ public class SettingsActivity extends Activity {
                         Expressive.mix(skin.card, skin.text, 0.14f), accent, skin.muted(), onAccent())
                 : new Expressive.Badge(this, shapeFor(name), vector, sizeDp, tonal, tonal, ink, ink);
         LinearLayout.LayoutParams size = new LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp));
-        size.rightMargin = dp(16);
+        size.rightMargin = dp(Design.frosted() ? 16 : 12);
         badge.setLayoutParams(size);
         return badge;
     }
@@ -2679,6 +3372,10 @@ public class SettingsActivity extends Activity {
             rebuild();
             return;
         }
+        if (request == CustomIcon.PICK) {
+            CustomIcon.offer(this, source);
+            return;
+        }
         if (request != PICK_PLUGIN) return;
         reviewPlugin(source);
     }
@@ -2737,7 +3434,7 @@ public class SettingsActivity extends Activity {
         ChannelBanner banner = new ChannelBanner(this);
         banner.setOnClickListener(v -> open(ChannelBanner.URL));
         LinearLayout box = new LinearLayout(this);
-        box.setPadding(dp(12), dp(2), dp(12), dp(10));
+        box.setPadding(edge(), dp(2), edge(), dp(10));
         box.addView(banner, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return box;
@@ -2781,9 +3478,10 @@ public class SettingsActivity extends Activity {
 
         rows.addView(quiet(Text.DONATE_NOTE));
 
-        rows.addView(cardRow());
-
         rows.addView(linkRow("star", Text.YOOMONEY, Text.YOOMONEY_NOTE, YOOMONEY));
+        rows.addView(linkRow("public", Text.BOOSTY, Text.BOOSTY_NOTE, BOOSTY));
+        rows.addView(linkRow("public", Text.FUNPAY, Text.FUNPAY_NOTE, FUNPAY));
+        rows.addView(linkRow("star", Text.STARS, Text.STARS_NOTE, STARS));
         return rows;
     }
 
@@ -2841,7 +3539,8 @@ public class SettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(message);
         view.setTextColor(skin.muted());
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        if (Design.frosted()) view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        else M3Type.bodySmall(view);
         view.setPadding(dp(16), dp(2), dp(16), dp(8));
         return view;
     }
@@ -3115,7 +3814,7 @@ public class SettingsActivity extends Activity {
         row.addView(go, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)));
         LinearLayout box = new LinearLayout(this);
-        box.setPadding(dp(12), dp(4), dp(12), dp(8));
+        box.setPadding(edge(), dp(4), edge(), dp(8));
         box.addView(sized(row, 56));
         return box;
     }
@@ -3336,11 +4035,25 @@ public class SettingsActivity extends Activity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(12), dp(8), dp(16), dp(4));
+        boolean m3 = !Design.frosted();
+        if (m3) {
+            bar.setPadding(dp(4), 0, dp(16), 0);
+            bar.setMinimumHeight(dp(64));
+        } else {
+            bar.setPadding(dp(12), dp(8), dp(16), dp(4));
+        }
         // a round tonal button that turns into a rounded square under the finger
         View button = Expressive.roundButton(this, SettingsGlyph.make("arrow_forward", skin.text),
-                skin.card, (Accent.colour() & 0xFFFFFF) | 0x33000000, skin.text, 48);
+                skin.card, (Accent.colour() & 0xFFFFFF) | 0x33000000, skin.text, m3 ? 40 : 48);
         ((ViewGroup) button).getChildAt(0).setScaleX(-1f);
+        if (m3) {
+            // the app bar's navigation icon: the words of where it goes are an iOS habit
+            ((LinearLayout.LayoutParams) button.getLayoutParams()).setMargins(dp(4), dp(4), dp(4), dp(4));
+            bar.addView(button);
+            bar.setContentDescription(settingsGroup == 0 ? "TikTok" : Local.of("Настройки"));
+            bar.setOnClickListener(v -> goBack());
+            return bar;
+        }
         bar.addView(button);
         TextView name = new TextView(this);
         name.setText(settingsGroup == 0 ? "TikTok" : Local.of("Настройки"));
@@ -3358,9 +4071,15 @@ public class SettingsActivity extends Activity {
         final TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(skin.text);
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, settingsGroup == 0 ? 44 : 34);
-        view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        view.setPadding(dp(28), dp(8), dp(24), dp(16));
+        if (Design.frosted()) {
+            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, Design.fluent()?(settingsGroup==0?32:28):settingsGroup == 0 ? 44 : 34);
+            view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            view.setPadding(dp(28), dp(8), dp(24), dp(16));
+        } else {
+            if (settingsGroup == 0) M3Type.displaySmall(view);
+            else M3Type.headlineMedium(view);
+            view.setPadding(dp(32), dp(12), dp(24), dp(20));
+        }
         // five taps in a row and a cat turns up; one by accident does nothing
         view.setOnClickListener(v -> {
             Cats.tapped(view);
@@ -3378,7 +4097,7 @@ public class SettingsActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(20), dp(4), dp(8), dp(4));
+        row.setPadding(dp(Design.frosted() ? 20 : 16), dp(4), dp(8), dp(4));
         GradientDrawable background = new GradientDrawable();
         background.setColor(skin.card);
         background.setCornerRadius(dp(28));
@@ -3387,7 +4106,7 @@ public class SettingsActivity extends Activity {
         ImageView glass = new ImageView(this);
         glass.setImageDrawable(new Expressive.Magnifier(skin.muted()));
         LinearLayout.LayoutParams glassSize = new LinearLayout.LayoutParams(dp(24), dp(24));
-        glassSize.rightMargin = dp(12);
+        glassSize.rightMargin = dp(Design.frosted() ? 12 : 16);
         row.addView(glass, glassSize);
 
         final EditText input = new EditText(this);
@@ -3397,7 +4116,8 @@ public class SettingsActivity extends Activity {
         input.setHint(Text.SEARCH_HINT);
         input.setHintTextColor(skin.muted());
         input.setTextColor(skin.text);
-        input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        if (Design.frosted()) input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        else M3Type.line(input, 16, 0.5f);
         input.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         input.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         input.setOnEditorActionListener((view, action, event) -> {
@@ -3412,10 +4132,11 @@ public class SettingsActivity extends Activity {
         TextView go = label(searchQuery.length() == 0 ? Text.SEARCH : Text.SEARCH_CLEAR);
         go.setTextColor(accentInk());
         go.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        if (!Design.frosted()) M3Type.line(go, 14, 0.1f);
         go.setGravity(Gravity.CENTER);
         go.setPadding(dp(16), 0, dp(16), 0);
         go.setBackground(Expressive.tile(this, accentTonal(), (Accent.colour() & 0xFFFFFF) | 0x33000000,
-                dp(20), dp(20), dp(10)));
+                dp(20), dp(20), dp(Design.frosted() ? 10 : 8)));
         go.setOnClickListener(v -> {
             if (searchQuery.length() > 0) runSearch("");
             else runSearch(input.getText().toString());
@@ -3423,7 +4144,7 @@ public class SettingsActivity extends Activity {
         row.addView(go, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)));
         LinearLayout box = new LinearLayout(this);
-        box.setPadding(dp(12), dp(4), dp(12), dp(8));
+        box.setPadding(edge(), dp(4), edge(), dp(8));
         box.addView(sized(row, 56));
         return box;
     }
@@ -3493,7 +4214,7 @@ public class SettingsActivity extends Activity {
         found+=searchControl(results,Text.FEED,Text.HIDE_PHOTOS,Feed.hides(Feed.KEY_PHOTOS));
         found+=searchControl(results,Text.FEED,Text.HIDE_STORIES,Feed.hides(Feed.KEY_STORIES));
         found+=searchControl(results,Text.FEED,Text.HIDE_SUGGESTIONS,Feed.hides(Feed.KEY_SUGGESTIONS));
-        found+=searchHit(results,Text.PINNED_FRIENDS,Text.PINNED_FRIENDS+" "+Text.MESSAGE_TIMES,()->{});
+        found+=searchControl(results,Text.FEED,Text.SIMPLE_FEED,SimpleFeed.isOn());
         found+=searchHit(results,Text.NOTIFICATIONS,Text.NOTIFY_MESSAGES+" "+Text.NOTIFY_PROMOS+" "+Text.NOTIFY_OTHER+" "+Text.NOTIFY_NO_PROMPTS+" "+Text.NOTIFY_SETTINGS,()->{});
         found+=searchHit(results,Text.VIDEO,Text.PLAYER_SPEED,()->{});
         found+=searchHit(results,Text.DOWNLOADS,Text.DL_QUALITY+" "+Text.FRAME_QUALITY,()->{});
@@ -3508,19 +4229,17 @@ public class SettingsActivity extends Activity {
         found+=searchControl(results,Text.COMMENTS,Text.COMMENT_COPY_ON,Comments.isCopyEnabled());
         found+=searchControl(results,Text.VIDEO,Text.OWN_BRIGHTNESS,Brightness.isEnabled());
         found+=searchControl(results,Text.BADGES,Text.BADGES_ON,Badges.isEnabled());
-        found+=searchControl(results,Text.TIKTOK_FEATURES,Text.COMMENT_REPOST,Flags.isOn(Flags.KEY_COMMENT_REPOST));
-        found+=searchControl(results,Text.TIKTOK_FEATURES,Text.SELF_REPOST,Flags.isOn(Flags.KEY_SELF_REPOST));
-        found+=searchControl(results,Text.TIKTOK_FEATURES,Text.TRANSLATE_COMMENTS,Flags.isOn(Flags.KEY_TRANSLATE_COMMENTS));
-        found+=searchControl(results,Text.APPEARANCE,Text.NEW_PROFILE,Flags.isOn(Flags.KEY_NEW_PROFILE));
-        found+=searchControl(results,Text.APPEARANCE,Text.NAV_CAPSULE,NavBar.isEnabled());
-        found+=searchControl(results,Text.APPEARANCE,Text.MD3_FEED,Md3.isOn(Md3.KEY_FEED));
-        found+=searchControl(results,Text.APPEARANCE,Text.MD3_ICONS,Md3.isOn(Md3.KEY_ICONS));
-        found+=searchControl(results,Text.APPEARANCE,Text.MD3_PROFILE,Md3.isOn(Md3.KEY_PROFILE));
-        found+=searchControl(results,Text.APPEARANCE,Text.MD3_INBOX,Md3.isOn(Md3.KEY_INBOX));
-        found+=searchHit(results,Text.APPEARANCE,Text.AVATAR_SHAPE,()->{});
+        found+=searchControl(results,Text.PROFILE_VIEW,Text.NEW_PROFILE,Flags.isOn(Flags.KEY_NEW_PROFILE));
+        found+=searchControl(results,Text.MD3_TIKTOK,Text.NAV_CAPSULE,NavBar.isEnabled());
+        found+=searchControl(results,Text.MD3_TIKTOK,Text.MD3_FEED,Md3.isOn(Md3.KEY_FEED));
+        found+=searchControl(results,Text.MD3_TIKTOK,Text.MD3_PROFILE,Md3.isOn(Md3.KEY_PROFILE));
+        found+=searchControl(results,Text.MD3_TIKTOK,Text.MD3_INBOX,Md3.isOn(Md3.KEY_INBOX));
+        found+=searchControl(results,Text.MD3_TIKTOK,Text.DESIGN_COMMENTS,CommentStyle.enabled());
+        found+=searchHit(results,Text.MD3_TIKTOK,Text.AVATAR_SHAPE,()->{});
         found+=searchHit(results,Text.FPS,Text.FPS,()->{});
         found+=searchHit(results,Text.TAGS,Text.TAGS+" "+Text.TAGS_ADD,()->{});
         found+=searchHit(results,Text.GRADIENT,Text.GRADIENT,()->{});
+        found+=searchControl(results,Text.THEME,Text.AMOLED,Themes.isAmoled());
         if(found==0){
         found += searchHit(results, Text.REGION, Text.SEARCH_REGION,
                 () -> { countriesOpen = true; });
@@ -3543,7 +4262,7 @@ public class SettingsActivity extends Activity {
 
     private int searchControl(LinearLayout into,String section,String title,boolean on){
         if(!matchesSearch(title))return 0;if(into.getChildCount()>0)into.addView(line());
-        into.addView(actionRow("search",title,on?Local.of("Включено"):Local.of("Выключено"),()->{searchQuery="";settingsGroup=groupOf(section);rebuild();page.post(()->{View target=settingTargets.get(title);if(target==null)return;int offset=0;View cursor=target;while(cursor!=column){offset+=cursor.getTop();if(!(cursor.getParent() instanceof View))break;cursor=(View)cursor.getParent();}page.smoothScrollTo(0,Math.max(0,offset-dp(16)));Motion.change(target);});}));return 1;
+        into.addView(actionRow("search",title,on?Local.of("Включено"):Local.of("Выключено"),()->{searchQuery="";settingsGroup=groupOf(section);Shelf to=shelfOfSection(section);settingsPage=to==null?null:to.id;rebuild();page.post(()->{View target=settingTargets.get(title);if(target==null)return;int offset=0;View cursor=target;while(cursor!=column){offset+=cursor.getTop();if(!(cursor.getParent() instanceof View))break;cursor=(View)cursor.getParent();}page.smoothScrollTo(0,Math.max(0,offset-dp(16)));Motion.change(target);});}));return 1;
     }
     private int searchHit(LinearLayout into, String title, String words, final Runnable open) {
         if (!matchesSearch(title + " " + words)) return 0;
@@ -3552,6 +4271,8 @@ public class SettingsActivity extends Activity {
             open.run();
             searchQuery = "";
             settingsGroup = groupOf(title);
+            Shelf to = shelfOfSection(title);
+            settingsPage = to == null ? null : to.id;
             page.scrollTo(0, 0);
             rebuild();
             final View target = sectionTargets.get(title);
@@ -3577,10 +4298,15 @@ public class SettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(accentInk());
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        view.setLetterSpacing(0.04f);
-        view.setPadding(dp(28), dp(24), dp(16), dp(8));
+        if (Design.frosted()) {
+            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            view.setLetterSpacing(0.04f);
+            view.setPadding(dp(28), dp(24), dp(16), dp(8));
+        } else {
+            M3Type.titleSmall(view);
+            view.setPadding(dp(32), dp(20), dp(16), dp(8));
+        }
         sectionTargets.put(text, view);
         return view;
     }
@@ -3593,19 +4319,19 @@ public class SettingsActivity extends Activity {
             case 4: return Local.of("Инструменты");
             case 5: return Local.of("О проекте");
             case 6: return Local.of("Плагины");
-            case 7: return Local.of("Друзья и чаты");
+            case 7: return Local.of("Серии и уведомления");
             case 8: return Text.FUN;
             default: return "MargyT";
         }
     }
 
     private void showSectionHelp() {
-        String[] notes = {"", Local.of("Акцент меняет цвет кнопок и вкладок. Готовые картинки могут сохранять свой цвет. Тема и шрифты настраиваются отдельно."),
-                Local.of("Значки, их порядок и градиент на ник. Чтобы что-то менять, аккаунт надо один раз подтвердить."),
-                Local.of("Глаз меняет прозрачность кнопок поверх видео; «Защита экрана» теперь здесь же. Удержание «Отправить» открывает скачивание и перемотку. Удерживайте край видео, чтобы ускорить, и потяните вниз, чтобы закрепить скорость."),
-                Local.of("Скачивание, резервные копии, диагностика и журнал. Сохраните копию перед экспериментами."),
-                Local.of("Здесь находятся версия мода, обновления, журнал и участники."), Local.of("Магазин, установка и настройки плагинов. Плагины запускают дополнительный код; устанавливайте только те, которым доверяете."),
-                Local.of("Закреплённые друзья, автопродление серий и уведомления мода."),
+        String[] notes = {"", Local.of("Акцент меняет цвет кнопок и вкладок. Тема и шрифты отдельно."),
+                Local.of("Значки и градиент на ник. Сначала надо один раз подтвердить аккаунт."),
+                Local.of("Удержание «Отправить» открывает скачивание и перемотку, удержание края видео ускоряет его."),
+                Local.of("Скачивание, копии настроек, диагностика и журнал."),
+                Local.of("Здесь находятся версия мода, обновления, журнал и участники."), Local.of("Магазин и настройки плагинов. Ставь только те, которым доверяешь."),
+                Local.of("Автопродление серий и уведомления мода."),
                 Text.FUN_HELP};
         Panel.with(this,skin,Local.of("Подсказки")).text(notes[Math.max(0,Math.min(notes.length-1,settingsGroup))])
                 .quiet(Local.of("Обучение"),() -> Tutorial.show(this)).primary(Local.of("Понятно"),null).show();
@@ -3619,7 +4345,7 @@ public class SettingsActivity extends Activity {
                 Local.of("Просмотр, кнопки, защита экрана и регион"),
                 Local.of("Скачивание, копии и диагностика"),
                 Local.of("Версия, обновления и участники"), Local.of("Магазин и установленные"),
-                Local.of("Друзья, серии и уведомления"), Text.FUN_NOTE};
+                Local.of("Серии и уведомления"), Text.FUN_NOTE};
         // Shelf order on screen: what people touch daily first, the project itself last.
         // Lite has the shelves that have something on them for it
         int[] shelf = Version.LITE ? new int[] {1, 3, 2, 4, 8, 5} : new int[] {1, 2, 3, 7, 4, 6, 8, 5};
@@ -3629,16 +4355,16 @@ public class SettingsActivity extends Activity {
             if (n > 0) list.addView(line());
             LinearLayout entry = row();
             entry.setPadding(dp(16),dp(14),dp(20),dp(14));
-            entry.addView(icon(icons[i-1],false,52));
+            entry.addView(icon(icons[i-1],false,Design.fluent()?32:52));
             LinearLayout words = new LinearLayout(this); words.setOrientation(LinearLayout.VERTICAL);
-            TextView head = label(groupName(i)); head.setTextSize(19);
+            TextView head = label(groupName(i)); head.setTextSize(Design.fluent()?16:19);
             head.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
             words.addView(head);words.addView(detail(notes[i-1]));entry.setContentDescription(groupName(i)+". "+notes[i-1]);
             entry.addView(words,grow()); entry.addView(away());
             entry.setMinimumHeight(dp(80));Motion.touch(entry);
             entry.setOnClickListener(v -> {
                 if(navigating)return;navigating=true;
-                Motion.navigate(column,1f,()->{settingsGroup=chosen;page.scrollTo(0,0);rebuild();navigating=false;});
+                Motion.navigate(column,1f,()->{settingsGroup=chosen;settingsPage=null;page.scrollTo(0,0);rebuild();navigating=false;});
             });
             list.addView(entry);
         }
@@ -3651,38 +4377,65 @@ public class SettingsActivity extends Activity {
      * 8 the things that are for nothing.
      */
     private int groupOf(String section) {
-        if (section.equals(Text.FUN_DEP) || section.equals(Text.FUN_SCREAMERS)
-                || section.equals(Text.FUN_CAT)) return 8;
-        if (section.equals(Text.PLUGINS)) return 6;
-        if (section.equals(Text.GRADIENT) || section.equals(Text.BADGES) || section.equals(Text.ACCOUNT)) return 2;
-        if (section.equals(Text.APPEARANCE) || section.equals(Text.ACCENT)
-                || section.equals(Text.THEME) || section.equals(Text.FONT)) return 1;
-        if (section.equals(Text.REGION) || section.equals(Text.COUNTRY)
-                || section.equals(Text.FEED) || section.equals(Text.VIDEO)
-                || section.equals(Text.RAIL) || section.equals(Text.COMMENTS)
-                || section.equals(Text.TAGS) || section.equals(Text.FPS)
-                || section.equals(Text.TIKTOK_FEATURES)
-                || section.equals(BURN)) return 3;
-        if (section.equals(Text.PINNED_FRIENDS) || section.equals(Text.STREAKS)
-                || section.equals(Text.NOTIFICATIONS)) return 7;
-        if (section.equals(Text.THANKS) || section.equals(Text.UPDATE) || section.equals(Text.CHANNEL)
-                || section.equals(Text.LINKS)) return 5;
-        return 4; // downloads, backup, diagnostics, diary
+        Shelf one = shelfOfSection(section);
+        return one == null ? 4 : one.group;
+    }
+
+    /** The pages of a shelf, each with what it is for. */
+    private View shelfList(int group) {
+        LinearLayout list = card();
+        java.util.List<Shelf> pages = shelvesOf(group);
+        for (int n = 0; n < pages.size(); n++) {
+            final Shelf one = pages.get(n);
+            if (n > 0) list.addView(line());
+            LinearLayout entry = row();
+            entry.setPadding(dp(16), dp(12), dp(20), dp(12));
+            entry.addView(icon(one.icon, false, Design.fluent() ? 32 : 44));
+            LinearLayout words = new LinearLayout(this); words.setOrientation(LinearLayout.VERTICAL);
+            TextView head = label(one.title); head.setTextSize(Design.fluent() ? 15 : 17);
+            head.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            words.addView(head);
+            if (one.note.length() > 0) words.addView(detail(one.note));
+            entry.setContentDescription(one.title + ". " + one.note);
+            entry.addView(words, grow()); entry.addView(away());
+            entry.setMinimumHeight(dp(72)); Motion.touch(entry);
+            entry.setOnClickListener(v -> {
+                if (navigating) return; navigating = true;
+                Motion.navigate(column, 1f, () -> { settingsPage = one.id; page.scrollTo(0, 0); rebuild(); navigating = false; });
+            });
+            list.addView(entry);
+        }
+        return wrap(list);
+    }
+
+    /** A line under a page's title saying what the page is for. */
+    private View lead(String words) {
+        TextView view = new TextView(this);
+        view.setText(words);
+        view.setTextColor(skin.muted());
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        view.setLineSpacing(0, 1.1f);
+        view.setPadding(dp(24), 0, dp(24), dp(10));
+        return view;
     }
 
     private void filterGroup() {
-        int current = 0;
-        boolean offered = true;
+        Shelf open = shelf(settingsPage);
+        boolean shown = false, offered = true;
         for (int i = 3; i < column.getChildCount(); i++) {
             View item = column.getChildAt(i);
             if (item instanceof TextView && sectionTargets.containsValue(item)) {
                 String section = ((TextView) item).getText().toString();
-                current = groupOf(section);
+                shown = false;
+                if (open != null) for (String name : open.sections) shown |= name.equals(section);
                 offered = !Version.LITE || inLite(section);
-            }
-            item.setVisibility(current == settingsGroup && offered ? View.VISIBLE : View.GONE);
+                // a page of one section already says its name in the title
+                if (shown && open.sections.length == 1) { item.setVisibility(View.GONE); continue; }
+            } else if (item.getTag(LEAD) != null) continue;
+            item.setVisibility(shown && offered ? View.VISIBLE : View.GONE);
         }
     }
+    private static final int LEAD = 0x7e0c0340;
 
     /**
      * The sections that do something in TikTok Lite. The rest hook classes
@@ -3703,10 +4456,13 @@ public class SettingsActivity extends Activity {
     private void goBack() {
         if(navigating)return;
         if (searchQuery.length() > 0) { searchQuery = ""; rebuild(); }
+        else if (settingsPage != null && shelvesOf(settingsGroup).size() > 1) {
+            navigating=true;Motion.navigate(column,-1f,()->{settingsPage=null;rebuild();navigating=false;});
+        }
         else if (settingsGroup != 0) {
             // the flags are reached from the tools, so that is where back leads
             final int to = settingsGroup == FLAGS_PAGE ? 4 : 0;
-            navigating=true;Motion.navigate(column,-1f,()->{settingsGroup=to;rebuild();navigating=false;});
+            navigating=true;Motion.navigate(column,-1f,()->{settingsGroup=to;settingsPage=to==4?"diary":null;rebuild();navigating=false;});
         }
         else finish();
     }
@@ -3737,6 +4493,58 @@ public class SettingsActivity extends Activity {
      * A segmented list in Material 3 Expressive: every row is a tile of its own,
      * with large outer corners, small inner ones and a thin gap between them.
      */
+    /** The three styles side by side, each a small settings card drawn in it. */
+    private View designPicker() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout head = row();
+        head.addView(icon("palette"));
+        head.addView(label(Text.DESIGN), grow());
+        box.addView(sized(head, 52));
+        LinearLayout three = new LinearLayout(this);
+        three.setPadding(dp(12), 0, dp(12), dp(14));
+        String[][] modes = {{"md3", "Material 3"}, {"glass", "Liquid Glass"}, {"fluent", "Fluent"}};
+        for (final String[] mode : modes) {
+            LinearLayout tile = new LinearLayout(this);
+            tile.setOrientation(LinearLayout.VERTICAL);
+            tile.setGravity(Gravity.CENTER_HORIZONTAL);
+            boolean on = mode[0].equals(Design.mode());
+            tile.addView(new SettingsArt.Style(this, skin, mode[0], on));
+            TextView name = new TextView(this);
+            name.setText(mode[1]);
+            M3Type.line(name, 12, 0.4f);
+            name.setTextColor(on ? skin.text : skin.muted());
+            name.setTypeface(Typeface.create(on ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
+            name.setGravity(Gravity.CENTER);
+            name.setPadding(0, dp(6), 0, 0);
+            tile.addView(name);
+            tile.setPadding(dp(3), 0, dp(3), 0);
+            tile.setOnClickListener(v -> { if (!mode[0].equals(Design.mode())) applyDesign(mode[0]); });
+            Motion.press(tile);
+            three.addView(tile, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        }
+        box.addView(three);
+        box.addView(quiet(Text.DESIGN_NOTE));
+        return box;
+    }
+
+    private void chooseDesign() {
+        Panel panel=Panel.with(this,skin,Text.DESIGN);
+        panel.text(Text.DESIGN_NOTE).section(null);
+        panel.option("Material 3","md3".equals(Design.mode()),true,()->applyDesign("md3"));
+        panel.option("Liquid Glass",Design.glass(),true,()->applyDesign("glass"));
+        panel.option("Fluent",Design.fluent(),true,()->applyDesign("fluent"));
+        panel.show();
+    }
+
+    private void applyDesign(String mode) {
+        Design.choose(this,mode);
+        dressTheWindow();
+        Design.page(this,root,skin.page);
+        rebuild();
+        root.post(()->Design.own(root));
+    }
+
     private LinearLayout card() {
         return new Expressive.Group(this, skin.card, (Accent.colour() & 0xFFFFFF) | 0x33000000);
     }
@@ -3745,7 +4553,7 @@ public class SettingsActivity extends Activity {
     private View wrap(View card) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(12), 0, dp(12), dp(6));
+        box.setPadding(edge(), 0, edge(), dp(6));
         if (!(card instanceof Expressive.Group)) {
             LinearLayout single = card();
             single.addView(card);
@@ -3754,6 +4562,11 @@ public class SettingsActivity extends Activity {
         box.addView(card, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return box;
+    }
+
+    /** The side margin of the page: 16 in Material 3, as a compact window has it. */
+    private int edge() {
+        return dp(Design.frosted() ? 12 : 16);
     }
 
     /** The accent as text on the page: lighter on dark, darker on light. */
@@ -3776,7 +4589,8 @@ public class SettingsActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(16), dp(4), dp(20), dp(4));
+        if (Design.frosted()) row.setPadding(dp(16), dp(4), dp(20), dp(4));
+        else row.setPadding(dp(16), dp(10), dp(16), dp(10));
         row.setMinimumHeight(dp(56));
         Motion.press(row);
         return row;
@@ -3786,7 +4600,8 @@ public class SettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(skin.text);
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        if (Design.frosted()) view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        else M3Type.line(view, 16, 0.5f);
         view.setIncludeFontPadding(false);view.setPadding(0,0,dp(12),0);
         return view;
     }
@@ -3795,7 +4610,12 @@ public class SettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(skin.muted());
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        if (Design.frosted()) {
+            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        } else {
+            M3Type.bodyMedium(view);
+            view.setPadding(0, dp(2), 0, 0);
+        }
         view.setIncludeFontPadding(false);
         return view;
     }
@@ -3805,6 +4625,7 @@ public class SettingsActivity extends Activity {
     }
 
     private View sized(View view, int height) {
+        if (height > 1 && !Design.frosted()) height = height <= 56 ? 56 : height <= 72 ? 72 : 88;
         if (height > 1) view.setMinimumHeight(dp(Math.max(56, height)));
         view.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,

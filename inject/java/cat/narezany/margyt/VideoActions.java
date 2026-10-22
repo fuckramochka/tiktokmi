@@ -60,6 +60,25 @@ public final class VideoActions {
   panel.item("fast_forward",Text.SEEK_FORWARD,PlayerTools.step()+Local.of(" с"),null,()->PlayerTools.seek(true,false));
   panel.item("timeline",Text.SEEK_SMOOTH,null,null,()->PlayerTools.seek(false,true));panel.quiet(Text.CLOSE,null).show();
  }
+
+    static final String WINDOW_KEY = "download_window";
+
+    /** Whether Download on TikTok's sheet opens the mod's window, with its choice of quality. Off, TikTok saves the video itself. */
+    static boolean windowOn() {
+        try {
+            return Margy.context().getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE).getBoolean(WINDOW_KEY, true);
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    static void setWindow(boolean on) {
+        try {
+            Margy.context().getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE).edit().putBoolean(WINDOW_KEY, on).apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
  static void chooseDownload(Context c,Object post){
   if(post==null){Screen.say(Text.VIDEO_NOT_READY);return;}
   java.util.List<DownloadQuality.Choice> photos=DownloadQuality.photos(post,Download.isEnabled());
@@ -75,8 +94,7 @@ public final class VideoActions {
    if(!qualities.isEmpty()&&qualities.get(0).best)qualities.get(0).alts=DownloadQuality.all(base);
    try{Diary.note("download sizes offered: "+qualities.size());}catch(Throwable ignored){}
   }
-  final java.util.List<DownloadQuality.Choice> every=photos;
-  DownloadSheet.show(c,qualities,photos,video!=null&&qualities.isEmpty(),()->save(post,0),choice->saveAddress(post,choice),choice->savePhoto(post,choice),()->save(post,3),()->saveAllPhotos(post,every));
+  DownloadSheet.show(c,qualities,photos,video!=null&&qualities.isEmpty(),()->save(post,0),choice->saveAddress(post,choice),chosen->{if(chosen.size()==1)savePhoto(post,chosen.get(0));else saveAllPhotos(post,chosen);},()->save(post,3));
  }
  static void save(Object post,boolean forceAudio){
   save(post,forceAudio?3:0);
@@ -126,13 +144,13 @@ public final class VideoActions {
   final Context c=context.getApplicationContext();final String aid=NativeRead.aid(post);
   final java.util.List<DownloadQuality.Choice> list=new java.util.ArrayList<>(photos);
   final String key="media_"+java.util.UUID.randomUUID();
-  final DownloadTasks.Control control=DownloadTasks.begin(key,Text.allPhotos(list.size()),"margyt",()->saveAllPhotos(post,list));
+  final DownloadTasks.Control control=DownloadTasks.begin(key,Text.photosCount(list.size()),"margyt",()->saveAllPhotos(post,list));
   control.limit=320L*1024L*1024L;Screen.progress(key,Text.DOWNLOADING,0);
   boolean queued=MediaQueue.add(()->{
    int saved=0;String where=null;java.io.File temporary=new java.io.File(c.getCacheDir(),key+".media");
    try{
     for(int i=0;i<list.size()&&!control.cancelled();i++){
-     try{String done=fetchOne(c,key,list.get(i).candidates(),2,aid,temporary,control,i,list.size(),"_"+(i+1));if(done!=null){saved++;where=done;}}
+     try{String done=fetchOne(c,key,list.get(i).candidates(),2,aid,temporary,control,i,list.size(),"_"+(list.get(i).bitrate+1));if(done!=null){saved++;where=done;}}
      catch(Throwable error){Diary.note("photo "+(i+1)+": "+error);}
      finally{temporary.delete();}
     }

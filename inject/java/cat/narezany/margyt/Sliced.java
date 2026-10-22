@@ -41,8 +41,15 @@ final class Sliced {
     private static final int MOST = 12000;
     private static final int DEEP = 40;
 
-    private static final class Walk implements Runnable {
-        final View root;
+    private static final class Walk implements Runnable, android.view.Choreographer.FrameCallback {
+        /**
+         * Held weakly, and the next stretch asked of the Choreographer rather
+         * than posted on the view. A view that has left its window keeps what
+         * is posted on it until it comes back, which a closed screen never
+         * does: the walk, the views still ahead of it and the root waited
+         * there for good, and the root was this map's key.
+         */
+        final java.lang.ref.WeakReference<View> root;
         final Visit[] visits;
         final ArrayDeque<View> ahead = new ArrayDeque<View>();
         final ArrayDeque<Integer> depths = new ArrayDeque<Integer>();
@@ -50,7 +57,7 @@ final class Sliced {
         int seen;
 
         Walk(View root, Visit[] visits) {
-            this.root = root;
+            this.root = new java.lang.ref.WeakReference<View>(root);
             this.visits = visits;
         }
 
@@ -58,8 +65,16 @@ final class Sliced {
             ahead.clear();
             depths.clear();
             seen = 0;
-            ahead.push(root);
-            depths.push(0);
+            View top = root.get();
+            if (top != null) {
+                ahead.push(top);
+                depths.push(0);
+            }
+        }
+
+        @Override
+        public void doFrame(long frameTimeNanos) {
+            run();
         }
 
         @Override
@@ -96,18 +111,25 @@ final class Sliced {
                 depths.clear();
             }
             Probe.stop(Probe.SLICE, probe);
-            if (!ahead.isEmpty() && root.isAttachedToWindow()) {
-                root.postOnAnimation(this);
+            View top = root.get();
+            boolean there = top != null && top.isAttachedToWindow();
+            if (!ahead.isEmpty() && there) {
+                android.view.Choreographer.getInstance().postFrameCallback(this);
                 return;
             }
-            if (again && root.isAttachedToWindow()) {
+            if (again && there) {
                 again = false;
                 begin();
-                root.postOnAnimation(this);
+                android.view.Choreographer.getInstance().postFrameCallback(this);
                 return;
             }
-            synchronized (running) {
-                running.remove(root);
+            ahead.clear();
+            depths.clear();
+            // a root that is gone has taken its entry with it
+            if (top != null) {
+                synchronized (running) {
+                    running.remove(top);
+                }
             }
         }
     }
