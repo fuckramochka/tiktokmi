@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the project's own git server at startup and every five minutes; the badges come from the same box.",
-  "version": "2.0.5",
-  "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.0.5/margyt.apk",
-  "notes": "Less stutter: the mod no longer goes over the screen before every frame. No more blacked-out window in recents. A lag report names the plugin that is holding the app up.",
-  "notes_ru": "Меньше подлагов: мод больше не обходит экран перед каждым кадром. Убран «скрытый режим» с чёрным окном в недавних. Отчёт о лагах называет плагин, который тормозит.",
-  "notes_uk": "Менше підлагів: мод більше не обходить екран перед кожним кадром. Прибрано «прихований режим» із чорним вікном у недавніх. Звіт про лаги називає плагін, який гальмує."
+  "version": "2.1.0",
+  "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.1.0/margyt.apk",
+  "notes": "Settings with pictures, in pages. The new profile turns on for everyone, even where TikTok keeps the account on the old one. Liquid glass and Fluent, AMOLED, your own icon, profile marks and four memory leaks closed.",
+  "notes_ru": "Настройки с картинками и на страницах. Новый профиль включается у всех, даже если TikTok держит аккаунт на старом. Жидкое стекло и Fluent, AMOLED, своя иконка, пометки профилей и закрыты четыре утечки памяти.",
+  "notes_uk": "Налаштування з картинками і на сторінках. Новий профіль вмикається в усіх, навіть якщо TikTok тримає акаунт на старому. Рідке скло і Fluent, AMOLED, своя іконка, позначки профілів і закрито чотири витоки пам'яті."
 }

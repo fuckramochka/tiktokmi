@@ -25,6 +25,36 @@
    },
    "releases": [
     {
+     "version": "2.1.0",
+     "beta": false,
+     "base": {
+      "name": "TikTok 47.2.41",
+      "sha256": "4bcad2a15ac82da68d373629a9520f855781c3ec46f0e2937e605040285ba75c",
+      "size": 346017026,
+      "sources": [
+       {
+        "name": "margy.narez.xyz",
+        "url": "https://margy.narez.xyz/original/tiktok-47-2-41.apk",
+        "direct": true
+       }
+      ]
+     },
+     "patch": {
+      "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.1.0/margyt-2.1.0.mpatch",
+      "sha256": "ecccc1b94b3c4d431feee539781c13c58079709d9bcb6cb62ee29e7d10a29c26",
+      "size": 73183572
+     },
+     "result": {
+      "sha256": "207d5a2cbfec364dccb79542cda722e05242804539a57189ec4efff330c6ff13",
+      "size": 394966132
+     },
+     "notes": {
+      "ru": "Настройки с картинками и на страницах. Новый профиль включается у всех, даже если TikTok держит аккаунт на старом. Жидкое стекло и Fluent, AMOLED, своя иконка, пометки профилей и закрыты четыре утечки памяти.",
+      "uk": "Налаштування з картинками і на сторінках. Новий профіль вмикається в усіх, навіть якщо TikTok тримає акаунт на старому. Рідке скло і Fluent, AMOLED, своя іконка, позначки профілів і закрито чотири витоки пам'яті.",
+      "en": "Settings with pictures, in pages. The new profile turns on for everyone, even where TikTok keeps the account on the old one. Liquid glass and Fluent, AMOLED, your own icon, profile marks and four memory leaks closed."
+     }
+    },
+    {
      "version": "2.0.5",
      "beta": false,
      "base": {
