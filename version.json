@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the project's own git server at startup and every five minutes; the badges come from the same box.",
-  "version": "2.1.0",
-  "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.1.0/margyt.apk",
-  "notes": "Settings with pictures, in pages. The new profile turns on for everyone, even where TikTok keeps the account on the old one. Liquid glass and Fluent, AMOLED, your own icon, profile marks and four memory leaks closed.",
-  "notes_ru": "Настройки с картинками и на страницах. Новый профиль включается у всех, даже если TikTok держит аккаунт на старом. Жидкое стекло и Fluent, AMOLED, своя иконка, пометки профилей и закрыты четыре утечки памяти.",
-  "notes_uk": "Налаштування з картинками і на сторінках. Новий профіль вмикається в усіх, навіть якщо TikTok тримає акаунт на старому. Рідке скло і Fluent, AMOLED, своя іконка, позначки профілів і закрито чотири витоки пам'яті."
+  "version": "2.1.1",
+  "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.1.1/margyt.apk",
+  "notes": "Profiles are whole again for everyone: names, avatars and the edit button are back. Less stutter while scrolling, and flags no longer switch themselves off. Interface styles of your own in .mtui files, and tilcayos to pet and feed.",
+  "notes_ru": "Профили снова целые у всех: имена, аватарки и кнопка изменения на месте. Меньше лагов при листании, флаги больше не выключаются сами. Свои стили интерфейса в файлах .mtui и бегающие тилкайо, которых можно гладить и кормить.",
+  "notes_uk": "Профілі знову цілі в усіх: імена, аватарки й кнопка редагування на місці. Менше лагів під час гортання, прапорці більше не вимикаються самі. Власні стилі інтерфейсу у файлах .mtui і тілкайо, яких можна гладити й годувати."
 }

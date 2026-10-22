@@ -25,6 +25,36 @@
    },
    "releases": [
     {
+     "version": "2.1.1",
+     "beta": false,
+     "base": {
+      "name": "TikTok 47.2.41",
+      "sha256": "4bcad2a15ac82da68d373629a9520f855781c3ec46f0e2937e605040285ba75c",
+      "size": 346017026,
+      "sources": [
+       {
+        "name": "margy.narez.xyz",
+        "url": "https://margy.narez.xyz/original/tiktok-47-2-41.apk",
+        "direct": true
+       }
+      ]
+     },
+     "patch": {
+      "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.1.1/margyt-2.1.1.mpatch",
+      "sha256": "a258cff29162f9c629fc3c883d47c56a31be766e8d6bbaf1e3d2a4ecb69715c8",
+      "size": 73273560
+     },
+     "result": {
+      "sha256": "384f4e00e71c633250fd17c17e2c55dec80685d02964c6a89d395ed0d89bf6a4",
+      "size": 395060415
+     },
+     "notes": {
+      "ru": "Профили снова целые у всех: имена, аватарки и кнопка изменения на месте. Меньше лагов при листании, флаги больше не выключаются сами. Свои стили интерфейса в файлах .mtui и бегающие тилкайо, которых можно гладить и кормить.",
+      "uk": "Профілі знову цілі в усіх: імена, аватарки й кнопка редагування на місці. Менше лагів під час гортання, прапорці більше не вимикаються самі. Власні стилі інтерфейсу у файлах .mtui і тілкайо, яких можна гладити й годувати.",
+      "en": "Profiles are whole again for everyone: names, avatars and the edit button are back. Less stutter while scrolling, and flags no longer switch themselves off. Interface styles of your own in .mtui files, and tilcayos to pet and feed."
+     }
+    },
+    {
      "version": "2.1.0",
      "beta": false,
      "base": {
