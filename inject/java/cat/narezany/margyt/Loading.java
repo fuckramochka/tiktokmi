@@ -90,8 +90,8 @@ public final class Loading {
             if (width <= 0 || height <= 0) return false;
 
             if (!wouldDraw(view, width, height)) return true;
-            if(Design.fluent())fluent(canvas,width,height);
-            else if(Design.glass())glass(canvas,width,height);
+            if(Design.controlsFluent())fluent(canvas,width,height);
+            else if(Design.controlsGlass())glass(canvas,width,height);
             else shape(canvas, width, height);
             // TikTok asks for its next frame some milliseconds on; a shape
             // that turns wants every one
@@ -108,8 +108,8 @@ public final class Loading {
 
     /** The indicator as the settings picture shows it, whatever the switch says. */
     static void preview(Canvas canvas, int width, int height) {
-        if (Design.fluent()) fluent(canvas, width, height);
-        else if (Design.glass()) glass(canvas, width, height);
+        if (Design.controlsFluent()) fluent(canvas, width, height);
+        else if (Design.controlsGlass()) glass(canvas, width, height);
         else shape(canvas, width, height);
     }
 

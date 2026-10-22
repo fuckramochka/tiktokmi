@@ -727,7 +727,41 @@ final class Text {
     static final String PAGE_AVARIYKA_NOTE = pick("Окна «срочно обновись в нашем телеграме», как в старых модах", "Вікна «терміново оновись у нашому телеграмі», як у старих модах", "\u201CUpdate now in our Telegram\u201D windows, like old mods had");
     static final String AVARIYKA_NOTE = pick("Иногда выскакивает фейковое «аварийное обновление», как в старых модах. Никуда не ведёт.", "Іноді вискакує фейкове «аварійне оновлення», як у старих модах. Нікуди не веде.", "Now and then a fake “emergency update” pops up, like in old mods. It leads nowhere.");
     static final String FUN_RUBBLE = pick("Рассыпать интерфейс", "Розсипати інтерфейс", "Shatter the interface");
-    static final String RUBBLE_NOTE = pick("Кнопки и надписи падают и катаются от наклона телефона. Выключается перезапуском TikTok.", "Кнопки й написи падають і котяться від нахилу телефона. Вимикається перезапуском TikTok.", "Buttons and labels fall and roll as you tilt the phone. Restart TikTok to stop it.");
+    static final String RUBBLE_NOTE = pick("Кнопки и надписи падают и катаются от наклона телефона. Выключается этим же переключателем или закрытием TikTok.", "Кнопки й написи падають і котяться від нахилу телефона. Вимикається цим самим перемикачем або закриттям TikTok.", "Buttons and labels fall and roll as you tilt the phone. This switch or closing TikTok turns it off.");
+    static final String UI_FILE_INSTALL = pick("Установить стиль .mtui", "Встановити стиль .mtui", "Install a .mtui style");
+    static final String UI_FILE_INSTALL_NOTE = pick("Свой стиль интерфейса из файла", "Власний стиль інтерфейсу з файлу", "An interface style from a file");
+    static final String UI_FILE_SAVE = pick("Сохранить стиль в файл", "Зберегти стиль у файл", "Save the style as a file");
+    static final String UI_FILE_SAVE_NOTE = pick("Все числа текущего стиля: с этого удобно начать свой", "Усі числа поточного стилю: з цього зручно почати свій", "Every number of this style: a starting point for your own");
+    static final String UI_FILE_DOCS = pick("Как сделать свой стиль", "Як зробити свій стиль", "How to make a style");
+    static final String UI_FILE_COPY = pick("копия", "копія", "copy");
+    static final String UI_FILE_REVIEW = pick("Стиль интерфейса", "Стиль інтерфейсу", "Interface style");
+    static final String UI_FILE_BY = pick("Автор:", "Автор:", "By");
+    static final String UI_FILE_BASED = pick("Основа:", "Основа:", "Based on");
+    static final String UI_FILE_APPLY = pick("Установить и включить", "Встановити й увімкнути", "Install and use");
+    static final String UI_FILE_APPLIED = pick("Стиль установлен", "Стиль встановлено", "Style installed");
+    static final String UI_FILE_REMOVE = pick("Удалить стиль", "Видалити стиль", "Remove the style");
+    static final String UI_FILE_REMOVE_ASK = pick("Удалить этот стиль с телефона?", "Видалити цей стиль із телефона?", "Remove this style from the phone?");
+    static final String UI_FILE_SAVED = pick("Стиль сохранён", "Стиль збережено", "Style saved");
+    static final String UI_FILE_SAVE_FAILED = pick("Не получилось сохранить стиль", "Не вдалося зберегти стиль", "Could not save the style");
+    static final String UI_FILE_REFUSED = pick("Это не стиль", "Це не стиль", "Not a style");
+    static final String UI_FILE_UNREADABLE = pick("Файл не открылся", "Файл не відкрився", "The file could not be opened");
+    static final String UI_FILE_NOT_SAVED = pick("Не получилось сохранить файл на телефоне.", "Не вдалося зберегти файл на телефоні.", "Could not keep the file on the phone.");
+    static final String UI_FILE_EMPTY = pick("Файл пустой.", "Файл порожній.", "The file is empty.");
+    static final String UI_FILE_BIG = pick("Файл больше 32 КБ, для стиля это слишком.", "Файл більший за 32 КБ, для стилю це забагато.", "The file is over 32 KB, too big for a style.");
+    static final String UI_FILE_NOT_JSON = pick("Внутри не JSON.", "Усередині не JSON.", "There is no JSON inside.");
+    static final String UI_FILE_NOT_UI = pick("Нет поля \"mtui\": это не стиль MargyT.", "Немає поля \"mtui\": це не стиль MargyT.", "No \"mtui\" field: this is not a MargyT style.");
+    static final String UI_FILE_NEWER = pick("Стиль сделан для более новой версии MargyT. Обновите мод.", "Стиль зроблено для новішої версії MargyT. Оновіть мод.", "The style is for a newer MargyT. Update the mod.");
+    static final String UI_FILE_NO_NAME = pick("У стиля нет названия (поле \"name\").", "У стилю немає назви (поле \"name\").", "The style has no name (the \"name\" field).");
+    static final String UI_FILE_NO_BASE = pick("Поле \"base\" должно быть md3, glass или fluent.", "Поле \"base\" має бути md3, glass або fluent.", "\"base\" must be md3, glass or fluent.");
+    static final String UI_FILE_BAD_VALUE = pick("Неверное значение:", "Неправильне значення:", "A wrong value:");
+    static final String FUN_TILCAYO_RUN = pick("Бегающие тилкайо", "Бігаючі тілкайо", "Running tilcayos");
+    static final String TILCAYO_RUN_NOTE = pick("Внизу экрана бегают и прыгают толстые тилкайо, обнимаются, целуются и пускают салют. Нажмите на кота, чтобы погладить, подержите, чтобы почесать, два раза, чтобы покормить, много раз, чтобы пощекотать, или схватите и подкиньте. Мимо котов нажатия уходят в TikTok.",
+            "Унизу екрана бігають і стрибають товсті тілкайо, обіймаються, цілуються й пускають салют. Натисніть на кота, щоб погладити, потримайте, щоб почухати, двічі, щоб нагодувати, багато разів, щоб полоскотати, або схопіть і підкиньте. Повз котів натискання йдуть у TikTok.",
+            "Fat tilcayos run and jump along the bottom of the screen, hugging, kissing and setting off fireworks. Tap a cat to pet it, hold to stroke it, tap twice to feed it, tap a lot to tickle it, or grab and toss it. Taps beside the cats go to TikTok.");
+    static final String TILCAYO_PURR = pick("мур", "мур", "purr");
+    static final String TILCAYO_NOM = pick("ням!", "ням!", "nom!");
+    static final String TILCAYO_HEHE = pick("хи-хи", "хі-хі", "hehe");
+    static final String TILCAYO_WHEE = pick("уиии!", "уііі!", "wheee!");
     static final String FUN_NOTE = pick("Деп калькулятор, скримеры и тилкайо",
             "Деп калькулятор, скримери й тілкайо", "Dep Calculator, screamers and tilcayo");
     static final String FUN_HELP = pick("Ни для чего не нужное. Само ничего не включится.", "Ні для чого не потрібне. Само нічого не ввімкнеться.", "Good for nothing. Nothing here turns on by itself.");
@@ -1461,6 +1495,7 @@ final class Text {
     static final String PAGE_DEP_NOTE = pick("Казино понарошку и значок за победу", "Казино понарошку і значок за перемогу", "A pretend casino with a badge to win");
     static final String PAGE_RUBBLE_NOTE = pick("Интерфейс TikTok падает и катается по экрану", "Інтерфейс TikTok падає й котиться екраном", "TikTok's buttons fall and roll about");
     static final String PAGE_SCREAMERS_NOTE = pick("Внезапный кот поверх ленты", "Раптовий кіт поверх стрічки", "A sudden cat over the feed");
+    static final String PAGE_TILCAYO_NOTE = pick("Тилкайо бегают и прыгают внизу экрана", "Тілкайо бігають і стрибають унизу екрана", "Tilcayos run and jump along the bottom");
     static final String PAGE_CAT_NOTE = pick("Толстый тилкайо", "Товстий тілкайо", "The fat tilcayo");
     static final String AMOLED = pick("AMOLED", "AMOLED", "AMOLED");
     static final String AMOLED_NOTE = pick("Чистый чёрный вместо тёмно-серого.", "Чистий чорний замість темно-сірого.", "Pure black instead of dark grey.");

@@ -32,7 +32,7 @@ final class Motion {
             if(action==android.view.MotionEvent.ACTION_DOWN || action==android.view.MotionEvent.ACTION_UP
                     || action==android.view.MotionEvent.ACTION_CANCEL) {
                 boolean down=action==android.view.MotionEvent.ACTION_DOWN && target.isEnabled() && target.isClickable() && enabled(target.getContext());
-                float scale=down ? (Design.glass() ? 1.025f : Design.fluent()?0.995f:0.985f) : 1f;
+                float scale=down ? Design.style().press : 1f;
                 target.animate().scaleX(scale).scaleY(scale)
                         .setDuration(down ? 110L : (Design.glass() ? 340L : 140L))
                         .setInterpolator(Design.glass() ? new android.view.animation.OvershootInterpolator(.85f)

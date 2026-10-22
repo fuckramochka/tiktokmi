@@ -36,7 +36,10 @@ import java.util.Random;
  * that turn up later (the next video's buttons) are thrown in as well, up to a
  * limit, and a piece whose view is no longer on the screen (the profile, once
  * the feed is open) is put away until it is back. Nothing is saved: it lasts
- * until TikTok is closed for good and opened again.
+ * until the switch is turned off or TikTok is closed. Closing used to mean the
+ * process ending, and TikTok's often lives on in the background after it is
+ * swiped away, so for many it came back on every opening until the app was
+ * stopped from the system settings; now the last TikTok screen finishing ends it.
  */
 final class Rubble {
 
@@ -50,11 +53,31 @@ final class Rubble {
     private static volatile boolean armed;
     private static volatile boolean running;
 
+    private static final ArrayList<java.lang.ref.WeakReference<World>> WORLDS = new ArrayList<>();
+
     static boolean running() { return running; }
+
+    /** On, or about to be: what the switch in the settings shows. */
+    static boolean on() { return armed || running; }
 
     static void arm(Activity settings) {
         armed = true;
         try { settings.finish(); } catch (Throwable ignored) {}
+    }
+
+    /** Off at once: every piece goes back to being its view. */
+    static void stop() {
+        armed = false;
+        running = false;
+        MAIN.post(() -> {
+            synchronized (WORLDS) {
+                for (java.lang.ref.WeakReference<World> held : WORLDS) {
+                    World world = held.get();
+                    if (world != null) world.dismantle();
+                }
+                WORLDS.clear();
+            }
+        });
     }
 
     static void resumed(Activity activity) {
@@ -72,6 +95,7 @@ final class Rubble {
             armed = false;
             running = true;
             World world = new World(activity, screen);
+            synchronized (WORLDS) { WORLDS.add(new java.lang.ref.WeakReference<>(world)); }
             screen.addView(world, new FrameLayout.LayoutParams(-1, -1));
             world.setElevation(1000f);
             world.collect();
@@ -126,6 +150,35 @@ final class Rubble {
             try { if (sensors != null) sensors.unregisterListener(this); } catch (Throwable ignored) {}
             Choreographer.getInstance().removeFrameCallback(this);
             ticking = false;
+            // the screen TikTok was opened on going away for good is TikTok being closed
+            Context context = getContext();
+            if (context instanceof Activity && ((Activity) context).isFinishing() && ((Activity) context).isTaskRoot()) {
+                armed = false;
+                running = false;
+                giveBack();
+            }
+        }
+
+        /** Every view looks as it did, and the pictures of them are let go. */
+        private void giveBack() {
+            for (Piece p : pieces) {
+                try {
+                    p.source.setAlpha(p.alpha);
+                    p.source.setTag(TAG, null);
+                } catch (Throwable ignored) {}
+                if (p.picture != null && !p.picture.isRecycled()) p.picture.recycle();
+            }
+            pieces.clear();
+            taken.clear();
+        }
+
+        void dismantle() {
+            Choreographer.getInstance().removeFrameCallback(this);
+            try { if (sensors != null) sensors.unregisterListener(this); } catch (Throwable ignored) {}
+            ticking = false;
+            giveBack();
+            ViewGroup parent = getParent() instanceof ViewGroup ? (ViewGroup) getParent() : null;
+            if (parent != null) parent.removeView(this);
         }
 
 

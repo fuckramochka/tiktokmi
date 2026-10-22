@@ -1060,15 +1060,22 @@ public final class Dim {
         final float original;float last;final android.animation.ValueAnimator animator;
         Returning(float from,float to){original=to;last=from;animator=android.animation.ValueAnimator.ofFloat(from,to);}
     }
-    /** Animate only our alpha. Stop immediately if TikTok changes or detaches the view. */
+    /**
+     * Animate only our alpha. Stop immediately if TikTok changes or detaches the view.
+     *
+     * A view TikTok has hidden is left as it is. Setting its old brightness back
+     * while it was out of sight is what filled the whole screen when comments
+     * were opened and closed quickly: the shade under the comments got its full
+     * brightness back while hidden, and TikTok showed it again expecting it clear.
+     */
     private static void restoreSmooth(View view,float original){
-        if(!view.isAttachedToWindow() || !view.isShown()){view.setAlpha(original);return;}
+        if(!view.isAttachedToWindow() || !view.isShown())return;
         Returning state=new Returning(view.getAlpha(),original);returns.put(view,state);
         java.lang.ref.WeakReference<View> ref=new java.lang.ref.WeakReference<>(view);
         state.animator.setDuration(160L);
         state.animator.addUpdateListener(animation->{View target=ref.get();
             if(target==null || returns.get(target)!=state || Math.abs(target.getAlpha()-state.last)>.001f){animation.cancel();return;}
-            if(!target.isAttachedToWindow() || !target.isShown()){target.setAlpha(state.original);animation.cancel();return;}
+            if(!target.isAttachedToWindow() || !target.isShown()){animation.cancel();return;}
             state.last=(Float)animation.getAnimatedValue();target.setAlpha(state.last);
         });
         state.animator.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator animation){View target=ref.get();if(target!=null && returns.get(target)==state)returns.remove(target);}});

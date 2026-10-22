@@ -496,21 +496,13 @@ FIELD_SOURCES: List[Tuple[str, str, str, str, str]] = [
     (PHOTO_IMAGE, "userWatermarkImage", URL_MODEL, "userWatermarkImage", DOWNLOAD),
 ]
 
-# A static TikTok works out once and keeps: whether the profile is the new one.
-# It is set the first time its class loads, which can be before the mod can read
-# its own settings, and then stays as the server said for the whole run. Every
-# read of it is answered by the switch instead.
-STATIC_FIELD_SOURCES: List[Tuple[str, str, str, str, str]] = [
-    ("LX/071Z;", "LIZ", "Z", "newProfile", "Lcat/narezany/margyt/Flags;"),
-]
-
-# Every profile page passes through this on its way to the screen: it pours the
-# account's details into the page's tree of parts. The tree comes from the
-# server, which builds the old header or the new by the account's group; the
-# mod moves an old one into the new shape first (ProfileHeader).
-MODEL_STATICS += [
-    ("LX/0sm9;", "LJIILIIL", "(Lcom/ss/android/ugc/aweme/profile/model/User;Lcom/ss/android/ugc/profile/platform/base/data/ProfileUser;ZLkotlin/jvm/functions/Function1;)Lcom/ss/android/ugc/profile/platform/base/data/ProfileUser;", "(Lcom/ss/android/ugc/aweme/profile/model/User;Lcom/ss/android/ugc/profile/platform/base/data/ProfileUser;ZLkotlin/jvm/functions/Function1;)Lcom/ss/android/ugc/profile/platform/base/data/ProfileUser;", "Lcat/narezany/margyt/ProfileHeader;"),
-]
+# Statics of TikTok's own whose every read the mod answers instead. 2.1.0 had
+# one here, TikTok's "is this the new profile", answered by the switch before
+# the server had its say, and with it the profile page moved into the new shape
+# (ProfileHeader): for accounts the server keeps on the old profile that left
+# other people's pages without a name or an avatar and one's own without the
+# edit button and the banner. Gone in 2.1.1; the profile is the server's again.
+STATIC_FIELD_SOURCES: List[Tuple[str, str, str, str, str]] = []
 
 # The pink TikTok is built around. Most of the places it is drawn hold it as a
 # plain constant in the bytecode, so each of those becomes a call into the mod

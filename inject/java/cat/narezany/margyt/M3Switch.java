@@ -85,7 +85,7 @@ public final class M3Switch extends View {
             return;
         }
         animator = ValueAnimator.ofFloat(position, value ? 1f : 0f);
-        animator.setDuration(Design.fluent()?180L:ANIMATION_DURATION_MS);
+        animator.setDuration(Design.controlsFluent()?180L:ANIMATION_DURATION_MS);
         animator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
         animator.addUpdateListener(a -> {
             position = (Float) a.getAnimatedValue();
@@ -174,7 +174,7 @@ public final class M3Switch extends View {
 
     @Override
     protected void onMeasure(int widthSpec, int heightSpec) {
-        setMeasuredDimension(dp(Design.fluent()?42:TRACK_WIDTH), dp(Design.fluent()?22:TRACK_HEIGHT));
+        setMeasuredDimension(dp(Design.controlsFluent()?42:TRACK_WIDTH), dp(Design.controlsFluent()?22:TRACK_HEIGHT));
     }
 
     @Override
@@ -189,8 +189,8 @@ public final class M3Switch extends View {
     /** The Material 3 switch. */
     @Override
     protected void onDraw(Canvas canvas) {
-        if(Design.fluent()){drawFluent(canvas);return;}
-        if(Design.glass()){drawGlass(canvas);return;}
+        if(Design.controlsFluent()){drawFluent(canvas);return;}
+        if(Design.controlsGlass()){drawGlass(canvas);return;}
         float w = getWidth(), h = getHeight();
         float eased = position * position * (3f - 2f * position);
         int accent = on(Accent.colour());

@@ -19,7 +19,13 @@ final class GlassBackdrop {
     static boolean capturing;
     /** How wide the copy of the screen behind the glass is: it is blurred, so small is enough. */
     private static final float WIDTH=240f;
-    private static final long VIDEO_FRAME_NS=80_000_000L,VIDEO_FRAME_MS=80L,CAPTURE_MS=140L;
+    /**
+     * The video behind the glass is copied a dozen times a second; the rest of the
+     * screen behind it is drawn again in software, which TikTok's constant layouts
+     * asked for seven times a second, and that took the main thread from the video
+     * copies and the app alike. Under a blur the rest changes little: 400 ms.
+     */
+    private static final long VIDEO_FRAME_NS=80_000_000L,VIDEO_FRAME_MS=80L,CAPTURE_MS=400L;
     /** `version` changes whenever the picture in `bitmap` does. */
     static final class Frame {Bitmap bitmap;float scale;int x,y;Canvas canvas;boolean ready;int version;}
 

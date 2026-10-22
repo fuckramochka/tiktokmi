@@ -733,12 +733,24 @@ public final class Streaks {
         }
     }
 
+    private static volatile boolean persistQueued;
+
+    /**
+     * Saved once, a moment after the last new one. Finding the friends at the
+     * start adds up to two hundred conversations one after another, and each
+     * used to write the whole list again on the main thread.
+     */
     private static void persistConversations() {
-        SharedPreferences p = prefs();
-        if (p == null) return;
-        org.json.JSONArray saved = new org.json.JSONArray();
-        for (String id : asked.keySet()) saved.put(id);
-        p.edit().putString(conversationKey(), saved.toString()).apply();
+        if (persistQueued) return;
+        persistQueued = true;
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            persistQueued = false;
+            SharedPreferences p = prefs();
+            if (p == null) return;
+            org.json.JSONArray saved = new org.json.JSONArray();
+            synchronized (asked) { for (String id : asked.keySet()) saved.put(id); }
+            p.edit().putString(conversationKey(), saved.toString()).apply();
+        }, 2000L);
     }
 
     private static void restoreConversations() {

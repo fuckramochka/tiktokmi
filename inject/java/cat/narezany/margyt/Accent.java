@@ -261,6 +261,7 @@ public final class Accent {
         memo = 0;
         translations=new java.util.concurrent.atomic.AtomicLongArray(256);
         recolouredBitmaps.clear();
+        untouchedBitmaps.clear();
         recolouredVectors.clear();
         plainVectors.clear();
     }
@@ -356,6 +357,17 @@ public final class Accent {
             java.util.Collections.synchronizedMap(new java.util.WeakHashMap<Bitmap, Bitmap>());
 
     /**
+     * Pictures already looked at and left as they are, with the accent they were
+     * looked at for. Most of TikTok's pictures have no red in them, and the same
+     * few come back with every video: each time all their pixels were read into
+     * a new array, hashed, and asked of the cache on disk, on the main thread.
+     * In a full report from a Pixel that churn was most of what the app waited
+     * on while scrolling.
+     */
+    private static final java.util.Map<Bitmap, Integer> untouchedBitmaps =
+            java.util.Collections.synchronizedMap(new java.util.WeakHashMap<Bitmap, Integer>());
+
+    /**
      * A picture whose pixels are TikTok's red, moved without asking its name.
      *
      * The names of TikTok's resources are stripped from the apk, so a rule that
@@ -371,6 +383,8 @@ public final class Accent {
             if (source == null || source.isRecycled()) return drawable;
             int width = source.getWidth(), height = source.getHeight();
             if (width * height > 160000) return drawable;
+            Integer looked = untouchedBitmaps.get(source);
+            if (looked != null && looked == target) return drawable;
             Bitmap known = recolouredBitmaps.get(source);
             Context context = Margy.context();
             Resources resources = context == null ? null : context.getResources();
@@ -385,7 +399,10 @@ public final class Accent {
                         + RecolourCache.hash(pixels, width, height) : null;
             if (diskKey != null) {
                 byte[] saved = RecolourCache.get(diskKey);
-                if (saved == RecolourCache.NONE) return drawable;
+                if (saved == RecolourCache.NONE) {
+                    untouchedBitmaps.put(source, target);
+                    return drawable;
+                }
                 Bitmap restored = saved == null ? null : RecolourCache.decode(saved);
                 if (restored != null && restored.getWidth() == width
                         && restored.getHeight() == height) {
@@ -405,6 +422,7 @@ public final class Accent {
             }
             if (!any) {
                 if (diskKey != null) RecolourCache.put(diskKey, null);
+                untouchedBitmaps.put(source, target);
                 return drawable;
             }
             Bitmap out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);

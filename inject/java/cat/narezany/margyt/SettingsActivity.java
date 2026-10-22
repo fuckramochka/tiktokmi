@@ -97,6 +97,8 @@ public class SettingsActivity extends Activity {
     private static final String GIT = "https://git.narez.xyz/narezany/MargyT";
     private static final String DOCS_PLUGINS =
             "https://git.narez.xyz/narezany/MargyT/src/branch/main/docs/plugins.md";
+    private static final String DOCS_STYLES =
+            "https://git.narez.xyz/narezany/MargyT/src/branch/main/docs/mtui.md";
     private static final String YOOMONEY = "https://yoomoney.ru/to/4100118196133693";
     private static final String BOOSTY = "https://boosty.to/ega_link";
     private static final String FUNPAY = "https://funpay.com/lots/offer?id=80127335";
@@ -158,6 +160,7 @@ public class SettingsActivity extends Activity {
             new Shelf(7, "notifications", "notifications", Text.NOTIFICATIONS, Text.PAGE_NOTIFICATIONS_NOTE, Text.NOTIFICATIONS),
             new Shelf(8, "dep", "flare", Text.FUN_DEP, Text.PAGE_DEP_NOTE, Text.FUN_DEP),
             new Shelf(8, "rubble", "open_with", Text.FUN_RUBBLE, Text.PAGE_RUBBLE_NOTE, Text.FUN_RUBBLE),
+            new Shelf(8, "tilcayo", "animation", Text.FUN_TILCAYO_RUN, Text.PAGE_TILCAYO_NOTE, Text.FUN_TILCAYO_RUN),
             new Shelf(8, "screamers", "animation", Text.FUN_SCREAMERS, Text.PAGE_SCREAMERS_NOTE, Text.FUN_SCREAMERS),
             new Shelf(8, "avariyka", "notifications", Text.FUN_AVARIYKA, Text.PAGE_AVARIYKA_NOTE, Text.FUN_AVARIYKA),
             new Shelf(8, "cat", "image", Text.FUN_CAT, Text.PAGE_CAT_NOTE, Text.FUN_CAT),
@@ -244,16 +247,31 @@ public class SettingsActivity extends Activity {
         maybeAskForSupport();
         if(getIntent().getBooleanExtra("margyt_tutorial",false))root.postDelayed(()->Tutorial.show(this),350L);
         openPluginFile(getIntent());
+        openStyleFile(getIntent());
     }
 
     /** Set by PluginOpenActivity: a .mtp opened from a file manager, to review as if it were picked here. */
     static final String OPEN_PLUGIN = "margyt_open_plugin";
+    /** Set by StyleOpenActivity: a .mtui opened from a file manager. */
+    static final String OPEN_STYLE = "margyt_open_style";
 
+    private void openStyleFile(Intent intent) {
+        if (intent == null || !intent.getBooleanExtra(OPEN_STYLE, false) || intent.getData() == null) return;
+        final Uri file = intent.getData();
+        intent.removeExtra(OPEN_STYLE);
+        searchQuery = "";
+        settingsGroup = groupOf(Text.APPEARANCE);
+        Shelf to = shelfOfSection(Text.APPEARANCE);
+        settingsPage = to == null ? null : to.id;
+        rebuild();
+        root.post(() -> reviewStyle(file));
+    }
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         openPluginFile(intent);
+        openStyleFile(intent);
     }
 
     private void openPluginFile(Intent intent) {
@@ -968,9 +986,17 @@ public class SettingsActivity extends Activity {
         column.addView(section(Text.FUN_RUBBLE));
         LinearLayout rubble = card();
         rubble.addView(new SettingsPictures.Fall(this, skin));
-        rubble.addView(actionRow("open_with", Text.FUN_RUBBLE, null, () -> Rubble.arm(this)));
+        rubble.addView(liveToggleRow("open_with", Text.FUN_RUBBLE, Rubble.on(), on -> { if (on) Rubble.arm(this); else Rubble.stop(); }));
         rubble.addView(quiet(Text.RUBBLE_NOTE));
         column.addView(wrap(rubble));
+
+        column.addView(section(Text.FUN_TILCAYO_RUN));
+        LinearLayout runway = card();
+        runway.addView(new TilcayoRun.Runway(this, false),
+                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(130)));
+        runway.addView(liveToggleRow("animation", Text.FUN_TILCAYO_RUN, TilcayoRun.isOn(this), on -> TilcayoRun.set(this, on)));
+        runway.addView(quiet(Text.TILCAYO_RUN_NOTE));
+        column.addView(wrap(runway));
 
         column.addView(section(Text.FUN_AVARIYKA));
         LinearLayout avariyka = card();
@@ -3365,6 +3391,24 @@ public class SettingsActivity extends Activity {
             reviewBackup(source);
             return;
         }
+        if (request == PICK_STYLE) {
+            reviewStyle(source);
+            return;
+        }
+        if (request == CREATE_STYLE) {
+            final String json = Design.style().json();
+            Net.away("style save", () -> {
+                boolean done = false;
+                if (json != null) try (java.io.OutputStream out = getContentResolver().openOutputStream(source)) {
+                    if (out != null) { out.write(json.getBytes("UTF-8")); done = true; }
+                } catch (Throwable error) {
+                    Diary.note("style save: " + error);
+                }
+                final boolean saved = done;
+                runOnUiThread(() -> Screen.say(saved ? Text.UI_FILE_SAVED : Text.UI_FILE_SAVE_FAILED));
+            });
+            return;
+        }
 
         if (request == PICK_FONT || request == PICK_EMOJI) {
             if (Fonts.take(this, source, request == PICK_EMOJI)) markChanged();
@@ -4501,39 +4545,143 @@ public class SettingsActivity extends Activity {
         head.addView(icon("palette"));
         head.addView(label(Text.DESIGN), grow());
         box.addView(sized(head, 52));
-        LinearLayout three = new LinearLayout(this);
-        three.setPadding(dp(12), 0, dp(12), dp(14));
-        String[][] modes = {{"md3", "Material 3"}, {"glass", "Liquid Glass"}, {"fluent", "Fluent"}};
-        for (final String[] mode : modes) {
+        // the three built in, then the ones people made (.mtui, UiStyle)
+        java.util.List<UiStyle> styles = new java.util.ArrayList<>(java.util.Arrays.asList(UiStyle.MATERIAL, UiStyle.LIQUID, UiStyle.ACRYLIC));
+        styles.addAll(UiStyle.installed(this));
+        boolean many = styles.size() > 3;
+        LinearLayout strip = new LinearLayout(this);
+        strip.setPadding(dp(12), 0, dp(12), dp(14));
+        String[] bases = {"md3", "glass", "fluent"};
+        for (final UiStyle style : styles) {
             LinearLayout tile = new LinearLayout(this);
             tile.setOrientation(LinearLayout.VERTICAL);
             tile.setGravity(Gravity.CENTER_HORIZONTAL);
-            boolean on = mode[0].equals(Design.mode());
-            tile.addView(new SettingsArt.Style(this, skin, mode[0], on));
+            boolean on = style.key.equals(Design.key());
+            tile.addView(new SettingsArt.Style(this, skin, bases[style.base], on));
             TextView name = new TextView(this);
-            name.setText(mode[1]);
+            name.setText(style.name);
             M3Type.line(name, 12, 0.4f);
             name.setTextColor(on ? skin.text : skin.muted());
             name.setTypeface(Typeface.create(on ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
             name.setGravity(Gravity.CENTER);
+            name.setSingleLine(true);
+            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
             name.setPadding(0, dp(6), 0, 0);
             tile.addView(name);
             tile.setPadding(dp(3), 0, dp(3), 0);
-            tile.setOnClickListener(v -> { if (!mode[0].equals(Design.mode())) applyDesign(mode[0]); });
+            tile.setOnClickListener(v -> { if (!style.key.equals(Design.key())) applyDesign(style.key); });
+            if (UiStyle.custom(style.key)) tile.setOnLongClickListener(v -> { askToRemoveStyle(style); return true; });
             Motion.press(tile);
-            three.addView(tile, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            strip.addView(tile, many ? new LinearLayout.LayoutParams(dp(112), ViewGroup.LayoutParams.WRAP_CONTENT)
+                    : new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         }
-        box.addView(three);
+        if (many) {
+            android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(this);
+            scroll.setHorizontalScrollBarEnabled(false);
+            scroll.setClipToPadding(false);
+            scroll.addView(strip);
+            box.addView(scroll);
+        } else box.addView(strip);
         box.addView(quiet(Text.DESIGN_NOTE));
+        box.addView(line());
+        box.addView(actionRow("download", Text.UI_FILE_INSTALL, Text.UI_FILE_INSTALL_NOTE, this::pickStyle));
+        box.addView(line());
+        box.addView(actionRow("upload", Text.UI_FILE_SAVE, Text.UI_FILE_SAVE_NOTE, this::saveStyle));
+        box.addView(line());
+        box.addView(actionRow("article", Text.UI_FILE_DOCS, null,
+                () -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(DOCS_STYLES)))));
         return box;
+    }
+
+    private static final int PICK_STYLE = 0x4D55;   // "MU"
+    private static final int CREATE_STYLE = 0x4D56; // "MV"
+
+    private void pickStyle() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            // .mtui is nobody's registered type either
+            intent.setType("*/*");
+            startActivityForResult(intent, PICK_STYLE);
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void saveStyle() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/octet-stream");
+            intent.putExtra(Intent.EXTRA_TITLE, UiStyle.fileName(Design.style().name));
+            startActivityForResult(intent, CREATE_STYLE);
+        } catch (Throwable error) {
+            Toast.makeText(this, String.valueOf(error), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void reviewStyle(final Uri source) {
+        Net.away("style review", () -> {
+            String trouble = null;
+            byte[] raw = null;
+            UiStyle style = null;
+            try (java.io.InputStream in = getContentResolver().openInputStream(source)) {
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                byte[] chunk = new byte[8192];
+                for (int n; in != null && (n = in.read(chunk)) > 0 && out.size() <= 40 * 1024; ) out.write(chunk, 0, n);
+                raw = out.toByteArray();
+                style = UiStyle.read(raw, null);
+            } catch (UiStyle.Refused refused) {
+                trouble = refused.getMessage();
+            } catch (Throwable error) {
+                trouble = Text.UI_FILE_UNREADABLE;
+            }
+            final UiStyle found = style;
+            final byte[] file = raw;
+            final String why = trouble;
+            runOnUiThread(() -> {
+                if (isFinishing()) return;
+                if (found == null) {
+                    Panel.with(this, skin, Text.UI_FILE_REFUSED).text(why).quiet(Local.of("Назад"), null).show();
+                    return;
+                }
+                String[] bases = {"Material 3", "Liquid Glass", "Fluent"};
+                StringBuilder about = new StringBuilder(found.name);
+                if (!found.author.isEmpty()) about.append('\n').append(Text.UI_FILE_BY).append(' ').append(found.author);
+                about.append('\n').append(Text.UI_FILE_BASED).append(' ').append(bases[found.base]);
+                if (!found.description.isEmpty()) about.append("\n\n").append(found.description);
+                Panel.with(this, skin, Text.UI_FILE_REVIEW).text(about.toString())
+                        .primary(Text.UI_FILE_APPLY, () -> {
+                            try {
+                                UiStyle installed = UiStyle.install(this, file);
+                                applyDesign(installed.key);
+                                Screen.say(Text.UI_FILE_APPLIED);
+                            } catch (UiStyle.Refused refused) {
+                                Screen.say(refused.getMessage());
+                            }
+                        })
+                        .quiet(Local.of("Назад"), null).show();
+            });
+        });
+    }
+
+    private void askToRemoveStyle(final UiStyle style) {
+        Panel.with(this, skin, Text.UI_FILE_REMOVE).text(Text.UI_FILE_REMOVE_ASK + "\n\n" + style.name)
+                .primary(Text.UI_FILE_REMOVE, () -> {
+                    boolean wearing = style.key.equals(Design.key());
+                    UiStyle.remove(this, style.key);
+                    if (wearing) applyDesign("md3"); else rebuild();
+                })
+                .quiet(Local.of("Назад"), null).show();
     }
 
     private void chooseDesign() {
         Panel panel=Panel.with(this,skin,Text.DESIGN);
         panel.text(Text.DESIGN_NOTE).section(null);
-        panel.option("Material 3","md3".equals(Design.mode()),true,()->applyDesign("md3"));
-        panel.option("Liquid Glass",Design.glass(),true,()->applyDesign("glass"));
-        panel.option("Fluent",Design.fluent(),true,()->applyDesign("fluent"));
+        panel.option("Material 3","md3".equals(Design.key()),true,()->applyDesign("md3"));
+        panel.option("Liquid Glass","glass".equals(Design.key()),true,()->applyDesign("glass"));
+        panel.option("Fluent","fluent".equals(Design.key()),true,()->applyDesign("fluent"));
+        for(UiStyle style:UiStyle.installed(this))panel.option(style.name,style.key.equals(Design.key()),true,()->applyDesign(style.key));
         panel.show();
     }
 

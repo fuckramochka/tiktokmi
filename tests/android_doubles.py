@@ -68,9 +68,6 @@ def with_mod(sources):
         # the words as they were written: the tests read the Russian
         sources.setdefault('cat/narezany/margyt/Local.java',
                            'package cat.narezany.margyt;final class Local{static String of(String russian){return russian;}}')
-    if 'ProfileHeader.' in everything:
-        sources.setdefault('cat/narezany/margyt/ProfileHeader.java',
-                           'package cat.narezany.margyt;final class ProfileHeader{static final String OLD_GROUP="profile_old_group";}')
     if 'android.os.Process.' in everything:
         sources.setdefault('android/os/Process.java',
                            'package android.os;public class Process{public static int myUid(){return 10000;}}')
@@ -87,7 +84,17 @@ def with_mod(sources):
         sources.setdefault('cat/narezany/margyt/Design.java',
             'package cat.narezany.margyt;final class Design{static boolean active,fluentActive;static boolean glass(){return active;}'
             'static boolean fluent(){return fluentActive;}static boolean frosted(){return active||fluentActive;}'
+            'static boolean controlsGlass(){return active;}static boolean controlsFluent(){return fluentActive;}'
+            'static boolean controlsFrosted(){return active||fluentActive;}static String key(){return active?"glass":fluentActive?"fluent":"md3";}'
+            # the numbers of the three built-in styles, as UiStyle has them
+            'static UiStyle style(){UiStyle s=new UiStyle();if(active){s.card=26;s.inner=6;s.gap=0;s.press=1.025f;s.base=1;s.controls=1;s.windowBlur=26;}'
+            'if(fluentActive){s.card=8;s.inner=6;s.sheet=8;s.small=4;s.bar=8;s.gap=4;s.press=.995f;s.duration=180;s.bounce=0;s.blur=1.15f;'
+            's.refraction=0;s.dispersion=0;s.windowBlur=4;s.neutral=true;s.cardLift=.075f;s.base=2;s.controls=2;}return s;}'
             'static boolean draw(Object... args){return false;}static void dialog(Object dialog,int colour){}'+surface+'}')
+        sources.setdefault('cat/narezany/margyt/UiStyle.java',
+            'package cat.narezany.margyt;final class UiStyle{static final int MD3=0,GLASS=1,FLUENT=2;'
+            'float card=16,inner=4,sheet=28,small=24,bar=-1,gap=2,blur=1.45f,tint=.24f,refraction=1,dispersion=.065f,grain=.003f,windowBlur=0,'
+            'bounce=1.6f,press=.985f,cardLift=.045f;int duration=300,base=0,controls=0;boolean neutral;String key="md3",name="Material 3";}')
     if 'GlassOptics.' in everything:
         sources.setdefault('cat/narezany/margyt/GlassOptics.java',
             'package cat.narezany.margyt;final class GlassOptics{static float viewTouchX,viewTouchY;}')

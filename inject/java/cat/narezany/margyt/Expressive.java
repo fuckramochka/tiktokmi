@@ -246,9 +246,10 @@ final class Expressive {
             // segments extra small ones (4), 2 between them, and a held
             // segment large corners all round
             boolean m3 = !Design.frosted();
-            this.outer = dp(context, Design.fluent()?8:m3?16:26);
-            this.inner = dp(context, m3?4:6);
-            this.gap = dp(context, 2);
+            // the style's own corners and gap (UiStyle): 16, 4 and 2 for Material 3
+            this.outer = dp(context, Design.style().card);
+            this.inner = dp(context, Design.style().inner);
+            this.gap = dp(context, Design.style().gap);
             this.pressed = dp(context, m3?16:28);
             if (Design.glass()) {
                 GradientDrawable surface = new GradientDrawable();
@@ -292,7 +293,7 @@ final class Expressive {
                         ? (LinearLayout.LayoutParams) given
                         : new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.WRAP_CONTENT);
-                int want = i == first ? 0 : Design.fluent()?Math.round(dp(getContext(),4)):Design.frosted()?0:Math.round(gap);
+                int want = i == first ? 0 : Math.round(gap);
                 if (params.topMargin != want || params != given) {
                     params.topMargin = want;
                     view.setLayoutParams(params);
@@ -349,8 +350,8 @@ final class Expressive {
                 return;
             }
             motion = ValueAnimator.ofFloat(state, target);
-            motion.setDuration(Design.fluent()?180L:300L);
-            motion.setInterpolator(Design.fluent()?new android.view.animation.DecelerateInterpolator():new OvershootInterpolator(1.6f));
+            motion.setDuration(Design.style().duration);
+            motion.setInterpolator(Design.style().bounce<=0?new android.view.animation.DecelerateInterpolator():new OvershootInterpolator(Design.style().bounce));
             motion.addUpdateListener(a -> {
                 state = (Float) a.getAnimatedValue();
                 invalidate();
@@ -367,14 +368,14 @@ final class Expressive {
         protected void onDraw(Canvas canvas) {
             float cx = getWidth() / 2f, cy = getHeight() / 2f;
             float radius = Math.min(getWidth(), getHeight()) / 2f;
-            if(Design.fluent()){
+            if(Design.controlsFluent()){
                 badgeBox.set(cx-radius,cy-radius,cx+radius,cy+radius);
                 java.util.Arrays.fill(badgeCorners,dp(getContext(),4));
                 path.reset();path.addRoundRect(badgeBox,badgeCorners,Path.Direction.CW);
-            }else if(Design.glass()){
+            }else if(Design.controlsGlass()){
                 path.reset();path.addCircle(cx,cy,radius,Path.Direction.CW);
             }else shape(path, kind, cx, cy, radius, 1f, state * 360f / LOBES[kind]);
-            paint.setColor(Design.fluent()?mix(0x007f7f7f,0x187f7f7f,state):mix(fillOff, fillOn, state));
+            paint.setColor(Design.controlsFluent()?mix(0x007f7f7f,0x187f7f7f,state):mix(fillOff, fillOn, state));
             canvas.drawPath(path, paint);
             if (glyph != null) {
                 glyph.setBounds(Math.round(cx - glyphSize / 2f), Math.round(cy - glyphSize / 2f),
@@ -437,14 +438,14 @@ final class Expressive {
         handle.setColor(accent);
         handle.setCornerRadius(dp(context, 3));
         handle.setSize(Math.round(dp(context, 6)), Math.round(dp(context, 44)));
-        if (Design.glass()) {
+        if (Design.controlsGlass()) {
             handle.setColor(0xEEFFFFFF);handle.setCornerRadius(dp(context, 14));
             handle.setSize(Math.round(dp(context, 30)), Math.round(dp(context, 28)));
-        } else if(Design.fluent()) {
+        } else if(Design.controlsFluent()) {
             handle.setColor(0xfff9f9f9);handle.setCornerRadius(dp(context,10));
             handle.setSize(Math.round(dp(context,20)),Math.round(dp(context,20)));
         }
-        if(Design.fluent()){
+        if(Design.controlsFluent()){
             GradientDrawable centre=new GradientDrawable();centre.setColor(accent);centre.setCornerRadius(dp(context,10));
             LayerDrawable thumb=new LayerDrawable(new Drawable[]{handle,centre});
             int inset=Math.round(dp(context,5));thumb.setLayerInset(1,inset,inset,inset,inset);

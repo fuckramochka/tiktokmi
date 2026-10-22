@@ -31,7 +31,7 @@ final class GlassOptics {
         canvas.translate(bounds.left,bounds.top);
         local.set(0,0,bounds.width(),bounds.height());
         top=Math.min(top,local.height()/2f); bottom=Math.min(bottom,local.height()/2f);
-        if(Design.fluent()){top=Math.min(top,density*8);bottom=Math.min(bottom,density*8);}
+        if(Design.fluent()){top=Math.min(top,density*Design.style().card);bottom=Math.min(bottom,density*Design.style().card);}
         if (Build.VERSION.SDK_INT >= 33 && canvas.isHardwareAccelerated() && !failed) {
             try {
                 if (lens == null) lens = new Lens();
@@ -151,15 +151,16 @@ final class GlassOptics {
             // shaders chained this way are not drawn into a buffer between them, each one
             // samples the whole chain under it, and two more passes made it 625 reads a
             // pixel, which stalled the GPU and with it the app.
-            float blur=dp*(Design.fluent()?1.15f:1.45f);
+            float blur=dp*Design.style().blur;
             blurX.setInputShader("content",input);blurX.setFloatUniform("axis",blur,0);
             blurY.setInputShader("content",blurX);blurY.setFloatUniform("axis",0,blur);
             if(Design.fluent()){
                 if(acrylic==null)acrylic=new RuntimeShader(FluentShader.ACRYLIC);
                 acrylic.setInputShader("content",blurY);
                 acrylic.setFloatUniform("size",w,h);
-                acrylic.setFloatUniform("radii",Math.min(top,dp*8),Math.min(bottom,dp*8));
-                acrylic.setFloatUniform("tint",Color.red(colour)/255f,Color.green(colour)/255f,Color.blue(colour)/255f,.24f);
+                acrylic.setFloatUniform("radii",Math.min(top,dp*Design.style().card),Math.min(bottom,dp*Design.style().card));
+                acrylic.setFloatUniform("tint",Color.red(colour)/255f,Color.green(colour)/255f,Color.blue(colour)/255f,Design.style().tint);
+                acrylic.setFloatUniform("grainAmount",Design.style().grain);
                 acrylic.setFloatUniform("density",dp);acrylic.setFloatUniform("pressed",press);
                 paint.setShader(acrylic);canvas.drawRect(0,0,w,h,paint);return;
             }
@@ -172,12 +173,12 @@ final class GlassOptics {
             shader.setFloatUniform("radii1",top,top,bottom,bottom);
             shader.setFloatUniform("shape2",0,0,0,0);shader.setFloatUniform("radius2",0);shader.setFloatUniform("blendK",0);
             shader.setFloatUniform("bevel",Math.max(dp*3,Math.min(dp*22,h*.27f)));
-            shader.setFloatUniform("refractPx",Math.min(dp*25,h*.42f));
+            shader.setFloatUniform("refractPx",Math.min(dp*25,h*.42f)*Design.style().refraction);
             shader.setFloatUniform("falloff",2);shader.setFloatUniform("refractDir",-1);
             shader.setFloatUniform("rimSoft",dp*.7f);
             shader.setFloatUniform("sampleLo",-x,-y);
             shader.setFloatUniform("sampleHi",frame.bitmap.getWidth()/frame.scale-x,frame.bitmap.getHeight()/frame.scale-y);
-            shader.setFloatUniform("dispersion",.065f);
+            shader.setFloatUniform("dispersion",Design.style().dispersion);
             float tx=viewTouchX,ty=viewTouchY;
             shader.setFloatUniform("lightDir",-.7071f+tx*.16f,-.7071f+ty*.16f);
             shader.setFloatUniform("specStrength",.85f+press*.35f);

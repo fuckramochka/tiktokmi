@@ -69,7 +69,7 @@ final class CommentStyle {
                 boolean enabled=enabled();
                 View heading=null;View found=nativeWindow.get();if(found!=null)heading=found.findViewById(HEADER_TITLE);
                 if(heading instanceof android.widget.TextView)lightWords=NavBar.bright(((android.widget.TextView)heading).getCurrentTextColor())>.5f;
-                String style=Design.mode()+":"+enabled+":"+Design.pageColour(top.getContext())+":"+Accent.colour()+":"+lightWords;
+                String style=Design.key()+":"+enabled+":"+Design.pageColour(top.getContext())+":"+Accent.colour()+":"+lightWords;
                 if(!style.equals(appearance)){restore();appearance=style;}
                 if(!enabled)return;
                 View window=nativeWindow.get();
@@ -83,7 +83,7 @@ final class CommentStyle {
                 if(!(panel.getBackground() instanceof Surface)){
                     background(panel,new Surface(panel,true,this));
                     remember(panel);
-                    panel.setOutlineProvider(new ViewOutlineProvider(){@Override public void getOutline(View view,Outline outline){float dp=view.getResources().getDisplayMetrics().density;outline.setRoundRect(0,0,view.getWidth(),view.getHeight()+Math.round(32*dp),(Design.fluent()?8:28)*dp);}});
+                    panel.setOutlineProvider(new ViewOutlineProvider(){@Override public void getOutline(View view,Outline outline){float dp=view.getResources().getDisplayMetrics().density;outline.setRoundRect(0,0,view.getWidth(),view.getHeight()+Math.round(32*dp),Design.style().sheet*dp);}});
                     panel.setClipToOutline(true);GlassBackdrop.scene(panel);
                 }
                 dress(panel,panel,0,new int[]{1800});
@@ -131,11 +131,13 @@ final class CommentStyle {
         @Override public void draw(Canvas canvas){
             View view=owner.get();if(view==null)return;rect.set(getBounds());float dp=view.getResources().getDisplayMetrics().density;
             int page=page(view);boolean dark=NavBar.bright(page)<.5f;
-            int card=Expressive.mix(page,dark?0xffffffff:0xff000000,Design.fluent()?.075f:.045f);
+            int card=Expressive.mix(page,dark?0xffffffff:0xff000000,Design.style().cardLift);
             int colour=sheet?card:blend(card,Accent.colour(),.12f);
-            float radius=(sheet?(Design.fluent()?8:28):(Design.fluent()?4:24))*dp;
+            float radius=(sheet?Design.style().sheet:Design.style().small)*dp;
             // The footer is square against the display edge; a single sheet owns the material.
-            if(!Design.draw(canvas,this,view,rect,radius,sheet?0:radius,colour,view.isPressed()?1:0)){
+            // The sheet itself is solid in every design: as glass or acrylic the words of the
+            // comments sat on a see-through surface and could hardly be read.
+            if(sheet || !Design.draw(canvas,this,view,rect,radius,sheet?0:radius,colour,view.isPressed()?1:0)){
                 paint.setColor(colour);float[] corners={radius,radius,radius,radius,sheet?0:radius,sheet?0:radius,sheet?0:radius,sheet?0:radius};
                 Path path=new Path();path.addRoundRect(rect,corners,Path.Direction.CW);canvas.drawPath(path,paint);
             }

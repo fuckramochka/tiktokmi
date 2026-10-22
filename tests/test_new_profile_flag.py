@@ -9,31 +9,25 @@ from margyt import dexpatch  # noqa: E402
 
 
 class NewProfileFlagTest(unittest.TestCase):
-    def test_every_read_of_tiktoks_kept_answer_asks_the_switch(self):
-        smali = (".method public static final invoke$6538(Lkotlin/jvm/internal/AFwS227S0000000_3;)Ljava/lang/Object;\n"
-                 "    .registers 2\n"
-                 "    sget-boolean v0, LX/071Z;->LIZ:Z\n"
-                 "    invoke-static {v0}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;\n")
-        rules = [rule for rule in dexpatch.model_rules() if rule[0] == "071Z.LIZ"]
-        self.assertEqual(len(rules), 1)
-        _label, pattern, target = rules[0]
-        out, hits = pattern.subn(target, smali)
-        self.assertEqual(hits, 1)
-        self.assertIn("    invoke-static {}, Lcat/narezany/margyt/Flags;->newProfile()Z\n\n    move-result v0\n", out)
-        self.assertNotIn("sget-boolean", out)
-        self.assertIn("Lcat/narezany/margyt/Flags;->newProfile()Z", dexpatch.rewrite_targets())
+    """The profile is the server's again, as in 2.0.5: only the flag itself."""
 
-    def test_the_switch_answers_early_and_leaves_tiktoks_group_alone(self):
+    def test_nothing_of_tiktoks_profile_is_rewritten(self):
+        labels = [rule[0] for rule in dexpatch.model_rules()]
+        self.assertNotIn("071Z.LIZ", labels)
+        self.assertNotIn("0sm9->LJIILIIL", labels)
+        self.assertEqual(dexpatch.STATIC_FIELD_SOURCES, [])
+        self.assertNotIn("Lcat/narezany/margyt/Flags;->newProfile()Z", dexpatch.rewrite_targets())
+
+    def test_the_switch_is_the_flag_and_nothing_beside_it(self):
         with open(os.path.join(ROOT, "inject/java/cat/narezany/margyt/Flags.java"), encoding="utf-8") as handle:
             java = handle.read()
-        self.assertIn("public static boolean newProfile()", java)
-        # the group decides the banner on top: forcing it took the banner away
-        self.assertNotIn('made.put("profile_left_align_ab_group", one)', java)
-        # with no context yet the table is not built, and the profile is still answered
-        self.assertIn("if (known == null) return early(key);", java)
-        self.assertIn("shared_prefs/\" + Margy.PREFS + \".xml\"", java)
-        with open(os.path.join(ROOT, "margyt/build.py"), encoding="utf-8") as handle:
-            self.assertIn('feature_hits["native new profile"] += counts.get("071Z.LIZ",0)', handle.read())
+        self.assertIn('made.put("profile_left_align", on(prefs, KEY_NEW_PROFILE) ? one : none);', java)
+        for part in ("avatar_and_info_merge", "profile_left_align_pronouns", "recommend_card",
+                     "avatar_opt", "profile_left_align_ab_group"):
+            self.assertNotIn(part, java)
+        # before there is a context the mod says nothing, and TikTok keeps its own answer
+        self.assertIn("if (known == null) return null;", java)
+        self.assertFalse(os.path.exists(os.path.join(ROOT, "inject/java/cat/narezany/margyt/ProfileHeader.java")))
 
 
 if __name__ == "__main__":

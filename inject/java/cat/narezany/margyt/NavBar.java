@@ -710,7 +710,8 @@ final class NavBar {
             int lit = mix(accent | 0xFF000000, ink, 0.40f);
             int quiet = mix(shell, ink, 0.80f);
 
-            float round = Design.fluent()?8f*unit:body.height()/2f;
+            // a pill unless the style gives the bar corners of its own
+            float round = Design.style().bar<0?body.height()/2f:Design.style().bar*unit;
             fill.setColor(shell);
             if(!Design.draw(canvas,this,glassHost.get(),body,round,round,shell,0))canvas.drawRoundRect(body, round, round, fill);
             line.setStrokeWidth(unit);
@@ -741,7 +742,8 @@ final class NavBar {
                         fill.setAlpha(Math.round(255f * Math.min(1f, tab.open * 1.5f)));
                         if(Design.frosted()){
                             fill.setColor((pill&0xffffff)|0x66000000);
-                            canvas.drawRoundRect(box,Design.fluent()?4f*unit:box.height()/2f,Design.fluent()?4f*unit:box.height()/2f,fill);
+                            float inside=Design.style().bar<0?box.height()/2f:Design.style().bar*.5f*unit;
+                            canvas.drawRoundRect(box,inside,inside,fill);
                         }else canvas.drawRoundRect(box, box.height() / 2f, box.height() / 2f, fill);
                     }
                     // a name too long for its tab is set a little smaller before it is cut short

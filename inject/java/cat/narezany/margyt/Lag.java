@@ -251,7 +251,26 @@ public final class Lag {
         // being opened, whatever its numbers say.
         long watched = (SystemClock.elapsedRealtime() - BEGAN) / 1000L;
         return "since the app started: " + watched / 60L + " min " + watched % 60L + " s\n"
-                + TALLY.report() + (Probe.ON ? profile() : "");
+                + memory() + TALLY.report() + (Probe.ON ? profile() : "");
+    }
+
+    /**
+     * How full the heap is and how much the collector has had to stop the app.
+     * Stalls that land on adding to a string or copying an array are not those
+     * things being slow: the app was waiting for memory, and this says so.
+     */
+    static String memory() {
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            long used = (runtime.totalMemory() - runtime.freeMemory()) >> 20, most = runtime.maxMemory() >> 20;
+            return "memory: " + used + " of " + most + " MB; collections "
+                    + android.os.Debug.getRuntimeStat("art.gc.gc-count") + " ("
+                    + android.os.Debug.getRuntimeStat("art.gc.gc-time") + " ms), stopping the app "
+                    + android.os.Debug.getRuntimeStat("art.gc.blocking-gc-count") + " ("
+                    + android.os.Debug.getRuntimeStat("art.gc.blocking-gc-time") + " ms)\n";
+        } catch (Throwable error) {
+            return "";
+        }
     }
 
     private static final long BEGAN = SystemClock.elapsedRealtime();

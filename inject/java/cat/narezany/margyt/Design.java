@@ -18,11 +18,31 @@ import android.view.Window;
 final class Design {
     static final String KEY = "ui_design";
     private static volatile String chosen;
+    private static volatile UiStyle style;
     private static final int OWNED = 0x4d674c31;
     private static final java.util.WeakHashMap<Drawable, GlassOptics> OPTICS = new java.util.WeakHashMap<>();
     private Design() {}
 
-    static String mode() {
+    /**
+     * The style in use: one of the three built in, or one somebody made in a .mtui
+     * file (UiStyle). Everything that differs between styles reads its numbers here.
+     */
+    static UiStyle style() {
+        UiStyle known=style;
+        if(known!=null)return known;
+        String key=key();
+        UiStyle found=UiStyle.custom(key)?UiStyle.load(Margy.context(),key):builtIn(key);
+        if(found==null)found=UiStyle.MATERIAL;
+        if(Margy.context()!=null)style=found;
+        return found;
+    }
+
+    private static UiStyle builtIn(String key) {
+        return "glass".equals(key)?UiStyle.LIQUID:"fluent".equals(key)?UiStyle.ACRYLIC:UiStyle.MATERIAL;
+    }
+
+    /** What is chosen: "md3", "glass", "fluent", or "custom:" and an installed style's id. */
+    static String key() {
         String known=chosen;
         if(known!=null)return known;
         Context context=Margy.context();
@@ -32,20 +52,33 @@ final class Design {
         return chosen;
     }
 
-    static boolean valid(String mode) { return "md3".equals(mode) || "glass".equals(mode) || "fluent".equals(mode); }
-    static boolean glass() { return "glass".equals(mode()); }
-    static boolean fluent() { return "fluent".equals(mode()); }
-    static boolean frosted() { return glass() || fluent(); }
+    /** The material the surfaces are made of, which the code that draws them branches on. */
+    static String mode() {
+        int base=style().base;
+        return base==UiStyle.GLASS?"glass":base==UiStyle.FLUENT?"fluent":"md3";
+    }
 
-    static void choose(Context context,String mode) {
-        if(!valid(mode))throw new IllegalArgumentException("Unknown interface style");
-        context.getSharedPreferences(Margy.PREFS,0).edit().putString(KEY,mode).apply();
-        chosen=mode;
+    static boolean valid(String key) {
+        if("md3".equals(key) || "glass".equals(key) || "fluent".equals(key))return true;
+        return UiStyle.custom(key) && UiStyle.load(Margy.context(),key)!=null;
+    }
+    static boolean glass() { return style().base==UiStyle.GLASS; }
+    static boolean fluent() { return style().base==UiStyle.FLUENT; }
+    static boolean frosted() { return glass() || fluent(); }
+    /** Switches, sliders, badges and loading, which a style may take from another one. */
+    static boolean controlsGlass() { return style().controls==UiStyle.GLASS; }
+    static boolean controlsFluent() { return style().controls==UiStyle.FLUENT; }
+    static boolean controlsFrosted() { return controlsGlass() || controlsFluent(); }
+
+    static void choose(Context context,String key) {
+        if(!valid(key))throw new IllegalArgumentException("Unknown interface style");
+        context.getSharedPreferences(Margy.PREFS,0).edit().putString(KEY,key).apply();
+        chosen=key;style=null;
         OPTICS.clear();GlassBackdrop.changed();
     }
 
-    static void reload() { chosen=null;OPTICS.clear();GlassBackdrop.changed(); }
-    static String name() { return fluent()?"Fluent":glass()?"Liquid Glass":"Material 3"; }
+    static void reload() { chosen=null;style=null;OPTICS.clear();GlassBackdrop.changed(); }
+    static String name() { return style().name; }
     static String caption(String value) { return value.replace("Material 3",name()); }
 
     static int pageColour(Context context){
@@ -53,13 +86,13 @@ final class Design {
         if(custom!=0)return custom;
         if(Themes.isEnabled())return Themes.backgroundInUse();
         int original=Skin.remembered(context).page;
-        return fluent()?(NavBar.bright(original)<.5f?0xff1c1c1c:0xfff3f3f3):original;
+        return style().neutral?(NavBar.bright(original)<.5f?0xff1c1c1c:0xfff3f3f3):original;
     }
     static int cardColour(Context context){
         int custom=AppearanceColors.get(AppearanceColors.SURFACE);
         if(custom!=0)return custom;
         int page=pageColour(context);
-        return Expressive.mix(page,NavBar.bright(page)<.5f?0xffffffff:0xff000000,fluent()?.075f:.045f);
+        return Expressive.mix(page,NavBar.bright(page)<.5f?0xffffffff:0xff000000,style().cardLift);
     }
     static View owner(Drawable drawable) {
         Drawable.Callback step = drawable.getCallback();
@@ -82,7 +115,8 @@ final class Design {
         GlassOptics optics = OPTICS.get(drawable);
         if (optics == null) { optics = new GlassOptics(); OPTICS.put(drawable, optics); }
         if(fluent()) {
-            float radius=view.getResources().getDisplayMetrics().density*(rect.height()>view.getResources().getDisplayMetrics().density*56?8:4);
+            float density=view.getResources().getDisplayMetrics().density;
+            float radius=density*(rect.height()>density*56?style().card:style().small);
             top=Math.min(top,radius);bottom=Math.min(bottom,radius);
         }
         optics.draw(canvas, view, rect, top, bottom, colour, press);
@@ -138,7 +172,7 @@ final class Design {
         if (window == null) return;
         if (Build.VERSION.SDK_INT >= 31) {
             try {
-                window.setBackgroundBlurRadius(frosted() ? Math.round((fluent()?4:26) * window.getDecorView().getResources().getDisplayMetrics().density) : 0);
+                window.setBackgroundBlurRadius(frosted() ? Math.round(style().windowBlur * window.getDecorView().getResources().getDisplayMetrics().density) : 0);
             } catch (RuntimeException ignored) { /* Optical surfaces also work without compositor blur. */ }
         }
         if (frosted()) {

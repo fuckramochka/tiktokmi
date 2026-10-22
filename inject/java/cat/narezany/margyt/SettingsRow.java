@@ -55,7 +55,9 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         long probe = Probe.start();
         Plugins.onActivityResumed(activity);
         Plugins.screen(activity);
+        FlagGuard.shown();
         Rubble.resumed(activity);
+        TilcayoRun.resumed(activity);
         SimpleFeed.attach(activity);
         WavySeek.attach(activity);
         Avariyka.resumed(activity);

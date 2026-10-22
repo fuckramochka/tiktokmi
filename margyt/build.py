@@ -247,6 +247,8 @@ class Build:
         manifest_module.add_activity(manifest, PACKAGE + ".PluginEditorActivity", SETTINGS_LABEL, theme)
         # a .mtp opened from a file manager comes to the mod (Theme.NoDisplay: it only hands the file on)
         manifest_module.add_file_opener(manifest, PACKAGE + ".PluginOpenActivity", "Плагин MargyT", 0x01030055, "mtp", ["application/octet-stream", "application/zip", "application/x-zip-compressed"])
+        # and a .mtui, an interface style somebody made (UiStyle)
+        manifest_module.add_file_opener(manifest, PACKAGE + ".StyleOpenActivity", "Стиль MargyT", 0x01030055, "mtui", ["application/octet-stream", "application/json", "text/plain"])
         # Margy Store under its new name and its old one: without this Android 11
         # and later will not tell the mod whether the store is there at all
         manifest_module.add_queries(manifest, ["cat.narezany.store", "cat.narezany.patcher"])
@@ -572,6 +574,8 @@ class Build:
         # the anti-burn eye: two small transparent PNGs, drawn as they are
         for eye in ("burn_eye_open.png", "burn_eye_closed.png"):
             entries.append(("assets/margyt/" + eye, os.path.join(asset_root, eye)))
+        # the fat tilcayo cut out of its background, for the running cats (TilcayoRun)
+        entries.append(("assets/margyt/tilcayo_run.png", os.path.join(asset_root, "tilcayo_run.png")))
         for destination, path in entries:
             with open(path, "rb") as handle:
                 raw = handle.read()
@@ -835,8 +839,6 @@ class Build:
         feature_hits["native card corners"]=0
         feature_hits["native right-area slots"]=0
         feature_hits["native player resume"]=0
-        feature_hits["native new profile"]=0
-        feature_hits["native profile header"]=0
         feature_hits["native offline choices"]=0
         feature_hits["native offline row"]=0
         feature_hits["native offline count accepted"]=0
@@ -880,8 +882,6 @@ class Build:
             feature_hits["native card corners"] += counts.get("native card corners",0)
             feature_hits["native right-area slots"] += counts.get("native right-area slots",0)
             feature_hits["native player resume"] += counts.get("native player resume",0)
-            feature_hits["native new profile"] += counts.get("071Z.LIZ",0)
-            feature_hits["native profile header"] += counts.get("0sm9->LJIILIIL",0)
             feature_hits["native offline choices"] += counts.get("native offline choices",0)
             feature_hits["native offline row"] += counts.get("native offline row",0)
             feature_hits["native offline count accepted"] += counts.get("native offline count accepted",0)
