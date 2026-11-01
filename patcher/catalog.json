@@ -25,6 +25,36 @@
    },
    "releases": [
     {
+     "version": "2.2.0",
+     "beta": false,
+     "base": {
+      "name": "TikTok 47.2.41",
+      "sha256": "4bcad2a15ac82da68d373629a9520f855781c3ec46f0e2937e605040285ba75c",
+      "size": 346017026,
+      "sources": [
+       {
+        "name": "margy.narez.xyz",
+        "url": "https://margy.narez.xyz/original/tiktok-47-2-41.apk",
+        "direct": true
+       }
+      ]
+     },
+     "patch": {
+      "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.2.0/margyt-2.2.0.mpatch",
+      "sha256": "e066277f2b7963d876eeabdf8facc4166bfab75668ef4a0f3165b8cbf1ebe71c",
+      "size": 73371200
+     },
+     "result": {
+      "sha256": "a86bffc86712514e60fac4feab3ec7f98fa8107f91419704c540e3b2786a35d4",
+      "size": 395158719
+     },
+     "notes": {
+      "ru": "Спонсор-блок: реклама, которую читают авторы, пропускается сама, а одинаковую мод узнаёт по звуку. Режим призрака, папки чатов, чистка «Входящих», удаление всех репостов, анимация набора текста и длинные комментарии. Мод тратит меньше батареи.",
+      "uk": "Спонсор-блок: реклама, яку читають автори, пропускається сама, а однакову мод упізнає за звуком. Режим привида, папки чатів, чистка «Вхідних», видалення всіх репостів, анімація набору тексту й довгі коментарі. Мод витрачає менше батареї.",
+      "en": "Sponsor block: adverts read out by authors are skipped, and the same advert is known again by its sound. Ghost mode, chat folders, a cleaner inbox, removing every repost, the typing animation and long comments. The mod uses less battery."
+     }
+    },
+    {
      "version": "2.1.1",
      "beta": false,
      "base": {

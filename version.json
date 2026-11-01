@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the project's own git server at startup and every five minutes; the badges come from the same box.",
-  "version": "2.1.1",
-  "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.1.1/margyt.apk",
-  "notes": "Profiles are whole again for everyone: names, avatars and the edit button are back. Less stutter while scrolling, and flags no longer switch themselves off. Interface styles of your own in .mtui files, and tilcayos to pet and feed.",
-  "notes_ru": "Профили снова целые у всех: имена, аватарки и кнопка изменения на месте. Меньше лагов при листании, флаги больше не выключаются сами. Свои стили интерфейса в файлах .mtui и бегающие тилкайо, которых можно гладить и кормить.",
-  "notes_uk": "Профілі знову цілі в усіх: імена, аватарки й кнопка редагування на місці. Менше лагів під час гортання, прапорці більше не вимикаються самі. Власні стилі інтерфейсу у файлах .mtui і тілкайо, яких можна гладити й годувати."
+  "version": "2.2.0",
+  "url": "https://git.narez.xyz/narezany/MargyT/releases/download/v2.2.0/margyt.apk",
+  "notes": "Sponsor block: adverts read out by authors are skipped, and the same advert is known again by its sound. Ghost mode, chat folders, a cleaner inbox, removing every repost, the typing animation and long comments. The mod uses less battery.",
+  "notes_ru": "Спонсор-блок: реклама, которую читают авторы, пропускается сама, а одинаковую мод узнаёт по звуку. Режим призрака, папки чатов, чистка «Входящих», удаление всех репостов, анимация набора текста и длинные комментарии. Мод тратит меньше батареи.",
+  "notes_uk": "Спонсор-блок: реклама, яку читають автори, пропускається сама, а однакову мод упізнає за звуком. Режим привида, папки чатів, чистка «Вхідних», видалення всіх репостів, анімація набору тексту й довгі коментарі. Мод витрачає менше батареї."
 }
