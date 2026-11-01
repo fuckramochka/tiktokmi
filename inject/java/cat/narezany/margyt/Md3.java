@@ -679,8 +679,13 @@ final class Md3 {
                             row(child, 0, true, true);
                             continue;
                         }
-                        boolean head = i == 0 ? !list.canScrollVertically(-1) : kind(list.getChildAt(i - 1)) != K_ROW;
-                        boolean tail = i == many - 1 ? !list.canScrollVertically(1) : kind(list.getChildAt(i + 1)) != K_ROW;
+                        if (!shown(child)) continue;
+                        // a row a chat folder has taken down to nothing is no neighbour: the run is of the rows that show
+                        int above = i - 1, below = i + 1;
+                        while (above >= 0 && !shown(list.getChildAt(above))) above--;
+                        while (below < many && !shown(list.getChildAt(below))) below++;
+                        boolean head = above < 0 ? i > 0 || !list.canScrollVertically(-1) : kind(list.getChildAt(above)) != K_ROW;
+                        boolean tail = below >= many ? below > i + 1 || !list.canScrollVertically(1) : kind(list.getChildAt(below)) != K_ROW;
                         row(child, 0, head, tail);
                     }
                 }
@@ -951,6 +956,11 @@ final class Md3 {
         // this is asked of every row before every frame; the colour is worked
         // out once, and after that by what looks at every shape twice a second
         if (!card.dressed || card.role != SHELL) card.dress(view, SHELL);
+    }
+
+    /** Whether a row of the list is there to be seen: a chat folder takes the others down to nothing. */
+    private static boolean shown(View row) {
+        return row.getVisibility() == View.VISIBLE && row.getHeight() > 0;
     }
 
     private static final ViewOutlineProvider ROUNDED = new ViewOutlineProvider() {

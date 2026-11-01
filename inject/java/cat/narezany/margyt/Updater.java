@@ -65,7 +65,7 @@ public final class Updater {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                check(application, false);
+                if (Watch.here() != null) check(application, false);
                 handler.postDelayed(this, EVERY);
             }
         });

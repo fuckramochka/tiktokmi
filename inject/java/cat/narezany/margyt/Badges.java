@@ -262,7 +262,8 @@ public static final String KEY = "badges_on";
         handler.post(new Runnable() {
             @Override
             public void run() {
-                refresh(application);
+                // a TikTok put away keeps running for hours: nothing is fetched for a screen nobody sees
+                if (Watch.here() != null) refresh(application);
                 handler.postDelayed(this, EVERY);
             }
         });

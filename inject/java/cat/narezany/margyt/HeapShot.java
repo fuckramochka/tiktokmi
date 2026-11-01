@@ -26,7 +26,8 @@ final class HeapShot {
 
     /** From the lag watcher's thread, every look; does anything only now and then. */
     static void tick(java.util.function.Supplier<String> profiler) {
-        if (!Probe.ON) return;
+        // a snapshot holds TikTok still for seconds and Android closes it: only for a developer who asked
+        if (!Probe.ON || !DevMode.isOn()) return;
         long now = android.os.SystemClock.uptimeMillis();
         if (now - checked < 5000) return;
         checked = now;

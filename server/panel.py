@@ -32,7 +32,9 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(HERE, "badges.db")
 
-HOURS = 12 * 3600
+#: how long a sign-in lasts: a year. It was twelve hours, and the owner, the
+#: only one who signs in, was asked for the password twice a day.
+LASTS = 365 * 86400
 
 #: how long the hash takes to work out, which is how long a guess takes too
 ROUNDS = 240000
@@ -113,7 +115,7 @@ def cookie(value):
     never sent along with a request that began on somebody else's site.
     """
     return ("margyt=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=Strict"
-            % (value, HOURS if value else 0))
+            % (value, LASTS if value else 0))
 
 
 def seen_cookie(mark):
@@ -139,7 +141,7 @@ def allowed(cookie):
         value = piece[len("margyt="):]
         try:
             when, mark = value.split(".", 1)
-            if int(time.time()) - int(when) > HOURS:
+            if int(time.time()) - int(when) > LASTS:
                 return False
             return hmac.compare_digest(mark, sign(int(when), key))
         except Exception:

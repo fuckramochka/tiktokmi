@@ -147,7 +147,12 @@ public final class Badge {
             Object uid = contact.getClass().getMethod("getUid").invoke(contact);
             if (name == null || !(uid instanceof String)) return name;
             String id = (String) uid;
-            return id.matches("[0-9]{1,24}") ? marked(name, id, false) : name;
+            if (!id.matches("[0-9]{1,24}")) return name;
+            String shown = marked(name, id, false);
+            // the folders of chats know a row by whose it is, and the row shows this name
+            ChatFolders.seen(name, id);
+            ChatFolders.seen(shown, id);
+            return shown;
         } catch (Throwable ignored) {
             // an account whose name could not be dressed still has a name
             return name;
@@ -338,6 +343,8 @@ public final class Badge {
 
     private static CharSequence marked(TextView view, CharSequence text) {
         if (text == null) return text;
+        // the people of the share sheet are named here too: the sheet gets the chat folders
+        ShareFolders.named(view);
 
         Looks.clear(view);
 

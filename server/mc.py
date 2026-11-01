@@ -35,7 +35,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(HERE, "mc.db")
 KEY_FILE = os.path.join(HERE, "mc.key")
 
-NICK = re.compile(r"^[A-Za-z0-9_]{3,16}$")
+# Bedrock players come through Geyser and Floodgate with a dot before the gamertag
+NICK = re.compile(r"^\.?[A-Za-z0-9_]{3,16}$")
 #: a code is good for five minutes and five wrong guesses; a start link for a quarter of an hour
 CODE_LIVES = 300
 PENDING_LIVES = 900
@@ -44,6 +45,9 @@ TRIES = 5
 SESSION = 12 * 3600
 #: names one Telegram account may tie to itself
 NICKS_EACH = 2
+#: whether only supporters may play; since 2026-10-25 anyone with Telegram may, and
+#: being a supporter gives a tag in the game instead
+ONLY_SUPPORTERS = False
 #: the least time between two codes for one name, and joins from one address in a minute
 RESEND = 30
 JOINS_MINUTE = 30
@@ -198,7 +202,7 @@ def join(body):
     ban = _banned(tg)
     if ban is not None:
         return 200, {"state": "banned", "reason": ban[0]}
-    if not supporter(tg):
+    if ONLY_SUPPORTERS and not supporter(tg):
         return 200, {"state": "nosupport"}
     if ip and ip == was and now - verified < SESSION:
         return 200, {"state": "ok"}
@@ -245,7 +249,7 @@ def check(body):
     ban = _banned(tg)
     if ban is not None:
         return 200, {"state": "banned", "reason": ban[0]}
-    if not supporter(tg):
+    if ONLY_SUPPORTERS and not supporter(tg):
         return 200, {"state": "nosupport"}
     owner = link.execute("SELECT tg FROM mc_link WHERE nick = ?", (nick,)).fetchone()
     if owner is not None and owner[0] != tg:
@@ -322,8 +326,40 @@ def unlink(body):
     return 200, {}
 
 
+#: how sending to many is taken off the request; the tests send at once
+later = lambda work: threading.Thread(target=work, daemon=True).start()
+
+
+def notify(body):
+    """News from the game for everyone who tied a name (a meteor is coming), but not for those
+    already in the game or who turned such news off: the plugin names them in `skip`.
+
+    At most once in four minutes, so a key that leaked cannot flood people's chats.
+    """
+    text = str(body.get("text") or "").strip()[:1000]
+    if not text:
+        return 400, {"error": "text"}
+    skip = body.get("skip") if isinstance(body.get("skip"), list) else []
+    skip = {n.lower() for n in skip if isinstance(n, str)}
+    if _fast("notify", "game", 1, within=240):
+        return 429, {"error": "too often"}
+    accounts = {}
+    for nick, tg in db().execute("SELECT nick, tg FROM mc_link WHERE verified > 0"):
+        accounts.setdefault(tg, []).append(nick)
+    to = [tg for tg, nicks in accounts.items() if not any(n in skip for n in nicks) and not _banned(tg)]
+    words = html.escape(text)
+
+    def send_all():
+        for tg in to:
+            _send(tg, words)
+            time.sleep(0.05)
+
+    later(send_all)
+    return 200, {"sent": len(to)}
+
+
 ROUTES = {"/mc/join": join, "/mc/check": check, "/mc/ban": ban, "/mc/unban": unban,
-          "/mc/info": info, "/mc/unlink": unlink}
+          "/mc/info": info, "/mc/unlink": unlink, "/mc/notify": notify}
 
 
 def handle(path, body, header):
@@ -362,7 +398,7 @@ def bind(who, name, text):
     nick = shown.lower()
     if _banned(who) is not None:
         return "Этот аккаунт заблокирован на MargyCraft."
-    if not supporter(who):
+    if ONLY_SUPPORTERS and not supporter(who):
         return ("MargyCraft только для поддержавших MargyT. Когда окажешься в группе поддержавших, "
                 "напиши мне ник ещё раз. Как поддержать: %s" % CHANNEL)
     link = db()
@@ -406,7 +442,7 @@ def claim(token, who, name):
     who = int(who)
     if _banned(who) is not None:
         return "Этот аккаунт заблокирован на MargyCraft."
-    if not supporter(who):
+    if ONLY_SUPPORTERS and not supporter(who):
         return ("MargyCraft только для поддержавших MargyT. Когда окажешься в группе поддержавших, "
                 "нажми ссылку ещё раз. Как поддержать: %s" % CHANNEL)
     owner = link.execute("SELECT tg FROM mc_link WHERE nick = ?", (nick,)).fetchone()

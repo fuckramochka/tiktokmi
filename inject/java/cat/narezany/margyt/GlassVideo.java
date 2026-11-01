@@ -21,8 +21,8 @@ public final class GlassVideo {
     private static boolean textureReady;
     private GlassVideo(){}
 
-    public static void resumed(Object owner,String id){event(owner,id,Long.MIN_VALUE,true);}
-    public static void progress(Object owner,String id,long time){event(owner,id,time,false);}
+    public static void resumed(Object owner,String id){PlayerTools.heard(owner,id);event(owner,id,Long.MIN_VALUE,true);}
+    public static void progress(Object owner,String id,long time){PlayerTools.heard(owner,id);event(owner,id,time,false);}
     public static void paused(Object owner,String id){
         if(Looper.myLooper()!=Looper.getMainLooper()){MAIN.post(()->paused(owner,id));return;}
         if(controller.get()==owner && aid.equals(id)){playing=false;position=Long.MIN_VALUE;GlassBackdrop.videoChanged(false);}

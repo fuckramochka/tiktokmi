@@ -32,9 +32,31 @@ public final class VideoActions {
   }
   return null;
  }
+ private static final int[] SHARE={0x7f0a76eb,0x7f0a76d4,0x7f0a5f35};
+ private static final java.util.Map<View,Object> components=new java.util.WeakHashMap<View,Object>();
+ /**
+  * A finger came down. If it is on a video's share button, the button gets the mod's long press
+  * now: TikTok sets its own quick-share there while a video is being made ready, after the mod
+  * did, and a long press that came first opened TikTok's.
+  */
+ static void touched(android.app.Activity activity,android.view.MotionEvent event){
+  if(event.getActionMasked()!=android.view.MotionEvent.ACTION_DOWN)return;
+  View hit=shareAt(activity.getWindow().getDecorView(),(int)event.getRawX(),(int)event.getRawY(),0);
+  if(hit==null)return;
+  Object found=null;for(Object up=hit;up instanceof View&&found==null;up=((View)up).getParent())found=components.get(up);
+  final Object component=found;
+  hit.setOnLongClickListener(v->{Object post=component!=null?NativeRead.get(NativeRead.item(component),"getAweme"):downloadPost();show(v,post);return true;});
+ }
+ private static View shareAt(View view,int x,int y,int depth){
+  if(view==null||depth>45||view.getVisibility()!=View.VISIBLE)return null;
+  int id=view.getId();
+  if(id==SHARE[0]||id==SHARE[1]||id==SHARE[2]){int[] at=new int[2];view.getLocationOnScreen(at);if(x>=at[0]&&x<at[0]+view.getWidth()&&y>=at[1]&&y<at[1]+view.getHeight())return view;}
+  if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=group.getChildCount()-1;i>=0;i--){View found=shareAt(group.getChildAt(i),x,y,depth+1);if(found!=null)return found;}}
+  return null;
+ }
  public static void bindNative(Object component){
   Object content=NativeRead.get(component,"getContentView");
-  if(content instanceof View){View root=(View)content;View.OnLongClickListener hold=v->{Object post=NativeRead.get(NativeRead.item(component),"getAweme");show(v,post);return true;};
+  if(content instanceof View){View root=(View)content;components.put(root,component);View.OnLongClickListener hold=v->{Object post=NativeRead.get(NativeRead.item(component),"getAweme");show(v,post);return true;};
    root.setOnLongClickListener(hold);
    for(int id:new int[]{0x7f0a76eb,0x7f0a76d4,0x7f0a5f35}){View target=root.findViewById(id);if(target!=null)target.setOnLongClickListener(hold);}
   }
@@ -46,6 +68,7 @@ public final class VideoActions {
   Context c=anchor.getContext();Panel panel=Panel.with(c,Skin.remembered(c),Text.VIDEO_ACTIONS);
    panel.item("download",Text.ACT_DOWNLOAD,Text.ACT_DOWNLOAD_HINT,()->chooseDownload(c,post));
  panel.item("play_circle",Text.ACT_PLAYBACK,Text.ACT_PLAYBACK_HINT,()->playback(c));
+  if(!SponsorBlock.photos(post))panel.item("fast_forward",Local.of("Отметить рекламу"),Local.of("Где автор рекламирует что-то в видео"),()->SponsorBlock.mark(c,post));
   panel.item("image",Text.SAVE_FRAME,Text.ACT_FRAME_HINT,()->FrameCapture.capture(selectedRow,NativeRead.aid(post)));
   panel.item("visibility_off",Text.ACT_HIDE,Text.ACT_HIDE_HINT,()->{
    Panel more=Panel.with(c,Skin.remembered(c),Text.ACT_HIDE);

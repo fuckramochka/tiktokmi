@@ -55,6 +55,7 @@ import panel
 import patcher
 import mc
 import admin_mod
+import sponsor
 import tiktok
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1450,6 +1451,19 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/plugins":
             self.answer(200, plugins())
             return
+        if path == "/sb":
+            ids = (parse_qs(parts.query).get("ids") or [""])[0].split(",")
+            code, out = sponsor.segments(ids)
+            self.answer(code, out)
+            return
+        if path == "/sb/prints":
+            try:
+                since = int((parse_qs(parts.query).get("since") or ["0"])[0])
+            except ValueError:
+                since = 0
+            code, out = sponsor.prints(since)
+            self.answer(code, out)
+            return
         if path.startswith("/picture/"):
             name = os.path.basename(path[len("/picture/"):])
             file = os.path.join(ICONS, name)
@@ -1537,7 +1551,7 @@ class Handler(BaseHTTPRequestHandler):
             if length < 0:
                 self.answer(400, {"error": "unreadable"})
                 return
-            if length > (CRASH_MOST if path == "/crash" else 8192):
+            if length > (CRASH_MOST if path == "/crash" else 196608 if path == "/sb/report" else 8192):
                 self.answer(413, {"error": "that is a lot of json"})
                 return
             raw = self.rfile.read(length) or b"{}"
@@ -1569,6 +1583,8 @@ class Handler(BaseHTTPRequestHandler):
             code, out = admin_mod.act(body)
         elif path == "/gradient":
             code, out = gradient(body, ip)
+        elif path == "/sb/report":
+            code, out = sponsor.report(body, ip)
         elif path == "/crash":
             code, out = crash(body, raw.decode("utf-8", "replace"), ip)
         elif path == "/patcher/login/start":
@@ -1589,6 +1605,10 @@ def main():
     admin_mod.use.update(connect=connect, vouched=vouched, sane=sane,
                          telegram=patcher._telegram, owner_tg=guard.OWNER)
     prepare()
+    sponsor.use.update(connect=connect, vouched=vouched)
+    db = connect()
+    sponsor.prepare(db)
+    db.close()
     server = ThreadingHTTPServer(("127.0.0.1", 8080), Handler)
     server.serve_forever()
 

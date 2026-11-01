@@ -40,8 +40,11 @@ class McTests(unittest.TestCase):
         mc.telegram = self.fake.telegram
         mc.supporter = lambda who: who in self.fake.supporters
         mc.bot_name = lambda: "margybot"
+        mc.ONLY_SUPPORTERS = True
+        mc.later = lambda work: work()
 
     def tearDown(self):
+        mc.ONLY_SUPPORTERS = False
         mc._local.link = None
         self.dir.cleanup()
 
@@ -120,6 +123,12 @@ class McTests(unittest.TestCase):
         # a ban also ends the session, so a code is asked for again
         self.assertEqual(self.ask("/mc/join", nick="Margy", ip="1.1.1.1")[1]["state"], "code")
 
+    def test_open_to_all_anyone_with_telegram_signs_in(self):
+        mc.ONLY_SUPPORTERS = False
+        code = self.first_login(nick="Stranger", who=999, ip="2.2.2.2")
+        self.assertEqual(self.ask("/mc/check", nick="Stranger", ip="2.2.2.2", code=code)[1]["state"], "ok")
+        self.assertNotIn("только для поддержавших", mc.bind(999, "Чужой", "Stranger_Two"))
+
     def test_leaving_the_group_closes_the_door(self):
         code = self.first_login()
         self.ask("/mc/check", nick="Margy", ip="1.1.1.1", code=code)
@@ -188,6 +197,19 @@ class McTests(unittest.TestCase):
         mc.db().execute("UPDATE mc_pending SET made = made - ?", (mc.PENDING_LIVES + 5,))
         mc.db().commit()
         self.assertIn("уже не действует", mc.claim(token, 101, "Маргарита"))
+
+
+    def test_news_goes_to_those_who_signed_in_but_not_to_those_playing_or_who_turned_it_off(self):
+        for nick, who, ip in (("Margy", 101, "1.1.1.1"), ("Pasha", 202, "2.2.2.2")):
+            code = self.first_login(nick, who, ip)
+            self.assertEqual(self.ask("/mc/check", nick=nick, ip=ip, code=code)[1]["state"], "ok")
+        self.fake.sent.clear()
+        status, out = self.ask("/mc/notify", text="Метеорит через 5 минут! <b>", skip=["pasha"])
+        self.assertEqual((status, out["sent"]), (200, 1))
+        self.assertEqual(self.fake.sent, [(101, "Метеорит через 5 минут! &lt;b&gt;")])
+        # once in a few minutes at most, and never without the key
+        self.assertEqual(self.ask("/mc/notify", text="ещё")[0], 429)
+        self.assertEqual(mc.handle("/mc/notify", {"text": "x"}, "wrong")[0], 403)
 
 
 if __name__ == "__main__":

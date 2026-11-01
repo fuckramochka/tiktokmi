@@ -6,7 +6,10 @@ final class SocialLibrary {
  private static final java.util.concurrent.atomic.AtomicBoolean busy=new java.util.concurrent.atomic.AtomicBoolean();
  private static String account;private static long last;private static boolean started;
  private static volatile boolean missing;
- static synchronized void start(){if(started)return;started=true;main.postDelayed(new Runnable(){public void run(){NativeStreaks.prepare();refresh(null);main.postDelayed(this,60000);}},3000);}
+ static synchronized void start(){if(started)return;started=true;main.postDelayed(new Runnable(){public void run(){
+  // only while the app is on the screen: put away, it keeps running for hours and should not be reading friends
+  if(Watch.here()!=null){NativeStreaks.prepare();refresh(null);}
+  main.postDelayed(this,60000);}},3000);}
  static void refresh(Runnable ready){if(missing)return;String uid=Account.liveId();if(uid==null)return;
   synchronized(SocialLibrary.class){if(!uid.equals(account)){account=uid;last=0;}if(last!=0&&android.os.SystemClock.uptimeMillis()-last<300000)return;if(!busy.compareAndSet(false,true))return;last=android.os.SystemClock.uptimeMillis();}
   main.post(()->{try{FavouriteStickers.load(ready);}catch(Throwable e){Diary.note("sticker library: "+e);}});

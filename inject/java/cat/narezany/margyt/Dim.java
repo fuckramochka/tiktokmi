@@ -440,6 +440,7 @@ public final class Dim {
         root.getViewTreeObserver().addOnPreDrawListener(
                 new android.view.ViewTreeObserver.OnPreDrawListener() {
             @Override public boolean onPreDraw() {
+                settleDeferred();
                 if(!isConfigured()){dirty[0]=false;return true;}
                 // A video lays something out on nearly every frame, and reading
                 // the whole screen over each time was a millisecond or two of
@@ -1056,6 +1057,21 @@ public final class Dim {
     }
 
     private static final java.util.Map<View,Returning> returns=new java.util.WeakHashMap<>();
+    /** Views whose brightness is to go back once they are on the screen again: what they were left at, and what they go back to. */
+    private static final java.util.Map<View,float[]> deferred=new java.util.WeakHashMap<>();
+
+    private static void settleDeferred(){
+        if(deferred.isEmpty())return;
+        java.util.Iterator<java.util.Map.Entry<View,float[]>> iterator=deferred.entrySet().iterator();
+        while(iterator.hasNext()){
+            java.util.Map.Entry<View,float[]> entry=iterator.next();View view=entry.getKey();float[] was=entry.getValue();
+            // TikTok set a brightness of its own, or the view is dimmed again and looked after as one
+            if(view==null||Math.abs(view.getAlpha()-was[0])>.001f||faded.containsKey(view)){iterator.remove();continue;}
+            if(!view.isAttachedToWindow()||!view.isShown())continue;
+            iterator.remove();
+            view.setAlpha(was[1]);
+        }
+    }
     private static final class Returning {
         final float original;float last;final android.animation.ValueAnimator animator;
         Returning(float from,float to){original=to;last=from;animator=android.animation.ValueAnimator.ofFloat(from,to);}
@@ -1069,7 +1085,11 @@ public final class Dim {
      * brightness back while hidden, and TikTok showed it again expecting it clear.
      */
     private static void restoreSmooth(View view,float original){
-        if(!view.isAttachedToWindow() || !view.isShown())return;
+        // A view TikTok has out of sight keeps the faint brightness until it shows again: given back
+        // then, if nobody has changed it meanwhile. Forgotten, it stayed faint for good once TikTok
+        // showed it, after holding a video for double speed hid the buttons and the caption.
+        if(!view.isAttachedToWindow() || !view.isShown()){deferred.put(view,new float[]{view.getAlpha(),original});return;}
+        deferred.remove(view);
         Returning state=new Returning(view.getAlpha(),original);returns.put(view,state);
         java.lang.ref.WeakReference<View> ref=new java.lang.ref.WeakReference<>(view);
         state.animator.setDuration(160L);

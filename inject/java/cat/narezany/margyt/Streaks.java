@@ -669,6 +669,8 @@ public final class Streaks {
                         StreakData data = ask(conversation);
                         if (data == null) continue;
                         if (data.convId != null && !conversation.equals(data.convId)) continue;
+                        // a flame is shown from the third day; before that there is nothing to keep
+                        if (data.streak < SHOWN_FROM) continue;
                         String state = statusOf(data);
                         if ("ACTIVE".equals(state) || GREY.equals(state)) targets.add(conversation);
                     }
