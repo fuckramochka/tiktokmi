@@ -33,6 +33,148 @@ final class Local {
     }
 
     static {
+        add("Записывать подвисания", "Записувати підвисання", "Record stutters");
+        add("Нужно, только если присылаешь отчёт о лагах. Пока включено, немного тратит батарею.", "Потрібно, лише якщо надсилаєш звіт про лаги. Поки ввімкнено, трохи витрачає батарею.", "Only needed when you send a lag report. While on, it costs a little battery.");
+        add("Как буквы появляются", "Як літери з'являються", "How letters appear");
+        add("мягко", "м'яко", "soft");
+        add("резко", "різко", "sharp");
+        add("Спонсор-блок", "Спонсор-блок", "Sponsor block");
+        add("Куски, где автор что-то рекламирует, пропускаются сами, а вернуться можно кнопкой «Вернуть». Отметить рекламу: зажми «Поделиться» и выбери «Отметить рекламу». Нужен подтверждённый аккаунт.", "Шматки, де автор щось рекламує, пропускаються самі, а повернутися можна кнопкою «Повернути». Позначити рекламу: затисни «Поділитися» й вибери «Позначити рекламу». Потрібен підтверджений акаунт.", "Parts where the author advertises something are skipped, and “Back” takes you back. To mark one, hold Share and choose “Mark an advert”. A confirmed account is needed.");
+        add("Выключи, если хочешь только видеть рекламу на шкале.", "Вимкни, якщо хочеш лише бачити рекламу на шкалі.", "Turn it off to only see adverts on the bar.");
+        add("Одну и ту же рекламу вставляют во много роликов. Мод узнаёт её по звуку, даже если в этом ролике её никто не отмечал. Для этого он ещё раз скачивает лёгкую версию ролика.", "Одну й ту саму рекламу вставляють у багато роликів. Мод упізнає її за звуком, навіть якщо в цьому ролику її ніхто не позначав. Для цього він ще раз завантажує легку версію ролика.", "The same advert is put into many videos. The mod knows it by its sound even where nobody marked it. For that it fetches a light copy of the video once more.");
+        add("По звуку и на мобильном интернете", "За звуком і на мобільному інтернеті", "By sound on mobile data too");
+        add("Без этого по звуку ищется только на Wi-Fi. Лёгкая версия ролика весит обычно от 1 до 3 МБ.", "Без цього за звуком шукається лише на Wi-Fi. Легка версія ролика важить зазвичай від 1 до 3 МБ.", "Without it, sound is listened to on Wi-Fi only. A light copy of a video is usually 1 to 3 MB.");
+        add("Искать рекламу по звуку", "Шукати рекламу за звуком", "Find adverts by their sound");
+        add("Одну и ту же рекламу вставляют во много роликов. Мод узнаёт её по звуку, даже если в этом ролике её никто не отмечал. Работает только по Wi-Fi: мод ещё раз скачивает лёгкую версию ролика.", "Одну й ту саму рекламу вставляють у багато роликів. Мод упізнає її за звуком, навіть якщо в цьому ролику її ніхто не позначав. Працює лише через Wi-Fi: мод ще раз завантажує легку версію ролика.", "The same advert is put into many videos. The mod knows it by its sound even where nobody marked it. Only on Wi-Fi: the mod fetches a light copy of the video once more.");
+        add("Потяни красные края к началу и концу рекламы и нажми ▶, чтобы послушать кусок.", "Потягни червоні краї до початку й кінця реклами й натисни ▶, щоб послухати шматок.", "Drag the red edges to where the advert starts and ends, and press ▶ to hear that part.");
+        add("Играет", "Грає", "Playing");
+        add("Секунду, видео ещё загружается", "Секунду, відео ще завантажується", "One moment, the video is still loading");
+        add("Потяни красные края к началу и концу рекламы.", "Потягни червоні краї до початку й кінця реклами.", "Drag the red edges to where the advert starts and ends.");
+        add("Кадры не загрузились", "Кадри не завантажилися", "The frames did not load");
+        add("Загружаю кадры…", "Завантажую кадри…", "Loading frames…");
+        add("Начало", "Початок", "Start");
+        add("Конец", "Кінець", "End");
+        add("Реклама", "Реклама", "Advert");
+        add("Отметить рекламу", "Позначити рекламу", "Mark an advert");
+        add("Где автор рекламирует что-то в видео", "Де автор щось рекламує у відео", "Where the author advertises something");
+        add("Реклама в видео", "Реклама у відео", "Adverts in videos");
+        add("Пропуск рекламы, которую читают авторы", "Пропуск реклами, яку читають автори", "Skipping adverts authors read out");
+        add("Пропускать рекламу", "Пропускати рекламу", "Skip adverts");
+        add("Куски, где автор рекламирует что-то, пропускаются сами, а вернуться можно кнопкой «Вернуть». Отметить рекламу: зажми «Поделиться» и выбери «Отметить рекламу». Нужен подтверждённый аккаунт.", "Шматки, де автор щось рекламує, пропускаються самі, а повернутися можна кнопкою «Повернути». Позначити рекламу: затисни «Поділитися» й вибери «Позначити рекламу». Потрібен підтверджений акаунт.", "Parts where the author advertises something are skipped, and “Back” takes you back. To mark one, hold Share and choose “Mark an advert”. A confirmed account is needed.");
+        add("Показывать рекламу красным на шкале", "Показувати рекламу червоним на шкалі", "Show adverts red on the bar");
+        add("Реклама пропущена", "Рекламу пропущено", "Advert skipped");
+        add("Вернуть", "Повернути", "Back");
+        add("Включи это видео и попробуй ещё раз", "Увімкни це відео й спробуй ще раз", "Play this video and try again");
+        add("Нужен подтверждённый аккаунт", "Потрібен підтверджений акаунт", "A confirmed account is needed");
+        add("Отмечать рекламу могут только подтверждённые аккаунты. Подтвердить можно в настройках мода, в разделе «Значки».", "Позначати рекламу можуть лише підтверджені акаунти. Підтвердити можна в налаштуваннях мода, у розділі «Значки».", "Only confirmed accounts can mark adverts. Confirm yours in the mod’s settings, under Badges.");
+        add("Где реклама", "Де реклама", "Where the advert is");
+        add("Двигай ползунки к началу и концу рекламы. Видео перематывается за ними.", "Рухай повзунки до початку й кінця реклами. Відео перемотується за ними.", "Move the handles to where the advert starts and ends. The video follows them.");
+        add("Это не реклама", "Це не реклама", "Not an advert");
+        add("Отправить", "Надіслати", "Send");
+        add("Спасибо, учтём", "Дякуємо, врахуємо", "Thanks, noted");
+        add("Готово, реклама будет пропускаться", "Готово, реклама пропускатиметься", "Done, the advert will be skipped");
+        add("Спасибо! Реклама начнёт пропускаться, когда её отметят ещё несколько человек", "Дякуємо! Реклама почне пропускатися, коли її позначать ще кілька людей", "Thanks! It will be skipped once a few more people mark it");
+        add("Сначала подтверди аккаунт в разделе «Значки»", "Спершу підтверди акаунт у розділі «Значки»", "Confirm your account under Badges first");
+        add("Слишком много отметок, попробуй позже", "Забагато позначок, спробуй пізніше", "Too many marks, try later");
+        add("Не получилось отправить, попробуй позже", "Не вдалося надіслати, спробуй пізніше", "Could not send, try later");
+        add("с", "з", "from");
+        add("до", "до", "to");
+        add("пропущено", "пропущено", "skipped");
+        add("в сети", "в мережі", "online");
+        add("был(а) давно", "був(-ла) давно", "seen a while ago");
+        add("ты тут?", "ти тут?", "you there?");
+        add("Прочитано", "Прочитано", "Seen");
+        add("Отправлено", "Надіслано", "Sent");
+        add("Основные", "Основні", "Primary");
+        add("Друзья", "Друзі", "Friends");
+        add("Учёба", "Навчання", "School");
+        add("привет, это я", "привіт, це я", "hi, it’s me");
+        add("Репосты", "Репости", "Reposts");
+        add("Понятно", "Зрозуміло", "Got it");
+        add("Прячь, двигай и перекрашивай что угодно", "Ховай, рухай і перефарбовуй що завгодно", "Hide, move and recolour anything");
+        add("Буквы пружинят, пока печатаешь", "Літери пружинять, поки друкуєш", "Letters bounce as you type");
+        add("Удалить все репосты разом", "Видалити всі репости разом", "Remove all reposts at once");
+        add("Нажми на что угодно в TikTok, чтобы спрятать, сдвинуть или перекрасить", "Натисни на що завгодно в TikTok, щоб сховати, зсунути чи перефарбувати", "Tap anything in TikTok to hide, move or recolour it");
+        add("Работает в комментариях и сообщениях.", "Працює в коментарях і повідомленнях.", "Works in comments and messages.");
+        add("Все репосты пропадут из профиля", "Усі репости зникнуть із профілю", "Every repost leaves your profile");
+        add("Чтобы добавить чат в папку, зажми его и выбери «Добавить в папку».", "Щоб додати чат до папки, затисни його й вибери «Додати до папки».", "To put a chat in a folder, hold it and choose “Add to folder”.");
+        add("Никто не увидит, что ты в сети, читаешь или печатаешь, смотрел историю или профиль. «В сети» спрячется после перезапуска TikTok.", "Ніхто не побачить, що ти в мережі, читаєш чи друкуєш, дивився історію чи профіль. «В мережі» сховається після перезапуску TikTok.", "Nobody will see that you are online, reading or typing, or that you looked at their story or profile. Being online hides after TikTok restarts.");
+        add("Все", "Усі", "All");
+        add("ПОЗИЦИЯ", "ПОЗИЦІЯ", "POSITION");
+        add("центр", "центр", "centre");
+        add("сдвиг", "зсув", "offset");
+        add("шаг", "крок", "step");
+        add("Длинные комментарии", "Довгі коментарі", "Long comments");
+        add("Призрак", "Привид", "Ghost");
+        add("Режим призрака", "Режим привида", "Ghost mode");
+        add("TikTok не узнает, что ты в сети, прочитал чат, печатаешь или смотрел историю и профиль. Чтобы скрыть «в сети», после включения перезапусти приложение.",
+                "TikTok не дізнається, що ти в мережі, прочитав чат, друкуєш чи дивився історію та профіль. Щоб приховати «в мережі», після ввімкнення перезапусти застосунок.",
+                "TikTok will not learn that you are online, have read a chat, are typing, or have seen a story or a profile. To hide being online, restart the app after switching it on.");
+        add("Не показывать «в сети»", "Не показувати «в мережі»", "Do not show as online");
+        add("Не отправлять «прочитано»", "Не надсилати «прочитано»", "Do not send read receipts");
+        add("Не отправлять «печатает»", "Не надсилати «друкує»", "Do not send typing");
+        add("Не отмечать просмотр историй", "Не позначати перегляд історій", "Do not mark stories as seen");
+        add("Не отмечать посещение профилей", "Не позначати відвідування профілів", "Do not mark profile visits");
+        add("Входящие: что скрыть", "Вхідні: що приховати", "Inbox: what to hide");
+        add("Скрыть полосу историй целиком", "Приховати смугу історій повністю", "Hide the whole stories strip");
+        add("Скрыть «Создать» (свою историю)", "Приховати «Створити» (свою історію)", "Hide “Create” (your own story)");
+        add("Скрыть истории друзей", "Приховати історії друзів", "Hide friends' stories");
+        add("Скрыть эфиры", "Приховати ефіри", "Hide LIVE");
+        add("Скрыть виджет и суперподписку в полосе", "Приховати віджет і суперпідписку в смузі", "Hide the widget and super subscription in the strip");
+        add("Скрыть заметки над аватарками", "Приховати нотатки над аватарками", "Hide notes over avatars");
+        add("Скрыть «Ваши вероятные знакомые»", "Приховати «Ваші ймовірні знайомі»", "Hide “People you may know”");
+        add("Изменённые", "Змінені", "Changed");
+        add("Изменённых элементов нет", "Змінених елементів немає", "Nothing has been changed");
+        add("Вернуть как было", "Повернути як було", "Put back as it was");
+        add("скрыт", "приховано", "hidden");
+        add("сдвинут", "зсунуто", "moved");
+        add("размер", "розмір", "size");
+        add("цвет", "колір", "colour");
+        add("вложенный / родитель", "вкладений / батьківський", "inner / parent");
+        add("Анимация набора", "Анімація набору", "Typing animation");
+        add("Буквы появляются плавно, пока вы печатаете, в комментариях и сообщениях.", "Літери з'являються плавно, поки ви друкуєте, у коментарях і повідомленнях.", "Letters appear smoothly as you type, in comments and messages.");
+        add("Анимация набора текста", "Анімація набору тексту", "Typing animation");
+        add("Размытие при появлении", "Розмиття при появі", "Blur on appearing");
+        add("Подъём снизу", "Підйом знизу", "Rise from below");
+        add("Увеличение (пружина)", "Збільшення (пружина)", "Grow (spring)");
+        add("Лёгкий поворот", "Легкий поворот", "Slight tilt");
+        add("Анимация удаления", "Анімація видалення", "Deleting animation");
+        add("Плавный курсор", "Плавний курсор", "Gliding cursor");
+        add("Кривая", "Крива", "Curve");
+        add("мягкая", "м'яка", "soft");
+        add("пружина", "пружина", "spring");
+        add("резкая", "різка", "sharp");
+        add("выскок", "виска", "pop-out");
+        add("Буквы выезжают и пружинят, удалённые улетают, курсор плывёт. В комментариях и сообщениях.", "Літери виїжджають і пружинять, видалені відлітають, курсор пливе. У коментарях і повідомленнях.", "Letters spring in, deleted ones fly away, the cursor glides. In comments and messages.");
+        add("Скорость", "Швидкість", "Speed");
+        add("быстро", "швидко", "fast");
+        add("плавно", "плавно", "smooth");
+        add("медленно", "повільно", "slow");
+        add("СЕТКА", "СІТКА", "GRID");
+        add("Выкл", "Вимк", "Off");
+        add("Центр и линии от углов", "Центр і лінії від кутів", "Centre and lines from corners");
+        add("Сдвиг идёт по линиям сетки", "Зсув іде по лініях сітки", "Moves go along the grid lines");
+        add("Скрыть, сдвинуть, увеличить или перекрасить любой элемент TikTok", "Приховати, зсунути, збільшити чи перефарбувати будь-який елемент TikTok", "Hide, move, enlarge or recolour any part of TikTok");
+        add("Буквы выпрыгивают, удалённые улетают, курсор плывёт", "Літери вистрибують, видалені відлітають, курсор пливе", "Letters pop in, deleted ones fly away, the cursor glides");
+        add("Мои репосты", "Мої репости", "My reposts");
+        add("Удалить все свои репосты разом", "Видалити всі свої репости разом", "Remove all your reposts at once");
+        add("Удалить все мои репосты", "Видалити всі мої репости", "Remove all my reposts");
+        add("Отменит каждый ваш репост, по одному", "Скасує кожен ваш репост, по одному", "Takes back every repost of yours, one by one");
+        add("Личные сообщения", "Особисті повідомлення", "Direct messages");
+        add("Папки чатов и полоса историй", "Папки чатів і смуга історій", "Chat folders and the stories strip");
+        add("Что скрыть во «Входящих»", "Що приховати у «Вхідних»", "What to hide in the inbox");
+        add("Без «в сети», «прочитано» и «печатает»", "Без «в мережі», «прочитано» і «друкує»", "No online, read or typing");
+        add("Чаты, серии, уведомления", "Чати, серії, сповіщення", "Chats, streaks, notifications");
+        add("Без ограничения TikTok на длину комментария.", "Без обмеження TikTok на довжину коментаря.", "Without TikTok's limit on a comment's length.");
+        add("Редактор интерфейса", "Редактор інтерфейсу", "Interface editor");
+        add("Открыть редактор", "Відкрити редактор", "Open the editor");
+        add("Нажимайте на любой элемент TikTok: скрыть, сдвинуть, изменить размер и цвет", "Натискайте на будь-який елемент TikTok: приховати, зсунути, змінити розмір і колір", "Tap anything in TikTok: hide it, move it, resize or recolour it");
+        add("Откройте нужный экран TikTok", "Відкрийте потрібний екран TikTok", "Open the TikTok screen you want");
+        add("Сбросить все правки", "Скинути всі правки", "Reset every change");
+        add("Папки в личных сообщениях", "Папки в особистих повідомленнях", "Folders in direct messages");
+        add("Добавить чат в папку: долгое нажатие на чат, «Добавить в папку».", "Додати чат до папки: довге натискання на чат, «Додати до папки».", "To put a chat in a folder: long-press it, then “Add to folder”.");
+        add("Автор LotusTok: призрак, папки, редактор интерфейса, анимация набора и другое", "Автор LotusTok: привид, папки, редактор інтерфейсу, анімація набору та інше", "Made LotusTok: the ghost, folders, the interface editor, the typing animation and more");
+        add("Плагин для TikTok Mi: из него призрак и длинные комментарии", "Плагін для TikTok Mi: з нього привид і довгі коментарі", "A TikTok Mi plugin: the ghost and long comments come from it");
         add("Код плагина не удалось разобрать: ",
                 "Код плагіна не вдалося розібрати: ",
                 "The plugin's code could not be read: ");
@@ -567,9 +709,9 @@ final class Local {
         add("Обучение",
                 "Навчання",
                 "Tutorial");
-        add("Глаз в ленте и на видео включает и выключает затемнение на лету. Поле ввода комментария не затемняется. Нижняя панель при затемнении прячется и возвращается на несколько секунд, если нажать на её место.",
-                "Око у стрічці та на відео вмикає й вимикає затемнення на льоту. Поле введення коментаря не затемнюється. Нижня панель під час затемнення ховається й повертається на кілька секунд, якщо натиснути на її місце.",
-                "The eye in the feed and on a video turns the dimming on and off as you go. The comment box is never dimmed. The bottom bar goes while the screen is dimmed, and comes back for a few seconds when you touch where it was.");
+        add("Глаз в ленте включает и выключает приглушение на лету.",
+                "Око в стрічці вмикає й вимикає приглушення на льоту.",
+                "The eye in the feed turns dimming on and off.");
         add("Тормозит приложение: подвисаний за этот запуск",
                 "Гальмує застосунок: підвисань за цей запуск",
                 "Slows the app down: stalled this run for");
@@ -592,9 +734,9 @@ final class Local {
         add("Отчёты о сбоях",
                 "Звіти про збої",
                 "Crash reports");
-        add("Отправлять разработчику технический стек сбоя. Без сообщений, аккаунта и текста ошибки.",
-                "Надсилати розробнику технічний стек збою. Без повідомлень, акаунта й тексту помилки.",
-                "Send the developer the technical stack of a crash. No messages, no account, no error text.");
+        add("Технический стек сбоя, без сообщений и аккаунта.",
+                "Технічний стек збою, без повідомлень і акаунта.",
+                "A technical crash trace, without messages or account.");
         add("Выше",
                 "Вище",
                 "Up");
@@ -700,30 +842,30 @@ final class Local {
         add("Плагины",
                 "Плагіни",
                 "Plugins");
-        add("Друзья и чаты",
-                "Друзі та чати",
-                "Friends and chats");
-        add("Акцент меняет цвет кнопок и вкладок. Готовые картинки могут сохранять свой цвет. Тема и шрифты настраиваются отдельно.",
-                "Акцент змінює колір кнопок і вкладок. Готові картинки можуть зберігати свій колір. Тема та шрифти налаштовуються окремо.",
-                "The accent changes the colour of buttons and tabs. Ready-made pictures may keep their own colour. The theme and fonts are set separately.");
-        add("Значки, их порядок и градиент на ник. Чтобы что-то менять, аккаунт надо один раз подтвердить.",
-                "Значки, їхній порядок і градієнт на нік. Щоб щось змінювати, акаунт треба один раз підтвердити.",
-                "Badges, their order and the gradient on your name. To change any of it the account has to be confirmed once.");
-        add("Глаз меняет прозрачность кнопок поверх видео; «Защита экрана» теперь здесь же. Удержание «Отправить» открывает скачивание и перемотку. Удерживайте край видео, чтобы ускорить, и потяните вниз, чтобы закрепить скорость.",
-                "Око змінює прозорість кнопок поверх відео; «Захист екрана» тепер тут само. Утримання «Надіслати» відкриває завантаження й перемотування. Утримуйте край відео, щоб прискорити, і потягніть униз, щоб закріпити швидкість.",
-                "The eye changes how see-through the buttons over a video are; screen protection lives here too. Holding Share opens downloading and seeking. Hold the edge of a video to speed it up, and swipe down to lock the speed.");
-        add("Скачивание, резервные копии, диагностика и журнал. Сохраните копию перед экспериментами.",
-                "Завантаження, резервні копії, діагностика й журнал. Збережіть копію перед експериментами.",
-                "Downloads, backups, diagnostics and the diary. Save a backup before experimenting.");
+        add("Серии и уведомления",
+                "Серії та сповіщення",
+                "Streaks and notifications");
+        add("Акцент меняет цвет кнопок и вкладок. Тема и шрифты отдельно.",
+                "Акцент змінює колір кнопок і вкладок. Тема й шрифти окремо.",
+                "The accent recolours buttons and tabs. Theme and fonts are separate.");
+        add("Значки и градиент на ник. Сначала надо один раз подтвердить аккаунт.",
+                "Значки й градієнт на нік. Спершу треба один раз підтвердити акаунт.",
+                "Badges and a gradient name. Confirm the account once first.");
+        add("Удержание «Отправить» открывает скачивание и перемотку, удержание края видео ускоряет его.",
+                "Утримання «Надіслати» відкриває завантаження й перемотування, утримання краю відео пришвидшує його.",
+                "Hold Share for downloading and seeking; hold the edge of a video to speed it up.");
+        add("Скачивание, копии настроек, диагностика и журнал.",
+                "Завантаження, копії налаштувань, діагностика й журнал.",
+                "Downloads, settings backups, diagnostics and the diary.");
         add("Здесь находятся версия мода, обновления, журнал и участники.",
                 "Тут версія мода, оновлення, журнал і учасники.",
                 "The mod's version, updates, the diary and the people behind it.");
-        add("Магазин, установка и настройки плагинов. Плагины запускают дополнительный код; устанавливайте только те, которым доверяете.",
-                "Магазин, встановлення й налаштування плагінів. Плагіни запускають додатковий код; встановлюйте лише ті, яким довіряєте.",
-                "The store, installing and setting up plugins. Plugins run extra code; install only the ones you trust.");
-        add("Закреплённые друзья, автопродление серий и уведомления мода.",
-                "Закріплені друзі, автопродовження серій і сповіщення мода.",
-                "Pinned friends, keeping streaks alive and the mod's notifications.");
+        add("Магазин и настройки плагинов. Ставь только те, которым доверяешь.",
+                "Магазин і налаштування плагінів. Став лише ті, яким довіряєш.",
+                "Plugin store and settings. Install only what you trust.");
+        add("Автопродление серий и уведомления мода.",
+                "Автопродовження серій і сповіщення мода.",
+                "Streaks kept going on their own, and the mod's notifications.");
         add("Понятно",
                 "Зрозуміло",
                 "Got it");
@@ -745,9 +887,9 @@ final class Local {
         add("Магазин и установленные",
                 "Магазин і встановлені",
                 "The store and what is installed");
-        add("Друзья, серии и уведомления",
-                "Друзі, серії та сповіщення",
-                "Friends, streaks and notifications");
+        add("Серии и уведомления",
+                "Серії та сповіщення",
+                "Streaks and notifications");
         add("Защита экрана",
                 "Захист екрана",
                 "Screen protection");
@@ -789,7 +931,7 @@ final class Local {
                 "Plugin catalog");
         add("Каталог TikTok Mi подключён по умолчанию. Можно указать другой HTTPS JSON-каталог; пустой адрес отключает магазин.",
                 "Каталог TikTok Mi підключено за замовчуванням. Можна вказати інший HTTPS JSON-каталог; порожня адреса вимикає магазин.",
-                "MargyT's catalog is connected by default. You can give another HTTPS JSON catalog; an empty address switches the store off.");
+                "TikTok Mi's catalog is connected by default. You can give another HTTPS JSON catalog; an empty address switches the store off.");
         add("Серии",
                 "Серії",
                 "Streaks");

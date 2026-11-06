@@ -54,13 +54,13 @@ public class Test {
   check(RecolourCache.get(first)!=null);Thread.sleep(15);
   String seventh="lottie|"+RecolourCache.likeKey("heart",6);
   RecolourCache.put(seventh,new byte[]{6});await(seventh);
-  File[] colours=new File(args[0],"margyt/recolour-cache/like").listFiles(File::isDirectory);
+  File[] colours=new File(args[0],"tiktokmi/recolour-cache/like").listFiles(File::isDirectory);
   check(colours!=null&&colours.length==6);
   check(RecolourCache.get(first)!=null);
   check(RecolourCache.get("lottie|"+RecolourCache.likeKey("heart",1))==null);
   String png="png|aabbcc|"+RecolourCache.ALGORITHM_VERSION+"|frame";
   RecolourCache.put(png,new byte[]{42});await(png);
-  check(new File(args[0],"margyt/recolour-cache/like/aabbcc").listFiles().length==2);
+  check(new File(args[0],"tiktokmi/recolour-cache/like/aabbcc").listFiles().length==2);
   RecolourCache.clear();
   for(int i=0;i<300&&RecolourCache.get(png)!=null;i++)Thread.sleep(10);
   check(RecolourCache.get(png)==null);

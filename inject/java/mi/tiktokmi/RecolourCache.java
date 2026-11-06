@@ -57,7 +57,7 @@ final class RecolourCache {
         Context context = Margy.context();
         if (context == null) return null;
         try {
-            File dir = new File(context.getFilesDir(), "margyt/recolour-cache");
+            File dir = new File(context.getFilesDir(), "tiktokmi/recolour-cache");
             if (!dir.isDirectory() && !dir.mkdirs()) return null;
             // A different TikTok build means different source art.
             long updated = 0;

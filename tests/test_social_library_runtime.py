@@ -19,13 +19,13 @@ class SocialLibraryTest(unittest.TestCase):
    'com/ss/android/ugc/aweme/relation/model/FriendsListResponse.java':"""package com.ss.android.ugc.aweme.relation.model;import java.util.*;public class FriendsListResponse{public boolean hasMore;public String nextPageToken;public List getUserList(){return Arrays.asList(nextPageToken);}public FriendsListResponse(boolean more,String token){hasMore=more;nextPageToken=token;}}""",
    'mock/Api.java':"""package mock;import com.ss.android.ugc.aweme.relation.model.FriendsListResponse;public class Api{public static final Api LIZIZ=new Api();public static int calls;public static boolean stale;public Object LIZIZ(int scene,int count,String sec,String page,Continuation cb){if(scene!=7||count!=30||!sec.equals("sec-current"))throw new AssertionError();calls++;if(stale)mi.tiktokmi.Account.uid="2";FriendsListResponse out=new FriendsListResponse(page.isEmpty(),page.isEmpty()?"next":"done");if(page.isEmpty())return out;cb.resumeWith(out);return new Object();}}""",
    'mi/tiktokmi/Account.java':'package mi.tiktokmi;public class Account{public static String uid="1";static String liveId(){return uid;}}',
-   'mi/tiktokmi/PinnedFriends.java':'package mi.tiktokmi;import java.util.*;class PinnedFriends{static List all=new ArrayList();static void reload(){all.clear();}static void observe(List x){all.addAll(x);}}',
-   'mi/tiktokmi/NativeStreaks.java':'package mi.tiktokmi;class NativeStreaks{static void prepare(){}static void friends(java.util.List<?> users,String uid){}}',
+   'mi/tiktokmi/NativeStreaks.java':'package mi.tiktokmi;import java.util.*;class NativeStreaks{static List all=new ArrayList();static void prepare(){}static void friends(java.util.List<?> users,String uid){all.addAll(users);}}',
    'mi/tiktokmi/FavouriteStickers.java':'package mi.tiktokmi;class FavouriteStickers{static void load(Runnable r){}}',
    'mi/tiktokmi/Diary.java':'package mi.tiktokmi;class Diary{static void note(String s){}}',
+   'mi/tiktokmi/Watch.java':'package mi.tiktokmi;class Watch{static Object here(){return null;}}',
    'mi/tiktokmi/Net.java':'package mi.tiktokmi;class Net{static void away(String s,Runnable r){r.run();}}',
    'mi/tiktokmi/NativeRead.java':(ROOT/'inject/java/mi/tiktokmi/NativeRead.java').read_text(encoding='utf8'),
-   'mi/tiktokmi/Test.java':"""package mi.tiktokmi;public class Test{public static void main(String[] a)throws Exception{SocialLibrary.load("1",null);if(mock.Api.calls!=2||PinnedFriends.all.size()!=2)throw new AssertionError("both immediate and suspended pages");PinnedFriends.all.clear();mock.Api.stale=true;SocialLibrary.load("1",null);if(!PinnedFriends.all.isEmpty())throw new AssertionError("stale account accepted");System.out.println("pagination and account guards passed");}}"""}
+   'mi/tiktokmi/Test.java':"""package mi.tiktokmi;public class Test{public static void main(String[] a)throws Exception{SocialLibrary.load("1",null);if(mock.Api.calls!=2||NativeStreaks.all.size()!=2)throw new AssertionError("both immediate and suspended pages");NativeStreaks.all.clear();mock.Api.stale=true;SocialLibrary.load("1",null);if(!NativeStreaks.all.isEmpty())throw new AssertionError("stale account accepted");System.out.println("pagination and account guards passed");}}"""}
   return files
  def run_with(self,files):
   with tempfile.TemporaryDirectory() as directory:

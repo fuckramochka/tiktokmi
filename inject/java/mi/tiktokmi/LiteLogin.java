@@ -29,7 +29,7 @@ public final class LiteLogin {
             Intent opened = screen.getIntent();
             if (opened == null) return;
             String provider = opened.getStringExtra(PROVIDER);
-            android.util.Log.i("MargyT", "sign-in: asked for " + provider);
+            android.util.Log.i("TikTok Mi", "sign-in: asked for " + provider);
             // the one-tap offer comes up unasked, and is left to fail quietly
             if (!"google".equals(provider) && !"google_web".equals(provider)) return;
             if (opened.getIntExtra("action_type", 1) != 1) return;

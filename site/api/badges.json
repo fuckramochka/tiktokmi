@@ -1,0 +1,103 @@
+{
+  "_comment": "Badges every TikTok Mi install reads from GitHub Pages. The app fetches this at startup and every two minutes.",
+  "badges": [
+    {
+      "id": "owner",
+      "users": [
+        "7551880794956989495"
+      ],
+      "colour": "8DD1B0",
+      "title": "TikTok Mi",
+      "text": "The owner and creator of TikTok Mi",
+      "text_ru": "Владелец и создатель TikTok Mi",
+      "text_uk": "Власник та творець TikTok Mi",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло",
+      "image": "owner.png"
+    },
+    {
+      "id": "helper",
+      "users": [
+        "6525428607760733199"
+      ],
+      "colour": "64B5F6",
+      "title": "TikTok Mi",
+      "text": "помог с разработкой TikTok Mi",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
+    },
+    {
+      "id": "hype",
+      "users": [
+        "7547438221832160262"
+      ],
+      "colour": "E57373",
+      "title": "TikTok Mi",
+      "text": "мемодел, хайпует плесень",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
+    },
+    {
+      "id": "icon",
+      "users": [
+        "7287645946535560197",
+        "7643071085839533070",
+        "7639730829493896210",
+        "7510468511841141767",
+        "6774941623367320582",
+        "7573980629898494987",
+        "7547438221832160262",
+        "7662504626076730386",
+        "7163703793812554757",
+        "7386219126748267525",
+        "7676876536330650638",
+        "7307204820577387525"
+      ],
+      "colour": "B388FF",
+      "title": "TikTok Mi",
+      "text": "drew an icon TikTok Mi ships with",
+      "text_ru": "нарисовал иконку, которая есть в TikTok Mi",
+      "text_uk": "намалював іконку, яка є в TikTok Mi",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло"
+    },
+    {
+      "id": "supporter",
+      "users": [
+        "7492852642231059461",
+        "7600534060289082382",
+        "7660087479496016903"
+      ],
+      "colour": "FF6FA5",
+      "title": "TikTok Mi",
+      "text": "supported the making of TikTok Mi",
+      "text_ru": "поддержал разработку TikTok Mi",
+      "text_uk": "підтримав розробку TikTok Mi",
+      "button": "Got it",
+      "button_ru": "Понятно",
+      "button_uk": "Зрозуміло",
+      "image": "supporter.png"
+    },
+    {
+      "id": "chonky",
+      "users": [
+        "7641667656839382038",
+        "7662504626076730386"
+      ],
+      "colour": "FFE9A0",
+      "title": "TikTok Mi",
+      "text": "толстопузый TikTok Mi",
+      "button": "uhh nope",
+      "button_ru": "нет",
+      "button_uk": "ні"
+    }
+  ],
+  "gradients": {},
+  "verdicts": {},
+  "free_until": 0,
+  "now": 0
+}

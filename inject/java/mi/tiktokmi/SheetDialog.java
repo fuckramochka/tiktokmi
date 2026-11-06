@@ -27,6 +27,7 @@ final class SheetDialog extends Dialog {
         super.onStart();
         closing = false;
         if (getWindow() == null) return;
+        Design.dialog(this, Skin.remembered(owner).card);
         getWindow().setWindowAnimations(0);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         dim = getWindow().getAttributes().dimAmount;
@@ -57,7 +58,16 @@ final class SheetDialog extends Dialog {
         final int tag=0x4D477269;
         if(card.findViewWithTag(Integer.valueOf(tag))!=null)return;
         android.widget.FrameLayout grip=new android.widget.FrameLayout(owner);grip.setTag(Integer.valueOf(tag));
-        card.addView(grip,0,new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(16)));
+        boolean m3=!Design.frosted();
+        if(m3){
+            // the drag handle of a Material 3 sheet: 32 by 4, on-surface-variant at 40%
+            View handle=new View(owner);
+            android.graphics.drawable.GradientDrawable pill=new android.graphics.drawable.GradientDrawable();
+            pill.setCornerRadius(dp(2));pill.setColor((Skin.remembered(owner).text&0xFFFFFF)|0x66000000);
+            handle.setBackground(pill);
+            grip.addView(handle,new android.widget.FrameLayout.LayoutParams(dp(32),dp(4),android.view.Gravity.CENTER));
+        }
+        card.addView(grip,0,new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(m3?28:16)));
         grip.setContentDescription(Local.of("Потяните вниз, чтобы закрыть"));grip.setClickable(true);grip.setFocusable(true);grip.setOnClickListener(v->{if(dragAllowed)cancel();});
         grip.setOnTouchListener((v,event)->{
             if(!dragAllowed || closing || surface==null)return false;
@@ -100,7 +110,7 @@ final class SheetDialog extends Dialog {
         if (getWindow() != null) getWindow().addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         shade(getWindow() == null ? dim : getWindow().getAttributes().dimAmount,0f,180L);
         surface.animate().withEndAction(null).cancel();
-        surface.animate().translationY(centered ? 0f : Math.max(surface.getHeight(), 1)).alpha(0f)
+        surface.animate().translationY(centered ? 0f : Design.fluent()?dp(8):Math.max(surface.getHeight(), 1)).alpha(0f)
                 .setDuration(180L)
                 .setInterpolator(new android.view.animation.PathInterpolator(0.4f,0f,1f,1f))
                 .withEndAction(() -> finishLeave(cancelled)).start();

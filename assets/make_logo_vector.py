@@ -13,7 +13,7 @@ from more than half there to less than half, the crossing is placed by how far
 each side is from half, which is what keeps a curve a curve instead of a
 staircase. The points that add nothing are then dropped.
 
-What it prints goes into `margyt/artwork.py` as GLYPH.
+What it prints goes into `tiktokmi/artwork.py` as GLYPH.
 """
 import math
 import os

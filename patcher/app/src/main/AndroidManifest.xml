@@ -13,7 +13,6 @@
     <queries>
         <package android:name="com.zhiliaoapp.musically" />
         <package android:name="com.zhiliaoapp.musically.go" />
-        <package android:name="cat.narezany.claude" />
     </queries>
 
     <application

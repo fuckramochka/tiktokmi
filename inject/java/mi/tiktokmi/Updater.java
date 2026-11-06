@@ -14,7 +14,7 @@ import java.io.File;
 import java.util.Locale;
 
 /**
- * Telling you there is a newer MargyT, and putting it on if you say so.
+ * Telling you there is a newer TikTok Mi, and putting it on if you say so.
  *
  * `version.json` in the repository says what the latest is and where its apk
  * lives. It is read at startup and every five minutes, exactly as the badges
@@ -65,7 +65,7 @@ public final class Updater {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                check(application, false);
+                if (Watch.here() != null) check(application, false);
                 handler.postDelayed(this, EVERY);
             }
         });
@@ -210,7 +210,7 @@ public final class Updater {
 
     /** Where the downloaded apk waits. Inside the app's own files, not the card. */
     public static File file(Context context) {
-        return new File(context.getFilesDir(), "margyt/update.apk");
+        return new File(context.getFilesDir(), "tiktokmi/update.apk");
     }
 
     private static final java.util.concurrent.atomic.AtomicBoolean fetching=new java.util.concurrent.atomic.AtomicBoolean();
@@ -219,7 +219,7 @@ public final class Updater {
         final Context context=caller.getApplicationContext();
         final String url=where;
         final File apk = file(context);
-        final DownloadTasks.Control control=DownloadTasks.begin("update",Local.of("Обновление MargyT"),Local.of("Мод"),()->fetch(context));
+        final DownloadTasks.Control control=DownloadTasks.begin("update",Local.of("Обновление TikTok Mi"),Local.of("Мод"),()->fetch(context));
         Net.away("update apk", new Runnable() {
             @Override
             public void run() {

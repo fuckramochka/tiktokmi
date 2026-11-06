@@ -31,6 +31,8 @@ public final class MargyProvider extends ContentProvider {
         Margy.attach(context);
         try { CrashReports.start(context); } catch(Throwable ignored) {}
         if (!Version.LITE) SocialLibrary.start();
+        // before TikTok builds the services the ghost stands in front of
+        if (!Version.LITE) Ghost.start();
         Diary.note("start-up hook ran");
         try {
             Context application = context.getApplicationContext();
@@ -45,6 +47,11 @@ public final class MargyProvider extends ContentProvider {
         } catch (Throwable error) {
             // the mod failing to start is not a reason for the app not to
             Diary.note("hook failed: " + error);
+        }
+        try {
+            Launcher.settle(context);
+        } catch (Throwable error) {
+            Diary.note("icons: " + error);
         }
         try {
             Badges.start(context);

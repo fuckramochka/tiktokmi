@@ -14,7 +14,7 @@ import android.telephony.TelephonyManager;
  * Same instruction format, same register count, same return type: the receiver
  * simply becomes the first argument, so nothing around the call has to be
  * renumbered. Each method here takes that receiver and hands it straight back
- * the real answer whenever the mod is off -- switching MargyT off has to leave
+ * the real answer whenever the mod is off -- switching TikTok Mi off has to leave
  * the app exactly as it was, down to the exception the real call would have
  * thrown.
  *

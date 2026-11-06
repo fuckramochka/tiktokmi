@@ -16,9 +16,9 @@ import java.util.Locale;
  * A mod cannot be attached to a debugger and nobody is going to run logcat
  * against a modded TikTok. So the few things worth knowing -- did the start-up
  * hook run, which screen was that, what was its view made of, did the row go in
- * -- are written down here and shown at the bottom of MargyT's own settings.
+ * -- are written down here and shown at the bottom of TikTok Mi's own settings.
  *
- * It survives the app being killed, which is the whole point: reaching MargyT's
+ * It survives the app being killed, which is the whole point: reaching TikTok Mi's
  * settings can mean leaving TikTok first, and a diary that lives only in memory
  * is empty by the time anyone reads it.
  */
@@ -63,7 +63,7 @@ public final class Diary {
 
     public static void note(String line) {
         if (flooding(line)) return;
-        if (Version.TEST || Version.LITE) android.util.Log.i("MargyT", "diary: " + line);
+        if (Version.TEST || Version.LITE) android.util.Log.i("TikTok Mi", "diary: " + line);
         String stamped = stamp() + "  " + line;
         synchronized (LINES) {
             load();

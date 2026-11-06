@@ -32,9 +32,31 @@ public final class VideoActions {
   }
   return null;
  }
+ private static final int[] SHARE={0x7f0a76eb,0x7f0a76d4,0x7f0a5f35};
+ private static final java.util.Map<View,Object> components=new java.util.WeakHashMap<View,Object>();
+ /**
+  * A finger came down. If it is on a video's share button, the button gets the mod's long press
+  * now: TikTok sets its own quick-share there while a video is being made ready, after the mod
+  * did, and a long press that came first opened TikTok's.
+  */
+ static void touched(android.app.Activity activity,android.view.MotionEvent event){
+  if(event.getActionMasked()!=android.view.MotionEvent.ACTION_DOWN)return;
+  View hit=shareAt(activity.getWindow().getDecorView(),(int)event.getRawX(),(int)event.getRawY(),0);
+  if(hit==null)return;
+  Object found=null;for(Object up=hit;up instanceof View&&found==null;up=((View)up).getParent())found=components.get(up);
+  final Object component=found;
+  hit.setOnLongClickListener(v->{Object post=component!=null?NativeRead.get(NativeRead.item(component),"getAweme"):downloadPost();show(v,post);return true;});
+ }
+ private static View shareAt(View view,int x,int y,int depth){
+  if(view==null||depth>45||view.getVisibility()!=View.VISIBLE)return null;
+  int id=view.getId();
+  if(id==SHARE[0]||id==SHARE[1]||id==SHARE[2]){int[] at=new int[2];view.getLocationOnScreen(at);if(x>=at[0]&&x<at[0]+view.getWidth()&&y>=at[1]&&y<at[1]+view.getHeight())return view;}
+  if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=group.getChildCount()-1;i>=0;i--){View found=shareAt(group.getChildAt(i),x,y,depth+1);if(found!=null)return found;}}
+  return null;
+ }
  public static void bindNative(Object component){
   Object content=NativeRead.get(component,"getContentView");
-  if(content instanceof View){View root=(View)content;View.OnLongClickListener hold=v->{Object post=NativeRead.get(NativeRead.item(component),"getAweme");show(v,post);return true;};
+  if(content instanceof View){View root=(View)content;components.put(root,component);View.OnLongClickListener hold=v->{Object post=NativeRead.get(NativeRead.item(component),"getAweme");show(v,post);return true;};
    root.setOnLongClickListener(hold);
    for(int id:new int[]{0x7f0a76eb,0x7f0a76d4,0x7f0a5f35}){View target=root.findViewById(id);if(target!=null)target.setOnLongClickListener(hold);}
   }
@@ -46,6 +68,7 @@ public final class VideoActions {
   Context c=anchor.getContext();Panel panel=Panel.with(c,Skin.remembered(c),Text.VIDEO_ACTIONS);
    panel.item("download",Text.ACT_DOWNLOAD,Text.ACT_DOWNLOAD_HINT,()->chooseDownload(c,post));
  panel.item("play_circle",Text.ACT_PLAYBACK,Text.ACT_PLAYBACK_HINT,()->playback(c));
+  if(!SponsorBlock.photos(post))panel.item("fast_forward",Local.of("Отметить рекламу"),Local.of("Где автор рекламирует что-то в видео"),()->SponsorBlock.mark(c,post));
   panel.item("image",Text.SAVE_FRAME,Text.ACT_FRAME_HINT,()->FrameCapture.capture(selectedRow,NativeRead.aid(post)));
   panel.item("visibility_off",Text.ACT_HIDE,Text.ACT_HIDE_HINT,()->{
    Panel more=Panel.with(c,Skin.remembered(c),Text.ACT_HIDE);
@@ -60,6 +83,25 @@ public final class VideoActions {
   panel.item("fast_forward",Text.SEEK_FORWARD,PlayerTools.step()+Local.of(" с"),null,()->PlayerTools.seek(true,false));
   panel.item("timeline",Text.SEEK_SMOOTH,null,null,()->PlayerTools.seek(false,true));panel.quiet(Text.CLOSE,null).show();
  }
+
+    static final String WINDOW_KEY = "download_window";
+
+    /** Whether Download on TikTok's sheet opens the mod's window, with its choice of quality. Off, TikTok saves the video itself. */
+    static boolean windowOn() {
+        try {
+            return Margy.context().getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE).getBoolean(WINDOW_KEY, true);
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    static void setWindow(boolean on) {
+        try {
+            Margy.context().getSharedPreferences(Margy.PREFS, android.content.Context.MODE_PRIVATE).edit().putBoolean(WINDOW_KEY, on).apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
  static void chooseDownload(Context c,Object post){
   if(post==null){Screen.say(Text.VIDEO_NOT_READY);return;}
   java.util.List<DownloadQuality.Choice> photos=DownloadQuality.photos(post,Download.isEnabled());
@@ -75,8 +117,7 @@ public final class VideoActions {
    if(!qualities.isEmpty()&&qualities.get(0).best)qualities.get(0).alts=DownloadQuality.all(base);
    try{Diary.note("download sizes offered: "+qualities.size());}catch(Throwable ignored){}
   }
-  final java.util.List<DownloadQuality.Choice> every=photos;
-  DownloadSheet.show(c,qualities,photos,video!=null&&qualities.isEmpty(),()->save(post,0),choice->saveAddress(post,choice),choice->savePhoto(post,choice),()->save(post,3),()->saveAllPhotos(post,every));
+  DownloadSheet.show(c,qualities,photos,video!=null&&qualities.isEmpty(),()->save(post,0),choice->saveAddress(post,choice),chosen->{if(chosen.size()==1)savePhoto(post,chosen.get(0));else saveAllPhotos(post,chosen);},()->save(post,3));
  }
  static void save(Object post,boolean forceAudio){
   save(post,forceAudio?3:0);
@@ -126,13 +167,13 @@ public final class VideoActions {
   final Context c=context.getApplicationContext();final String aid=NativeRead.aid(post);
   final java.util.List<DownloadQuality.Choice> list=new java.util.ArrayList<>(photos);
   final String key="media_"+java.util.UUID.randomUUID();
-  final DownloadTasks.Control control=DownloadTasks.begin(key,Text.allPhotos(list.size()),"margyt",()->saveAllPhotos(post,list));
+  final DownloadTasks.Control control=DownloadTasks.begin(key,Text.photosCount(list.size()),"margyt",()->saveAllPhotos(post,list));
   control.limit=320L*1024L*1024L;Screen.progress(key,Text.DOWNLOADING,0);
   boolean queued=MediaQueue.add(()->{
    int saved=0;String where=null;java.io.File temporary=new java.io.File(c.getCacheDir(),key+".media");
    try{
     for(int i=0;i<list.size()&&!control.cancelled();i++){
-     try{String done=fetchOne(c,key,list.get(i).candidates(),2,aid,temporary,control,i,list.size(),"_"+(i+1));if(done!=null){saved++;where=done;}}
+     try{String done=fetchOne(c,key,list.get(i).candidates(),2,aid,temporary,control,i,list.size(),"_"+(list.get(i).bitrate+1));if(done!=null){saved++;where=done;}}
      catch(Throwable error){Diary.note("photo "+(i+1)+": "+error);}
      finally{temporary.delete();}
     }

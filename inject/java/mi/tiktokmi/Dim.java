@@ -74,12 +74,12 @@ public final class Dim {
         SharedPreferences prefs = prefs();
         if (prefs == null) return DEFAULT; // not remembered: the saved value is read once the context exists
         int value = prefs.getInt(KEY_HOW, DEFAULT);
-        how = Math.max(0, Math.min(90, value));
+        how = Math.max(0, Math.min(100, value));
         return how;
     }
 
     public static void setStrength(int percent) {
-        how = Math.max(0, Math.min(90, percent));
+        how = Math.max(0, Math.min(100, percent));
         SharedPreferences prefs = prefs();
         if (prefs != null) prefs.edit().putInt(KEY_HOW, how).apply();
         refresh();
@@ -123,6 +123,9 @@ public final class Dim {
             if(!activity.hasWindowFocus()){if(!isEnabled())restore();return;}
             if(!isConfigured()){retryEye=false;BurnEye.hide(root);restore();return;}
             if(ProfileLayout.visible(root)){retryEye=false;BurnEye.hide(root);restore();return;}
+            // No column of likes and comments, no anti burn-in: neither the eye nor the dimming.
+            // That column is only there while a post is on the screen, and it is the one sure sign.
+            if(!RailPresence.onScreen(root)){retryEye=false;BurnEye.hideSoon(root);restore();return;}
             inspection=passInspection;inspection.clear();commentSources.clear();commentZone=Integer.MAX_VALUE;
             int protection=protectedFlags(root,0,new int[]{10000});
             // A permanent comment composer below a search video is not an open sheet.
@@ -437,6 +440,7 @@ public final class Dim {
         root.getViewTreeObserver().addOnPreDrawListener(
                 new android.view.ViewTreeObserver.OnPreDrawListener() {
             @Override public boolean onPreDraw() {
+                settleDeferred();
                 if(!isConfigured()){dirty[0]=false;return true;}
                 // A video lays something out on nearly every frame, and reading
                 // the whole screen over each time was a millisecond or two of
@@ -997,6 +1001,14 @@ public final class Dim {
         }
     }
 
+    /** A view's alpha as TikTok has it, with this pass's dimming taken back out. */
+    static float undimmed(View view) {
+        if (view == null) return 0f;
+        float now = view.getAlpha();
+        Dimmed dimmed = android.os.Looper.myLooper() == android.os.Looper.getMainLooper() ? faded.get(view) : null;
+        return dimmed != null && Math.abs(now - dimmed.applied) < 0.001f ? dimmed.original : now;
+    }
+
     private static int childShape(View view){
         int hash=0;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){View child=group.getChildAt(i);hash=31*hash+child.getWidth()*17+child.getHeight();}}return hash;
     }
@@ -1045,19 +1057,45 @@ public final class Dim {
     }
 
     private static final java.util.Map<View,Returning> returns=new java.util.WeakHashMap<>();
+    /** Views whose brightness is to go back once they are on the screen again: what they were left at, and what they go back to. */
+    private static final java.util.Map<View,float[]> deferred=new java.util.WeakHashMap<>();
+
+    private static void settleDeferred(){
+        if(deferred.isEmpty())return;
+        java.util.Iterator<java.util.Map.Entry<View,float[]>> iterator=deferred.entrySet().iterator();
+        while(iterator.hasNext()){
+            java.util.Map.Entry<View,float[]> entry=iterator.next();View view=entry.getKey();float[] was=entry.getValue();
+            // TikTok set a brightness of its own, or the view is dimmed again and looked after as one
+            if(view==null||Math.abs(view.getAlpha()-was[0])>.001f||faded.containsKey(view)){iterator.remove();continue;}
+            if(!view.isAttachedToWindow()||!view.isShown())continue;
+            iterator.remove();
+            view.setAlpha(was[1]);
+        }
+    }
     private static final class Returning {
         final float original;float last;final android.animation.ValueAnimator animator;
         Returning(float from,float to){original=to;last=from;animator=android.animation.ValueAnimator.ofFloat(from,to);}
     }
-    /** Animate only our alpha. Stop immediately if TikTok changes or detaches the view. */
+    /**
+     * Animate only our alpha. Stop immediately if TikTok changes or detaches the view.
+     *
+     * A view TikTok has hidden is left as it is. Setting its old brightness back
+     * while it was out of sight is what filled the whole screen when comments
+     * were opened and closed quickly: the shade under the comments got its full
+     * brightness back while hidden, and TikTok showed it again expecting it clear.
+     */
     private static void restoreSmooth(View view,float original){
-        if(!view.isAttachedToWindow() || !view.isShown()){view.setAlpha(original);return;}
+        // A view TikTok has out of sight keeps the faint brightness until it shows again: given back
+        // then, if nobody has changed it meanwhile. Forgotten, it stayed faint for good once TikTok
+        // showed it, after holding a video for double speed hid the buttons and the caption.
+        if(!view.isAttachedToWindow() || !view.isShown()){deferred.put(view,new float[]{view.getAlpha(),original});return;}
+        deferred.remove(view);
         Returning state=new Returning(view.getAlpha(),original);returns.put(view,state);
         java.lang.ref.WeakReference<View> ref=new java.lang.ref.WeakReference<>(view);
         state.animator.setDuration(160L);
         state.animator.addUpdateListener(animation->{View target=ref.get();
             if(target==null || returns.get(target)!=state || Math.abs(target.getAlpha()-state.last)>.001f){animation.cancel();return;}
-            if(!target.isAttachedToWindow() || !target.isShown()){target.setAlpha(state.original);animation.cancel();return;}
+            if(!target.isAttachedToWindow() || !target.isShown()){animation.cancel();return;}
             state.last=(Float)animation.getAnimatedValue();target.setAlpha(state.last);
         });
         state.animator.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator animation){View target=ref.get();if(target!=null && returns.get(target)==state)returns.remove(target);}});

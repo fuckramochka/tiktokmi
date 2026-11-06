@@ -50,7 +50,7 @@ public final class Fonts {
      * hundred and sixty -- which is a better trade than a setting that says it
      * is downloading something and gives no sign of when it will be done.
      */
-    public static final String TWEMOJI_ASSET = "margyt/twemoji.ttf";
+    public static final String TWEMOJI_ASSET = "tiktokmi/twemoji.ttf";
 
     private static String packAsset(Context context, String which) {
         return EmojiPackManager.asset(context, which);
@@ -221,7 +221,7 @@ public final class Fonts {
 
     static File emojiFile(Context context, String which) {
         if(EMOJI_FILE.equals(which))return AccountAppearance.file(context,"emoji-custom");
-        return new File(context.getFilesDir(), "margyt/emoji-" + which);
+        return new File(context.getFilesDir(), "tiktokmi/emoji-" + which);
     }
 
     // ----------------------------------------------------------- using it

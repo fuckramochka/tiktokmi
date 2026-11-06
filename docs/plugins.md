@@ -54,14 +54,14 @@ Without one the list draws a dot in the accent colour.
 | `name` | The name in the list. Required. |
 | `version` | A string, shown next to the name. Required. |
 | `author` | Who wrote it. Required. |
-| `entry` | The class that extends `MargyPlugin`, in full. Required. |
+| `entry` | The class that extends `TikTokMiPlugin`, in full. Required. |
 | `description` | A line or two: what it does. |
 | `min_api` | The oldest plugin api the plugin works with. The loader refuses a plugin that wants a newer one, with a reason rather than a crash. Defaults to 1. |
 | `name_ru`, `description_uk`, … | The same field in another language. The app takes the one matching the phone's language and falls back to the plain field. |
 
 ## The plugin itself
 
-Extend `MargyPlugin` and override what you care about. Everything has a body
+Extend `TikTokMiPlugin` and override what you care about. Everything has a body
 that does nothing, so a plugin that only wants one hook writes one method, and
 hooks added in later versions of the mod do not break it.
 
@@ -69,9 +69,9 @@ hooks added in later versions of the mod do not break it.
 package mi.tiktokmi.hello;
 
 import android.content.Context;
-import mi.tiktokmi.plugin.MargyPlugin;
+import mi.tiktokmi.plugin.TikTokMiPlugin;
 
-public final class Hello extends MargyPlugin {
+public final class Hello extends TikTokMiPlugin {
     @Override
     public void onStart(Context context) {
         tiktokmi().log("hello");
@@ -160,7 +160,7 @@ restarted, which is why the mod asks for one. Hold a row to remove a plugin.
 
 ## Versions
 
-`MargyPlugin.API` is the plugin api version, and it goes up whenever a hook
+`TikTokMiPlugin.API` is the plugin api version, and it goes up whenever a hook
 changes shape. A plugin declares the oldest it works with as `min_api`, and the
 loader refuses anything newer than it knows rather than calling a hook that no
 longer means what the plugin thought.

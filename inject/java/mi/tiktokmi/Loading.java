@@ -90,7 +90,9 @@ public final class Loading {
             if (width <= 0 || height <= 0) return false;
 
             if (!wouldDraw(view, width, height)) return true;
-            shape(canvas, width, height);
+            if(Design.controlsFluent())fluent(canvas,width,height);
+            else if(Design.controlsGlass())glass(canvas,width,height);
+            else shape(canvas, width, height);
             // TikTok asks for its next frame some milliseconds on; a shape
             // that turns wants every one
             if (view.isShown()) view.postInvalidateOnAnimation();
@@ -102,6 +104,13 @@ public final class Loading {
             }
             return false;
         }
+    }
+
+    /** The indicator as the settings picture shows it, whatever the switch says. */
+    static void preview(Canvas canvas, int width, int height) {
+        if (Design.controlsFluent()) fluent(canvas, width, height);
+        else if (Design.controlsGlass()) glass(canvas, width, height);
+        else shape(canvas, width, height);
     }
 
     private static final int PROBE = 24;
@@ -146,6 +155,28 @@ public final class Loading {
 
     private static final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final Path path = new Path();
+    private static final android.graphics.RectF ring = new android.graphics.RectF();
+
+    private static void fluent(Canvas canvas,int width,int height){
+        float size=Math.min(width,height),r=size*.38f;
+        ring.set(width/2f-r,height/2f-r,width/2f+r,height/2f+r);
+        paint.setColor(Accent.colour()|0xff000000);paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1,size*.075f));paint.setStrokeCap(Paint.Cap.ROUND);
+        float t=(SystemClock.uptimeMillis()%1200)/1200f;
+        canvas.drawArc(ring,t*360,70+160*(.5f-.5f*(float)Math.cos(t*Math.PI*2)),false,paint);
+        paint.setStrokeCap(Paint.Cap.BUTT);paint.setStyle(Paint.Style.FILL);
+    }
+
+    private static void glass(Canvas canvas,int width,int height){
+        float size=Math.min(width,height),r=size*.30f;
+        float t=(SystemClock.uptimeMillis()%900)/900f;
+        paint.setStyle(Paint.Style.FILL);
+        for(int i=0;i<8;i++){
+            double angle=(i/8f+t)*Math.PI*2;
+            paint.setColor((Accent.colour()&0xffffff)|((70+i*23)<<24));
+            canvas.drawCircle(width/2f+(float)Math.cos(angle)*r,height/2f+(float)Math.sin(angle)*r,size*.07f,paint);
+        }
+    }
 
     private static void shape(Canvas canvas, int width, int height) {
         long now = SystemClock.uptimeMillis();

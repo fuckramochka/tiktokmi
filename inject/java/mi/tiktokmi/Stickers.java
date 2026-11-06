@@ -72,7 +72,7 @@ public static final String KEY = "save_stickers";
 
     // ------------------------------------------------ where the taps land
 
-    // The names are 47.2.41's and live in `margyt/dexpatch.py` beside the
+    // The names are 47.2.41's and live in `tiktokmi/dexpatch.py` beside the
     // shapes they are matched by. A release that renames them matches nothing,
     // and the taps go where they always went.
 

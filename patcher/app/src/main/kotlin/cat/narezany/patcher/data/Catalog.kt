@@ -50,12 +50,13 @@ data class Catalog(val patcher: PatcherRelease?, val channel: String, val mods: 
 
     companion object {
         /**
-         * Read from the project's own git server, like the mod's version file:
-         * a link there can be changed for everybody without anybody updating
-         * anything.
+         * Read from the project's GitHub repository, like the mod's version
+         * file: a link there can be changed for everybody without anybody
+         * updating anything.
          */
-        const val SOURCE = "https://git.narez.xyz/narezany/MargyT/raw/branch/main/patcher/catalog.json"
-        private const val BETA = "https://margy.narez.xyz/api/patcher/beta"
+        const val SOURCE = "https://raw.githubusercontent.com/fuckramochka/tiktokmi/main/patcher/catalog.json"
+        /** The dynamic beta service is not available on static hosting. */
+        private const val BETA = ""
 
         private fun kept(context: Context) = File(context.filesDir, "catalog.json")
 
@@ -82,7 +83,7 @@ data class Catalog(val patcher: PatcherRelease?, val channel: String, val mods: 
             val prefs = Prefs.of(context).now.value
             // the early releases are for the people who support the project,
             // and the server is who knows whether this is one of them
-            val early = if (prefs.beta && prefs.telegramToken.isNotEmpty()) {
+            val early = if (prefs.beta && prefs.telegramToken.isNotEmpty() && BETA.isNotEmpty()) {
                 Net.text(BETA, bearer = prefs.telegramToken)
             } else null
             return try {

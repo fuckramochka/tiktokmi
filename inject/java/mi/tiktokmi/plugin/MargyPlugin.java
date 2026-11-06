@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 
 /**
- * What a MargyT plugin extends.
+ * What a TikTok Mi plugin extends.
  *
  * Everything here does nothing by default, so a plugin overrides the one or two
  * hooks it cares about and ignores the rest. New hooks can be added to this

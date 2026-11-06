@@ -32,7 +32,6 @@ STUBS['mi/tiktokmi/Version.java']='package mi.tiktokmi;class Version{static fina
 STUBS['mi/tiktokmi/FeedBlacklist.java']='package mi.tiktokmi;class FeedBlacklist{static void reload(){}}'
 STUBS['mi/tiktokmi/PlayerTools.java']='package mi.tiktokmi;class PlayerTools{static void accountChanged(){} static void cancelSmooth(){}}'
 STUBS['mi/tiktokmi/VideoActions.java']='package mi.tiktokmi;class VideoActions{static void accountChanged(){} static void bindNative(Object c){} static void selected(Object c,Object p){}}'
-STUBS['mi/tiktokmi/PinnedFriends.java']='package mi.tiktokmi;class PinnedFriends{static void reload(){}}'
 STUBS['mi/tiktokmi/ProfileLayout.java']='package mi.tiktokmi;class ProfileLayout{static void reload(){}}'
 STUBS['mi/tiktokmi/MessageTimes.java']='package mi.tiktokmi;class MessageTimes{static void reload(){}}'
 STUBS['mi/tiktokmi/ModNotifications.java']='package mi.tiktokmi;class ModNotifications{static void reload(){}}'

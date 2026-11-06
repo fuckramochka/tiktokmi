@@ -333,7 +333,7 @@ object Patch {
     /**
      * A raw deflate stream, by JZlib and not by the phone's own zlib: the
      * build deflated with this same code, and only the same code promises the
-     * same bytes. Keep in step with margyt/java/Deflate.java.
+     * same bytes. Keep in step with tiktokmi/java/Deflate.java.
      */
     fun deflate(data: ByteArray, level: Int): ByteArray {
         val deflater = Deflater(level, true)

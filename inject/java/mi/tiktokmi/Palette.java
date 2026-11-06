@@ -5,7 +5,7 @@ import android.graphics.Color;
 /**
  * Which colours the accent takes over, and what it turns them into.
  *
- * The same arithmetic as `margyt/palette.py`, which does this to the resource
+ * The same arithmetic as `tiktokmi/palette.py`, which does this to the resource
  * table and the compiled XML while the apk is built. This one is for the
  * colours that are only known while the app is running -- whatever comes back
  * from `Resources.getColor`, from a `TypedArray`, or out of a constant the

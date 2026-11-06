@@ -202,6 +202,7 @@ final class Expressive {
             if (bounds.isEmpty()) return;
             box.set(bounds);
             float[] c = corners(bounds.height());
+            if (!mask && Design.draw(canvas, this, box, c[0], c[1], paint.getColor(), Math.max(0f, press))) return;
             radii[0] = radii[1] = radii[2] = radii[3] = c[0];
             radii[4] = radii[5] = radii[6] = radii[7] = c[1];
             path.reset();
@@ -241,10 +242,20 @@ final class Expressive {
             setOrientation(VERTICAL);
             this.fill = fill;
             this.ripple = ripple;
-            this.outer = dp(context, 26);
-            this.inner = dp(context, 6);
-            this.gap = dp(context, 2);
-            this.pressed = dp(context, 28);
+            // Material 3: ListTokens gives the list large corners (16), the
+            // segments extra small ones (4), 2 between them, and a held
+            // segment large corners all round
+            boolean m3 = !Design.frosted();
+            // the style's own corners and gap (UiStyle): 16, 4 and 2 for Material 3
+            this.outer = dp(context, Design.style().card);
+            this.inner = dp(context, Design.style().inner);
+            this.gap = dp(context, Design.style().gap);
+            this.pressed = dp(context, m3?16:28);
+            if (Design.glass()) {
+                GradientDrawable surface = new GradientDrawable();
+                surface.setColor(fill); surface.setCornerRadius(outer);
+                setBackground(new Design.Surface(this, surface));
+            }
         }
 
         @Override
@@ -288,6 +299,8 @@ final class Expressive {
                     view.setLayoutParams(params);
                 }
                 if (!ours(view)) continue;
+                if (Design.glass()) { view.setBackgroundColor(Color.TRANSPARENT); continue; }
+                if (Design.fluent()) { view.setBackground(tile(getContext(),fill,ripple,outer,outer,outer));continue; }
                 view.setBackground(tile(getContext(), fill, ripple,
                         i == first ? outer : inner, i == last ? outer : inner, pressed));
             }
@@ -305,6 +318,8 @@ final class Expressive {
     static final class Badge extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path path = new Path();
+        private final RectF badgeBox = new RectF();
+        private final float[] badgeCorners = new float[8];
         private final int kind, size, glyphSize;
         private final Drawable glyph;
         private final int fillOff, fillOn, inkOff, inkOn;
@@ -335,8 +350,8 @@ final class Expressive {
                 return;
             }
             motion = ValueAnimator.ofFloat(state, target);
-            motion.setDuration(300L);
-            motion.setInterpolator(new OvershootInterpolator(1.6f));
+            motion.setDuration(Design.style().duration);
+            motion.setInterpolator(Design.style().bounce<=0?new android.view.animation.DecelerateInterpolator():new OvershootInterpolator(Design.style().bounce));
             motion.addUpdateListener(a -> {
                 state = (Float) a.getAnimatedValue();
                 invalidate();
@@ -353,8 +368,14 @@ final class Expressive {
         protected void onDraw(Canvas canvas) {
             float cx = getWidth() / 2f, cy = getHeight() / 2f;
             float radius = Math.min(getWidth(), getHeight()) / 2f;
-            shape(path, kind, cx, cy, radius, 1f, state * 360f / LOBES[kind]);
-            paint.setColor(mix(fillOff, fillOn, state));
+            if(Design.controlsFluent()){
+                badgeBox.set(cx-radius,cy-radius,cx+radius,cy+radius);
+                java.util.Arrays.fill(badgeCorners,dp(getContext(),4));
+                path.reset();path.addRoundRect(badgeBox,badgeCorners,Path.Direction.CW);
+            }else if(Design.controlsGlass()){
+                path.reset();path.addCircle(cx,cy,radius,Path.Direction.CW);
+            }else shape(path, kind, cx, cy, radius, 1f, state * 360f / LOBES[kind]);
+            paint.setColor(Design.controlsFluent()?mix(0x007f7f7f,0x187f7f7f,state):mix(fillOff, fillOn, state));
             canvas.drawPath(path, paint);
             if (glyph != null) {
                 glyph.setBounds(Math.round(cx - glyphSize / 2f), Math.round(cy - glyphSize / 2f),
@@ -417,7 +438,19 @@ final class Expressive {
         handle.setColor(accent);
         handle.setCornerRadius(dp(context, 3));
         handle.setSize(Math.round(dp(context, 6)), Math.round(dp(context, 44)));
-        bar.setThumb(handle);
+        if (Design.controlsGlass()) {
+            handle.setColor(0xEEFFFFFF);handle.setCornerRadius(dp(context, 14));
+            handle.setSize(Math.round(dp(context, 30)), Math.round(dp(context, 28)));
+        } else if(Design.controlsFluent()) {
+            handle.setColor(0xfff9f9f9);handle.setCornerRadius(dp(context,10));
+            handle.setSize(Math.round(dp(context,20)),Math.round(dp(context,20)));
+        }
+        if(Design.controlsFluent()){
+            GradientDrawable centre=new GradientDrawable();centre.setColor(accent);centre.setCornerRadius(dp(context,10));
+            LayerDrawable thumb=new LayerDrawable(new Drawable[]{handle,centre});
+            int inset=Math.round(dp(context,5));thumb.setLayerInset(1,inset,inset,inset,inset);
+            bar.setThumb(thumb);
+        }else bar.setThumb(handle);
         bar.setThumbOffset(0);
         int side = Math.round(dp(context, 10));
         bar.setPadding(side, 0, side, 0);

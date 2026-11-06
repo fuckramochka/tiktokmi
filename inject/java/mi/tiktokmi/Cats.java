@@ -43,7 +43,7 @@ public final class Cats {
     private static final int NEEDED = 5;
     private static final long GAP = 1000;
 
-    private static final String REPOSITORY = "https://margy.narez.xyz/cats/";
+    private static final String REPOSITORY = "https://fuckramochka.github.io/tiktokmi/cats/";
     private static final String LIST = REPOSITORY + "cats.json";
 
     /** One cat: a photograph, what it is called, and who brought it. */
@@ -206,7 +206,7 @@ public final class Cats {
 
     /** The fat tilcayo himself, for the widget. Fetched if this phone has not met him. */
     static byte[] fat(Context context) {
-        return picture(context, "tilcayo.jpg");
+        return picture(context, "tilcayo.png");
     }
 
     private static byte[] picture(Context context, String path) {

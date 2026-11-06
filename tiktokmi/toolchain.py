@@ -33,7 +33,7 @@ SIGNER_JAR = (
 
 
 # The deflate the patcher app repeats on a phone: the same code, so the same
-# bytes. See margyt/java/Deflate.java.
+# bytes. See tiktokmi/java/Deflate.java.
 JZLIB_JAR = "https://repo1.maven.org/maven2/com/jcraft/jzlib/1.1.3/jzlib-1.1.3.jar"
 
 

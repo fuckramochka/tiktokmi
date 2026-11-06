@@ -16,8 +16,9 @@ import android.view.accessibility.AccessibilityNodeInfo;
  * The platform's own Switch is the one from 2014 and looks it. Material's is a
  * library this build cannot add -- adding one means adding resources, and
  * adding resources means rewriting a 25 MB resource table -- so the shape is
- * drawn instead: a 52 by 32 track, a small thumb that grows as it slides, and a
- * plain thumb without extra symbols.
+ * drawn instead, to the Compose tokens: a 52 by 32 track with a 2dp outline
+ * while off, a 16dp handle that grows to 24 when on and to 28 under the finger,
+ * and a check on the handle when on, as Android's own settings draw it.
  */
 public final class M3Switch extends View {
 
@@ -34,33 +35,20 @@ public final class M3Switch extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF box = new RectF();
 
-    // The palette follows the card the switch sits on, not the wallpaper, the
-    // system theme or the TikTok accent (some devices feed a white accent back
-    // in). On a dark card "on" is a white track; on a light card it is a black
-    // one, because a white track on a white card cannot be told from nothing.
+    // The off colours follow the card the switch sits on, not the wallpaper or
+    // the system theme: only how light the card is matters.
     private boolean lightSurface;
-    private int trackOff, trackOn, thumbOff, thumbOn, outlineOff;
-
-    {
-        palette(false);
-    }
-
-    private void palette(boolean light) {
-        lightSurface = light;
-        if (light) {
-            trackOff = 0xFFE4E4E7; outlineOff = 0xFF8A8A92; thumbOff = 0xFF6E6E76;
-            trackOn = 0xFF111111;  thumbOn = 0xFFFFFFFF;
-        } else {
-            trackOff = 0xFF181818; outlineOff = 0xFFBDBDBD; thumbOff = 0xFFFFFFFF;
-            trackOn = 0xFFFFFFFF;  thumbOn = 0xFF000000;
-        }
-    }
+    private int surface = 0xFF1D1D1D;
 
     private boolean checked;
     private float position;  // 0 off, 1 on
     private OnChanged listener;
     private ValueAnimator animator;
     private boolean interruptingAnimation;
+    private boolean dragging;
+    private float downX,downY,downPosition;
+    private final GlassOptics glassTrack=new GlassOptics(),glassThumb=new GlassOptics();
+    private final RectF glassBox=new RectF();
 
     public M3Switch(Context context) {
         super(context);
@@ -69,12 +57,10 @@ public final class M3Switch extends View {
     }
 
     public void colours(int accent, int off, int surface) {
-        // The accent and the OS colours are ignored on purpose; only how light
-        // the card is matters.
-        float luma = (0.299f * Color.red(surface) + 0.587f * Color.green(surface)
-                + 0.114f * Color.blue(surface)) / 255f;
-        boolean light = luma > 0.55f;
-        if (light != lightSurface) palette(light);
+        // The "on" colour is read from Accent when drawn, so a change of accent
+        // shows without this being called again.
+        lightSurface = luma(surface) > 0.55f;
+        this.surface = surface;
         invalidate();
     }
 
@@ -99,7 +85,7 @@ public final class M3Switch extends View {
             return;
         }
         animator = ValueAnimator.ofFloat(position, value ? 1f : 0f);
-        animator.setDuration(ANIMATION_DURATION_MS);
+        animator.setDuration(Design.controlsFluent()?180L:ANIMATION_DURATION_MS);
         animator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
         animator.addUpdateListener(a -> {
             position = (Float) a.getAnimatedValue();
@@ -131,15 +117,31 @@ public final class M3Switch extends View {
         if (!isEnabled()) return false;
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                downX=event.getX();downY=event.getY();downPosition=position;dragging=false;
                 setPressed(true);
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                {
+                    float delta=event.getX()-downX;
+                    if(!dragging && Math.abs(delta)>dp(4) && Math.abs(delta)>Math.abs(event.getY()-downY)){
+                        dragging=true;if(animator!=null){interruptingAnimation=true;animator.cancel();animator=null;interruptingAnimation=false;}
+                        if(getParent()!=null)getParent().requestDisallowInterceptTouchEvent(true);
+                    }
+                    if(dragging){position=Math.max(0,Math.min(1,downPosition+delta/dp(20)*(getLayoutDirection()==LAYOUT_DIRECTION_RTL?-1:1)));invalidate();}
+                }
                 return true;
             case MotionEvent.ACTION_CANCEL:
                 setPressed(false);
+                if(dragging){dragging=false;setChecked(checked,true);}
                 return true;
             case MotionEvent.ACTION_UP:
                 boolean inside = event.getX() >= 0 && event.getX() < getWidth()
                         && event.getY() >= 0 && event.getY() < getHeight();
                 setPressed(false);
+                if(dragging){
+                    dragging=false;boolean next=position>=.5f;boolean changed=next!=checked;
+                    setChecked(next,true);if(changed && listener!=null)listener.onChanged(next);super.performClick();return true;
+                }
                 if (inside) performClick();
                 return true;
             default:
@@ -165,77 +167,123 @@ public final class M3Switch extends View {
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
-        info.setClassName("android.widget.CheckBox");
+        info.setClassName("android.widget.Switch");
         info.setCheckable(true);
         info.setChecked(checked);
     }
 
     @Override
     protected void onMeasure(int widthSpec, int heightSpec) {
-        setMeasuredDimension(dp(28), dp(28));
+        setMeasuredDimension(dp(Design.controlsFluent()?42:TRACK_WIDTH), dp(Design.controlsFluent()?22:TRACK_HEIGHT));
+    }
+
+    @Override
+    protected void drawableStateChanged() {
+        super.drawableStateChanged();
+        // the handle grows while held, and nothing else redraws it then
+        invalidate();
     }
 
     private final android.graphics.Path tick = new android.graphics.Path();
-    private final android.graphics.Path tickPart = new android.graphics.Path();
-    private final android.graphics.PathMeasure measure = new android.graphics.PathMeasure();
 
-    private final android.graphics.Path blob = new android.graphics.Path();
-
-    /**
-     * The shape the disc turns into: eight soft lobes, a Material 3 Expressive
-     * "sunny" cookie. `amount` 0 is a circle, 1 the full shape; `turn` is degrees.
-     */
-    private void cookie(float cx, float cy, float radius, float amount, float turn) {
-        final int lobes = 8, steps = 128;
-        float depth = 0.09f * amount;
-        double start = Math.toRadians(turn) - Math.PI / 2.0;
-        blob.reset();
-        for (int i = 0; i < steps; i++) {
-            double t = Math.PI * 2.0 * i / steps;
-            double reach = radius * (1.0 - depth * (1.0 - Math.cos(lobes * (t - start))));
-            float x = (float) (cx + reach * Math.cos(t)), y = (float) (cy + reach * Math.sin(t));
-            if (i == 0) blob.moveTo(x, y);
-            else blob.lineTo(x, y);
-        }
-        blob.close();
-    }
-
-    /** A round indicator: an empty ring when off, a turning accent cookie with a drawn check when on. */
+    /** The Material 3 switch. */
     @Override
     protected void onDraw(Canvas canvas) {
-        float cx = getWidth() / 2f, cy = getHeight() / 2f, r = dp(12f);
-        int accent = Accent.colour();
-        int ink = (Color.red(accent) * 299 + Color.green(accent) * 587 + Color.blue(accent) * 114) / 1000 > 150 ? 0xFF111111 : 0xFFFFFFFF;
+        if(Design.controlsFluent()){drawFluent(canvas);return;}
+        if(Design.controlsGlass()){drawGlass(canvas);return;}
+        float w = getWidth(), h = getHeight();
         float eased = position * position * (3f - 2f * position);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(dp(2f));
-        paint.setColor(withAlpha(outlineOff, Math.round(190 * (1f - eased))));
-        canvas.drawCircle(cx, cy, r - dp(1f), paint);
-        if (position > 0f) {
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(withAlpha(accent, Math.round(255 * eased)));
-            cookie(cx, cy, r * (0.82f + 0.18f * eased), eased, 45f * eased);
-            canvas.drawPath(blob, paint);
-            tick.reset();
-            tick.moveTo(cx - dp(5.2f), cy + dp(0.6f));
-            tick.lineTo(cx - dp(1.7f), cy + dp(4f));
-            tick.lineTo(cx + dp(5.2f), cy - dp(3.4f));
-            measure.setPath(tick, false);
-            tickPart.reset();
-            measure.getSegment(0f, measure.getLength() * Math.max(0f, Math.min(1f, (position - 0.25f) / 0.75f)), tickPart, true);
+        int accent = on(Accent.colour());
+        int onAccent = luma(accent) > 0.59f ? 0xFF111111 : 0xFFFFFFFF;
+        // surface container highest and outline, taken from the card it sits on
+        int track = Expressive.mix(surface, lightSurface ? 0xFF000000 : 0xFFFFFFFF, lightSurface ? 0.10f : 0.13f);
+        int outline = lightSurface ? 0xFF79797F : 0xFF939399;
+
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(blend(track, accent, eased));
+        box.set(0, 0, w, h);
+        canvas.drawRoundRect(box, h / 2f, h / 2f, paint);
+        if (eased < 1f) {
+            float half = dp(1f);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(dp(2.2f));
+            paint.setStrokeWidth(dp(2f));
+            paint.setColor(withAlpha(outline, Math.round(255 * (1f - eased))));
+            box.set(half, half, w - half, h - half);
+            canvas.drawRoundRect(box, h / 2f - half, h / 2f - half, paint);
+            paint.setStyle(Paint.Style.FILL);
+        }
+
+        float along = getLayoutDirection() == LAYOUT_DIRECTION_RTL ? 1f - position : position;
+        float cx = h / 2f + (w - h) * along, cy = h / 2f;
+        float size = isPressed() ? 28f : 16f + 8f * eased;
+        paint.setColor(blend(outline, onAccent, eased));
+        canvas.drawCircle(cx, cy, dp(size) / 2f, paint);
+
+        if (eased > 0.5f) {
+            // a 16dp check in the selected handle
+            float k = dp(16f) / 24f;
+            tick.reset();
+            tick.moveTo(cx - 6.5f * k, cy + 0.5f * k);
+            tick.lineTo(cx - 2f * k, cy + 5f * k);
+            tick.lineTo(cx + 7f * k, cy - 4.5f * k);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(2f));
             paint.setStrokeCap(Paint.Cap.ROUND);
             paint.setStrokeJoin(Paint.Join.ROUND);
-            paint.setColor(ink);
-            canvas.drawPath(tickPart, paint);
+            paint.setColor(withAlpha(accent, Math.round(255 * Math.min(1f, (eased - 0.5f) * 2f))));
+            canvas.drawPath(tick, paint);
             paint.setStrokeCap(Paint.Cap.BUTT);
+            paint.setStyle(Paint.Style.FILL);
         }
-        paint.setStyle(Paint.Style.FILL);
+    }
+
+    /**
+     * The accent, unless it would vanish into the card: some devices feed a
+     * white accent back in, and a white track on a white card cannot be told
+     * from nothing. Then "on" is black on a light card and white on a dark one.
+     */
+    private int on(int accent) {
+        if (Math.abs(luma(accent) - luma(surface)) >= 0.2f) return accent;
+        return lightSurface ? 0xFF111111 : 0xFFFFFFFF;
+    }
+
+    private static float luma(int colour) {
+        return (0.299f * Color.red(colour) + 0.587f * Color.green(colour) + 0.114f * Color.blue(colour)) / 255f;
     }
 
     private static int withAlpha(int colour, int alpha) {
         return (colour & 0x00FFFFFF) | (Math.max(0, Math.min(255, alpha)) << 24);
+    }
+
+    private void drawFluent(Canvas canvas){
+        if(GlassBackdrop.capturing)return;
+        box.set(dp(1),dp(1),getWidth()-dp(1),getHeight()-dp(1));
+        paint.setStyle(Paint.Style.FILL);paint.setShader(null);
+        paint.setColor(blend(lightSurface?0xffe5e5e5:0xff383838,Accent.colour(),position));
+        canvas.drawRoundRect(box,dp(11),dp(11),paint);
+        paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(dp(1));
+        paint.setColor(lightSurface?0x70404040:0x70ffffff);canvas.drawRoundRect(box,dp(11),dp(11),paint);
+        paint.setStyle(Paint.Style.FILL);
+        float p=getLayoutDirection()==LAYOUT_DIRECTION_RTL?1-position:position;
+        float x=dp(11)+(getWidth()-dp(22))*p;
+        paint.setColor(blend(lightSurface?0xff555555:0xffdedede,0xffffffff,position));
+        canvas.drawCircle(x,getHeight()/2f,dp(isPressed()?7.4f:6.5f),paint);
+    }
+
+    private void drawGlass(Canvas canvas){
+        if(GlassBackdrop.capturing)return;
+        glassBox.set(dp(1),dp(1),getWidth()-dp(1),getHeight()-dp(1));
+        int off=lightSurface?0xffd4d8df:0xff343a43;
+        glassTrack.draw(canvas,this,glassBox,glassBox.height()/2f,glassBox.height()/2f,off,isPressed()?.6f:0);
+        paint.setShader(null);paint.setColor(withAlpha(Accent.colour(),Math.round(230*position)));
+        canvas.drawRoundRect(glassBox,glassBox.height()/2f,glassBox.height()/2f,paint);
+        float p=getLayoutDirection()==LAYOUT_DIRECTION_RTL?1-position:position;
+        float centre=dp(16)+(getWidth()-dp(32))*p;
+        float half=dp(isPressed()?14.2f:13f);
+        glassBox.set(centre-half,dp(3),centre+half,getHeight()-dp(3));
+        glassThumb.draw(canvas,this,glassBox,dp(13),dp(13),0xffffffff,isPressed()?1:0);
+        paint.setColor(0xafffffff);canvas.drawRoundRect(glassBox,dp(13),dp(13),paint);
     }
 
     private static int blend(int from, int to, float amount) {

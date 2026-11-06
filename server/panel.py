@@ -32,7 +32,9 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(HERE, "badges.db")
 
-HOURS = 12 * 3600
+#: how long a sign-in lasts: a year. It was twelve hours, and the owner, the
+#: only one who signs in, was asked for the password twice a day.
+LASTS = 365 * 86400
 
 #: how long the hash takes to work out, which is how long a guess takes too
 ROUNDS = 240000
@@ -113,7 +115,7 @@ def cookie(value):
     never sent along with a request that began on somebody else's site.
     """
     return ("margyt=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=Strict"
-            % (value, HOURS if value else 0))
+            % (value, LASTS if value else 0))
 
 
 def seen_cookie(mark):
@@ -139,7 +141,7 @@ def allowed(cookie):
         value = piece[len("margyt="):]
         try:
             when, mark = value.split(".", 1)
-            if int(time.time()) - int(when) > HOURS:
+            if int(time.time()) - int(when) > LASTS:
                 return False
             return hmac.compare_digest(mark, sign(int(when), key))
         except Exception:
@@ -195,8 +197,8 @@ def page(title, body, said=""):
 
 
 def sign_in_page(trouble=""):
-    return page("MargyT", """
-        <h1>MargyT</h1>
+    return page("TikTok Mi", """
+        <h1>TikTok Mi</h1>
         <p class=dim>Панель</p>
         <form class=card method=post action="/admin/in">
           <label>Имя</label><input name=user autocomplete=username>
@@ -221,7 +223,7 @@ def when(stamp):
     return "%d дн назад" % (gone // 86400)
 
 
-def main_page(badges, plugins, gradients=(), said="", crashes=()):
+def main_page(badges, plugins, gradients=(), said="", crashes=(), verdicts=()):
     rows = []
     for badge in badges:
         rows.append(
@@ -256,6 +258,16 @@ def main_page(badges, plugins, gradients=(), said="", crashes=()):
             "<button class=quiet>Снять</button></form></td></tr>"
             % (html.escape(one["uid"]), strip, strip, html.escape(one["uid"])))
 
+    marked = []
+    for one in verdicts:
+        marked.append(
+            "<tr><td class=dim>%s</td><td>%s</td><td class=dim>%s</td><td class=dim>%s</td>"
+            "<td><form method=post action='/admin/verdict/drop' style='display:inline'>"
+            "<input type=hidden name=uid value='%s'>"
+            "<button class=quiet>Снять</button></form></td></tr>"
+            % (html.escape(one["uid"]), "✅ Рекомендуемый" if one["good"] else "⛔ Не рекомендуемый",
+               html.escape(one["reason"]) or "без причины", when(one["at"]), html.escape(one["uid"])))
+
     fallen = []
     for one in crashes:
         fallen.append(
@@ -264,8 +276,8 @@ def main_page(badges, plugins, gradients=(), said="", crashes=()):
             % (when(one["at"]), html.escape(one["mod"] or "?"),
                html.escape(one["what"] or "?"), html.escape(one["body"])))
 
-    return page("MargyT", """
-        <h1>MargyT</h1>
+    return page("TikTok Mi", """
+        <h1>TikTok Mi</h1>
         <p class=dim>Значки, плагины и градиенты</p>
 
         <h2>Значки</h2>
@@ -288,7 +300,7 @@ def main_page(badges, plugins, gradients=(), said="", crashes=()):
             <div><label>название (ru)</label><input name=title_ru></div>
             <div><label>название (uk)</label><input name=title_uk></div>
           </div>
-          <label>текст</label><input name=text placeholder="поддержал разработку MargyT">
+          <label>текст</label><input name=text placeholder="поддержал разработку TikTok Mi">
           <div class=row>
             <div><label>текст (ru)</label><input name=text_ru></div>
             <div><label>текст (uk)</label><input name=text_uk></div>
@@ -299,6 +311,24 @@ def main_page(badges, plugins, gradients=(), said="", crashes=()):
         <h2>Градиенты ников</h2>
         <div class=card><table>
           <tr><th>айди</th><th>цвета</th><th></th></tr>
+          %s
+        </table></div>
+
+        <h2>Пометки профилей</h2>
+        <p class=dim>Плашка в профиле TikTok у всех, у кого стоит TikTok Mi.</p>
+        <form class=card method=post action="/admin/verdict/set">
+          <label>айди аккаунтов TikTok, через пробел или запятую</label>
+          <input name=uids placeholder="6812345678901234567">
+          <label>какой</label>
+          <select name=good>
+            <option value=1>✅ Рекомендуемый</option>
+            <option value=0>⛔ Не рекомендуемый</option>
+          </select>
+          <label>причина</label><input name=reason maxlength=300>
+          <p><button>Пометить</button></p>
+        </form>
+        <div class=card><table>
+          <tr><th>айди</th><th>пометка</th><th>причина</th><th>когда</th><th></th></tr>
           %s
         </table></div>
 
@@ -333,9 +363,11 @@ def main_page(badges, plugins, gradients=(), said="", crashes=()):
           <p><button>Сменить</button></p>
         </form>
 
-        <p><a class='button quiet' href="/admin/out">Выйти</a></p>
+        <p><a class='button quiet' href="/admin/devices">Устройства админки</a>
+           <a class='button quiet' href="/admin/out">Выйти</a></p>
         """ % ("".join(rows) or "<tr><td class=dim>пока пусто</td></tr>",
                "".join(painted) or "<tr><td class=dim>пока пусто</td></tr>",
+               "".join(marked) or "<tr><td class=dim>пока пусто</td></tr>",
                "".join(packs) or "<tr><td class=dim>пока пусто</td></tr>",
                "".join(fallen) or "<tr><td class=dim>пока пусто</td></tr>"), said)
 
@@ -354,7 +386,7 @@ def badge_page(badge, wearers, said=""):
            html.escape(badge["id"]), html.escape(uid))
         for uid, shown, proved in wearers)
 
-    return page("MargyT", """
+    return page("TikTok Mi", """
         <h1>%s</h1>
         <p class=dim><img class=dot src='/icon/%s'> #%s</p>
 
@@ -376,3 +408,26 @@ def badge_page(badge, wearers, said=""):
                html.escape(badge["image"] or "note.png"), html.escape(badge["id"]),
                html.escape(badge["id"]),
                rows or "<tr><td class=dim>пока ни у кого</td></tr>"), said)
+
+
+def devices_page(devices, said=""):
+    """The phones that may use the admin inside TikTok, and a way to strike one off."""
+    rows = "".join(
+        "<tr><td><b>%s</b><br><span class=dim>%s</span></td><td class=dim>%s</td>"
+        "<td class=dim>%s</td><td class=dim>%s</td><td><form method=post "
+        "action='/admin/device/forget' style='display:inline'>"
+        "<input type=hidden name=id value='%s'>"
+        "<button class=quiet>Отключить</button></form></td></tr>"
+        % (html.escape(name), html.escape(which), html.escape(uid),
+           "подтверждено" if approved else "ждёт код", when(last) if last else "не заходило",
+           html.escape(which))
+        for which, uid, name, approved, made, last in devices)
+    return page("TikTok Mi", """
+        <h1>Устройства админки</h1>
+        <p class=dim>Админка внутри TikTok работает только с этих телефонов. Новый
+        подтверждается кодом из Telegram.</p>
+        <div class=card><table>
+          <tr><th>устройство</th><th>аккаунт</th><th></th><th>последний раз</th><th></th></tr>%s
+        </table></div>
+        <p><a class='button quiet' href="/admin">Назад</a></p>
+        """ % (rows or "<tr><td class=dim>пока ни одного</td></tr>"), said)

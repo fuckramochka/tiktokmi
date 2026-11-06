@@ -29,7 +29,7 @@ def bake(apk: Apk, arsc: Arsc, old: int, new: int, pairs: Dict[int, int] = None)
     """Move TikTok's red family onto the accent, in the table and in compiled XML.
 
     Not one value: the family, at every opacity it is used at, mapped by the
-    step that takes the brand pink to the chosen colour. margyt/palette.py says
+    step that takes the brand pink to the chosen colour. tiktokmi/palette.py says
     what is taken over and what is left alone.
 
     Asked for the colour the apk already has, this counts instead of writing --

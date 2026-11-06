@@ -1,5 +1,13 @@
 # Additional terms
 
+## Upstream attribution
+
+TikTok Mi is based on **MargyT**, originally written by **narezany**
+([github.com/narezany/MargyT](https://github.com/narezany/MargyT)). The original
+author's copyright notices and these additional terms are retained for the
+upstream work. The fork is maintained by **fuckramochka**; its name, site and
+release links belong to the fork, not to the original author.
+
 TikTok Mi is under the GNU General Public License, version 3, which is in
 [LICENSE](LICENSE). These are additional terms under its section 7. They apply
 to TikTok Mi and to every work based on it.

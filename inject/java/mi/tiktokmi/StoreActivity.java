@@ -69,6 +69,7 @@ public class StoreActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(scroll);
         setContentView(root);
+        Design.page(this,root,skin.page);
 
         try {
             getWindow().setStatusBarColor(skin.page);
@@ -312,7 +313,7 @@ public class StoreActivity extends Activity {
 
     private void configureCatalog(){
         android.widget.EditText field=new android.widget.EditText(this);field.setText(PluginCatalog.endpoint(this));field.setHint("https://…/catalog.json");field.setTextColor(skin.text);field.setSingleLine(true);Fonts.apply(field);
-        Panel.with(this,skin,Local.of("Каталог плагинов")).text(Local.of("Каталог MargyT подключён по умолчанию. Можно указать другой HTTPS JSON-каталог; пустой адрес отключает магазин.")).view(field).primary(Local.of("Сохранить"),()->{
+        Panel.with(this,skin,Local.of("Каталог плагинов")).text(Local.of("Каталог TikTok Mi подключён по умолчанию. Можно указать другой HTTPS JSON-каталог; пустой адрес отключает магазин.")).view(field).primary(Local.of("Сохранить"),()->{
             try{PluginCatalog.endpoint(this,field.getText().toString());fetch();rebuild();}catch(Exception invalid){Screen.say(invalid.getMessage());}
         }).quiet(Local.of("Назад"),null).show();
     }

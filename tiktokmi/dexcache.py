@@ -24,8 +24,8 @@ it depends on, so that a wrong answer cannot be found by accident:
                 as before -- and those are recognised here and not put back
                 together a second time.
 
-MARGYT_NO_CACHE=1 ignores all of it, MARGYT_CACHE=dir moves it,
-MARGYT_WORKERS=n says how many to do at once.
+TIKTOKMI_NO_CACHE=1 ignores all of it, TIKTOKMI_CACHE=dir moves it,
+TIKTOKMI_WORKERS=n says how many to do at once.
 """
 
 from __future__ import annotations
@@ -58,8 +58,12 @@ HEAP = "2g"
 ROOM_PER_JOB = 2.5
 
 
+def _env(name: str, default=None):
+    return os.environ.get("TIKTOKMI_" + name) or os.environ.get("MARGYT_" + name, default)
+
+
 def folder() -> str:
-    return os.environ.get("MARGYT_CACHE") or os.path.join(
+    return _env("CACHE") or os.path.join(
         os.path.expanduser("~"), ".cache", "tiktokmi-dex")
 
 
@@ -95,7 +99,7 @@ def workers(jobs: int) -> int:
     gigabytes, and a build that pushes the machine into swap is slower than
     one that waits its turn.
     """
-    asked = os.environ.get("MARGYT_WORKERS")
+    asked = _env("WORKERS")
     if asked:
         return max(1, min(int(asked), jobs or 1))
     free = 4.0
@@ -311,7 +315,7 @@ def patch_all(dexes: Dict[str, bytes], jar: str, api: int, workspace: str,
               say: Callable[[str], None]) -> Dict[str, Tuple[Optional[bytes], Dict[str, int]]]:
     """Patch every dex given, and hand back the patched ones by name."""
     names = sorted(dexes)
-    if os.environ.get("MARGYT_NO_CACHE"):
+    if _env("NO_CACHE"):
         # a place nothing was ever kept in is the same as not looking
         root = os.path.join(workspace, "no-cache")
         shutil.rmtree(root, ignore_errors=True)
@@ -322,9 +326,9 @@ def patch_all(dexes: Dict[str, bytes], jar: str, api: int, workspace: str,
 
     at_once = workers(len(names))
     cores = os.cpu_count() or 2
-    threads = int(os.environ.get("MARGYT_JOBS") or 0) or max(2, (2 * cores) // max(1, at_once))
+    threads = int(_env("JOBS") or 0) or max(2, (2 * cores) // max(1, at_once))
     threads = min(threads, cores)
-    heap = os.environ.get("MARGYT_HEAP") or HEAP
+    heap = _env("HEAP") or HEAP
     say("%d dex files, %d at a time" % (len(names), at_once))
 
     def job(name: str) -> dict:

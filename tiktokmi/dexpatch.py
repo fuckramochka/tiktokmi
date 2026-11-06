@@ -496,6 +496,14 @@ FIELD_SOURCES: List[Tuple[str, str, str, str, str]] = [
     (PHOTO_IMAGE, "userWatermarkImage", URL_MODEL, "userWatermarkImage", DOWNLOAD),
 ]
 
+# Statics of TikTok's own whose every read the mod answers instead. 2.1.0 had
+# one here, TikTok's "is this the new profile", answered by the switch before
+# the server had its say, and with it the profile page moved into the new shape
+# (ProfileHeader): for accounts the server keeps on the old profile that left
+# other people's pages without a name or an avatar and one's own without the
+# edit button and the banner. Gone in 2.1.1; the profile is the server's again.
+STATIC_FIELD_SOURCES: List[Tuple[str, str, str, str, str]] = []
+
 # The pink TikTok is built around. Most of the places it is drawn hold it as a
 # plain constant in the bytecode, so each of those becomes a call into the mod
 # and the colour turns into something a person can change. The build counts
@@ -742,7 +750,6 @@ for _font_owner in (TEXT_VIEW,TUX_TEXT,"Landroid/widget/EditText;","Landroid/wid
 
 
 MODEL_SOURCES += [
-    (FRIENDS_RESPONSE,"getUserList","()Ljava/util/List;","(Ljava/lang/Object;)Ljava/util/List;","Lmi/tiktokmi/PinnedFriends;"),
     ("Landroid/app/NotificationManager;","notify","(ILandroid/app/Notification;)V","(Landroid/app/NotificationManager;ILandroid/app/Notification;)V","Lmi/tiktokmi/ModNotifications;"),
     ("Landroid/app/NotificationManager;","notify","(Ljava/lang/String;ILandroid/app/Notification;)V","(Landroid/app/NotificationManager;Ljava/lang/String;ILandroid/app/Notification;)V","Lmi/tiktokmi/ModNotifications;"),
 ]
@@ -824,6 +831,19 @@ def model_rules() -> List[Tuple[str, "re.Pattern[str]", str]]:
             r"\1invoke-static {\3}, %s->%s(%s)%s\n\n\1%s \2"
             % (target, name, owner, kind, took),
         ))
+    for owner, field, kind, name, target in STATIC_FIELD_SOURCES:
+        # sget-boolean vA, Owner->field:Z  ->  invoke-static {}, Ours->name()Z ; move-result vA
+        read = {"Z": "sget-boolean", "B": "sget-byte", "S": "sget-short", "C": "sget-char",
+                "I": "sget", "F": "sget", "J": "sget-wide", "D": "sget-wide"}.get(kind, "sget-object")
+        took = ("move-result-wide" if kind in ("J", "D")
+                else "move-result" if kind in ("Z", "B", "S", "C", "I", "F") else "move-result-object")
+        out.append((
+            "%s.%s" % (owner.rsplit("/", 1)[-1][:-1], field),
+            re.compile(r"^(\s*)%s ([vp]\d+), %s->%s:%s$"
+                       % (read, re.escape(owner), re.escape(field), re.escape(kind)),
+                       re.MULTILINE),
+            r"\1invoke-static {}, %s->%s()%s\n\n\1%s \2" % (target, name, kind, took),
+        ))
     return out
 
 
@@ -839,6 +859,7 @@ def rewrite_models(root: str) -> Dict[str, int]:
     owners = tuple(set([owner for owner, _n, _o, _r, _t in MODEL_SOURCES]
                        + [owner for owner, _n, _o, _r, _t in MODEL_STATICS]
                        + [owner for owner, _f, _k, _n, _t in FIELD_SOURCES]
+                       + [owner for owner, _f, _k, _n, _t in STATIC_FIELD_SOURCES]
                        # a rule with no owner of its own is recognised by the
                        # method it is looking for, or its file is never opened
                        + [name for name, _o, _r, _t in WILD_SOURCES]
@@ -903,6 +924,17 @@ def rewrite_anchored(root: str) -> Dict[str, int]:
                 text = handle.read()
             before = text
             declaration=text.split("\n",1)[0]
+            if "onSurfaceTextureUpdated(Landroid/graphics/SurfaceTexture;)V" in text:
+                def glass_texture_frame(match):
+                    body=match.group(0)
+                    if "GlassVideo;->frameUpdated" in body:return body
+                    hook="    invoke-static/range {p1 .. p1}, Lmi/tiktokmi/GlassVideo;->frameUpdated(Landroid/graphics/SurfaceTexture;)V\n"
+                    # At return, dex optimizers may have reused p1 for another type.
+                    # Observe the original argument before native code; the copy itself is queued.
+                    body,hits=re.subn(r"(?m)^([ \t]*\.(?:registers|locals) \d+\n)",lambda m:m.group(0)+hook,body,count=1)
+                    if hits:counts["native texture frame events"]=counts.get("native texture frame events",0)+hits
+                    return body
+                text=re.sub(r"(?ms)^\.method public (?:(?:final|synthetic|synchronized|bridge) )*onSurfaceTextureUpdated\(Landroid/graphics/SurfaceTexture;\)V.*?^\.end method",glass_texture_frame,text)
             if FEED_ITEM_LIST in declaration:
                 def native_ad_getter(match):
                     body=match.group(0)
@@ -1070,6 +1102,21 @@ def rewrite_anchored(root: str) -> Dict[str, int]:
                     return body
                 text=re.sub(r"(?ms)^\.method public final LIZ\(\)Z.*?^\.end method",push_guide,text)
             if PLAYER_CONTROLLER in declaration:
+                # Use playback events and the panel's current renderer. No background polling.
+                def glass_player(match):
+                    body=match.group(0)
+                    if "GlassVideo;->" in body:return body
+                    signature=body.split("\n",1)[0]
+                    if "onPlayProgressChange(" in signature:
+                        hook="    invoke-static/range {p0 .. p3}, Lmi/tiktokmi/GlassVideo;->progress(Ljava/lang/Object;Ljava/lang/String;J)V\n"
+                    elif "onPausePlay(" in signature or "onPlayPause(" in signature or "onPlayStop(" in signature:
+                        hook="    invoke-static/range {p0 .. p1}, Lmi/tiktokmi/GlassVideo;->paused(Ljava/lang/Object;Ljava/lang/String;)V\n"
+                    else:
+                        hook="    invoke-static/range {p0 .. p1}, Lmi/tiktokmi/GlassVideo;->resumed(Ljava/lang/Object;Ljava/lang/String;)V\n"
+                    body,hits=re.subn(r"(?m)^([ \t]*\.(?:registers|locals) \d+\n)",lambda m:m.group(0)+hook,body,count=1)
+                    if hits:counts["native backdrop playback events"]=counts.get("native backdrop playback events",0)+hits
+                    return body
+                text=re.sub(r"(?ms)^\.method public (?:final )?(?:synthetic )?(?:onResumePlay\(Ljava/lang/String;\)|onPlaying\(Ljava/lang/String;\)|onRenderFirstFrameFromResume\(Ljava/lang/String;\)|onPausePlay\(Ljava/lang/String;(?:LX/[^;]+;)?\)|onPlayPause\(Ljava/lang/String;\)|onPlayStop\(Ljava/lang/String;(?:Z)?\)|onPlayProgressChange\(Ljava/lang/String;JJ\))V.*?^\.end method",glass_player,text)
                 def resumed_player(match):
                     body=match.group(0)
                     if "PlayerTools;->resumed" in body:return body
@@ -1245,6 +1292,38 @@ def rewrite_flag_reader(root: str, dex: Optional[bytes] = None) -> Dict[str, int
                 head, descriptor, returned, registers, body = match.groups()
                 answer = FLAG_ANSWERS.get(returned)
                 types = _parameters(descriptor)
+                # the reader of whole settings objects: (Class, default, key, ...) -> Object
+                if (returned == "Ljava/lang/Object;" and types[:1] == ["Ljava/lang/Class;"]
+                        and "Ljava/lang/String;" in types and " static " not in head):
+                    if FLAGS + "->forcedObject" in body:
+                        counts[FLAG_LABEL] = counts.get(FLAG_LABEL, 0) + 1
+                        return match.group(0)
+                    key = 1 + sum(2 if kind in ("J", "D") else 1 for kind in types[:types.index("Ljava/lang/String;")])
+                    taken = 1 + sum(2 if kind in ("J", "D") else 1 for kind in types)
+                    if int(registers) - taken < 2:
+                        return match.group(0)
+                    lines = ["    move-object/from16 v0, p1",
+                             "    move-object/from16 v1, p%d" % key,
+                             "    invoke-static {v0, v1}, %s->forcedObject(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Object;" % FLAGS,
+                             "    move-result-object v0",
+                             "    if-eqz v0, :margyt_flag",
+                             "    return-object v0",
+                             "    :margyt_flag"]
+                    counts[FLAG_LABEL] = counts.get(FLAG_LABEL, 0) + 1
+                    rows = body.split("\n")
+                    inside = False
+                    at = 0
+                    for at, row in enumerate(rows):
+                        word = row.strip()
+                        if inside:
+                            inside = not word.startswith(".end annotation")
+                        elif word.startswith(".annotation"):
+                            inside = True
+                        elif word and not word.startswith((".prologue", ".param", ".end param")):
+                            break
+                    rows[at:at] = ["\n\n".join(lines) + "\n"]
+                    return "%s(%s)%s\n    .registers %s\n%s" % (head, descriptor, returned, registers,
+                                                                 "\n".join(rows))
                 if answer is None or "Ljava/lang/String;" not in types or " static " in head:
                     return match.group(0)
                 if FLAGS + "->forced" in body:
@@ -1554,7 +1633,7 @@ def _class_file(root: str, descriptor: str) -> Optional[str]:
 
 
 def rewrite_settings_row(root: str, dex: Optional[bytes] = None) -> Dict[str, int]:
-    """Put the MargyT row into TikTok's settings list, as one of its rows.
+    """Put the TikTok Mi row into TikTok's settings list, as one of its rows.
 
     The screen is Compose: a row is a function, and the only way to have a row
     of our own drawn like the others is to have their function draw it. So the
@@ -1621,6 +1700,7 @@ def rewrite_settings_row(root: str, dex: Optional[bytes] = None) -> Dict[str, in
 
 def carries_an_anchor(dex: bytes) -> bool:
     return (any(anchor.encode() in dex for anchor, *_rest in ANCHORED_SOURCES)
+            or b"onSurfaceTextureUpdated" in dex
             or FEED_ITEM_LIST.encode() in dex
             or b"Lcom/ss/android/ugc/aweme/comment/longpresspanel/ui/CommentLongPressFragment;" in dex
             or b"LX/0wiL;" in dex or b"Lkotlin/jvm/internal/AwS704S0100000_26;" in dex
@@ -2036,8 +2116,8 @@ class Smali:
     def __init__(self, jar: str, api: int, jobs: int = 0, heap: str = "4g"):
         self.jar = jar
         self.api = api
-        self.jobs = jobs or int(os.environ.get("MARGYT_JOBS") or 0) or (os.cpu_count() or 2)
-        self.heap = os.environ.get("MARGYT_HEAP") or heap
+        self.jobs = jobs or int(os.environ.get("TIKTOKMI_JOBS") or os.environ.get("MARGYT_JOBS") or 0) or (os.cpu_count() or 2)
+        self.heap = os.environ.get("TIKTOKMI_HEAP") or os.environ.get("MARGYT_HEAP") or heap
 
     def _run(self, main: str, args: List[str]) -> None:
         command = ["java", "-Xmx" + self.heap, "-cp", self.jar, main] + args
@@ -2091,6 +2171,8 @@ def rewrite_targets() -> List[str]:
         out.append("%s->%s%s" % (target, ours, replacement))
     for owner, _field, kind, name, target in FIELD_SOURCES:
         out.append("%s->%s(%s)%s" % (target, name, owner, kind))
+    for _owner, _field, kind, name, target in STATIC_FIELD_SOURCES:
+        out.append("%s->%s()%s" % (target, name, kind))
     for _anchor, _owner, name, _original, replacement, target in ANCHORED_SOURCES:
         out.append("%s->%s%s" % (target, name, replacement))
     out.append("Lmi/tiktokmi/VideoActions;->captureShare(Ljava/lang/Object;)V")

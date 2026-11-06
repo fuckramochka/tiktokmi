@@ -24,13 +24,19 @@ final class Motion {
     /** Non-consuming feedback: scrolling cancels it, and the original click still runs. */
     static void touch(android.view.View view) {
         view.setOnTouchListener((target,event) -> {
+            if (Design.glass()) {
+                GlassOptics.viewTouchX=target.getWidth()>0 ? event.getX()/target.getWidth()*2f-1f : 0;
+                GlassOptics.viewTouchY=target.getHeight()>0 ? event.getY()/target.getHeight()*2f-1f : 0;
+            }
             int action=event.getActionMasked();
             if(action==android.view.MotionEvent.ACTION_DOWN || action==android.view.MotionEvent.ACTION_UP
                     || action==android.view.MotionEvent.ACTION_CANCEL) {
                 boolean down=action==android.view.MotionEvent.ACTION_DOWN && target.isEnabled() && target.isClickable() && enabled(target.getContext());
-                target.animate().scaleX(down ? 0.985f : 1f).scaleY(down ? 0.985f : 1f)
-                        .setDuration(down ? 80L : 140L)
-                        .setInterpolator(new android.view.animation.PathInterpolator(0.2f,0f,0f,1f)).start();
+                float scale=down ? Design.style().press : 1f;
+                target.animate().scaleX(scale).scaleY(scale)
+                        .setDuration(down ? 110L : (Design.glass() ? 340L : 140L))
+                        .setInterpolator(Design.glass() ? new android.view.animation.OvershootInterpolator(.85f)
+                                : new android.view.animation.PathInterpolator(0.2f,0f,0f,1f)).start();
             }
             return false;
         });
@@ -66,8 +72,8 @@ final class Motion {
         view.setAlpha(0f);
         Runnable start = () -> {
             if (!view.isAttachedToWindow()) return;
-            view.setTranslationY(Math.max(view.getHeight(), 1));
-            view.animate().alpha(1f).translationY(0f).setDuration(280L)
+            view.setTranslationY(Design.fluent()?8*view.getResources().getDisplayMetrics().density:Math.max(view.getHeight(), 1));
+            view.animate().alpha(1f).translationY(0f).setDuration(Design.fluent()?180L:280L)
                     .setInterpolator(new android.view.animation.PathInterpolator(0.2f,0f,0f,1f))
                     .start();
         };

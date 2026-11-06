@@ -50,13 +50,21 @@ public final class Watch implements Application.ActivityLifecycleCallbacks {
             TabBadges.attach(activity);
             NavBar.attach(activity);
             Md3.attach(activity);
+            CommentStyle.attach(activity);
             DepFloat.attach(activity);
+            ChatFolders.attach(activity);
+            InboxClean.attach(activity);
+            ViewEditor.attach(activity);
+            Ghost.resumed(activity);
+            TypingAnim.attach(activity);
+            SponsorBlock.attach(activity);
         }
         Screamer.attach(activity);
     }
 
     @Override
     public void onActivityPaused(Activity activity) {
+        if (!Version.LITE) Ghost.paused(activity);
         if (here.get() == activity) {
             here = new java.lang.ref.WeakReference<Activity>(null);
         }

@@ -12,32 +12,42 @@ import org.json.JSONObject
  * to ask again with.
  */
 object Telegram {
-    private const val API = "https://margy.narez.xyz/api/patcher"
+    /** Sign-in needs the dynamic service; static hosting has no equivalent. */
+    private const val API = ""
 
     class Begun(val code: String, val link: String)
     class Who(val token: String, val name: String, val supporter: Boolean)
 
-    fun begin(): Begun? = try {
-        val answer = JSONObject(Net.text("$API/login/start", post = "{}") ?: return null)
-        Begun(answer.getString("code"), answer.getString("link"))
-    } catch (broken: Exception) {
-        null
+    fun begin(): Begun? {
+        if (API.isEmpty()) return null
+        return try {
+            val answer = JSONObject(Net.text("$API/login/start", post = "{}") ?: return null)
+            Begun(answer.getString("code"), answer.getString("link"))
+        } catch (broken: Exception) {
+            null
+        }
     }
 
     /** Null while the person has not pressed Start yet. */
-    fun check(code: String): Who? = try {
-        val answer = JSONObject(Net.text("$API/login/check?code=$code") ?: return null)
-        if (answer.optString("state") != "ok") null
-        else Who(answer.getString("token"), answer.optString("name"), answer.optBoolean("supporter"))
-    } catch (broken: Exception) {
-        null
+    fun check(code: String): Who? {
+        if (API.isEmpty()) return null
+        return try {
+            val answer = JSONObject(Net.text("$API/login/check?code=$code") ?: return null)
+            if (answer.optString("state") != "ok") null
+            else Who(answer.getString("token"), answer.optString("name"), answer.optBoolean("supporter"))
+        } catch (broken: Exception) {
+            null
+        }
     }
 
     /** Whether the person is still a supporter; asked again now and then. */
-    fun again(token: String): Who? = try {
-        val answer = JSONObject(Net.text("$API/me", bearer = token) ?: return null)
-        Who(token, answer.optString("name"), answer.optBoolean("supporter"))
-    } catch (broken: Exception) {
-        null
+    fun again(token: String): Who? {
+        if (API.isEmpty()) return null
+        return try {
+            val answer = JSONObject(Net.text("$API/me", bearer = token) ?: return null)
+            Who(token, answer.optString("name"), answer.optBoolean("supporter"))
+        } catch (broken: Exception) {
+            null
+        }
     }
 }

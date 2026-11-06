@@ -35,6 +35,10 @@ STUBS={
  }""",
 'mi/tiktokmi/Accent.java':'package mi.tiktokmi;class Accent {static int colour(){return -1;}}'
 }
+STUBS['android/view/MotionEvent.java']=STUBS['android/view/MotionEvent.java'].replace('public int getActionMasked()', 'public float getX(){return 0;}public float getY(){return 0;}public int getActionMasked()')
+STUBS['android/view/View.java']=STUBS['android/view/View.java'].replace('public int getHeight()', 'public int getWidth(){return 100;}public int getHeight()')
+STUBS['android/view/animation/OvershootInterpolator.java']='package android.view.animation;public class OvershootInterpolator{public OvershootInterpolator(float tension){}}'
+
 HARNESS="""package mi.tiktokmi;import android.view.*;
 class MotionHarness {static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}public static void main(String[] args){
  View button=new View();
@@ -44,6 +48,12 @@ class MotionHarness {static void check(boolean ok,String message){if(!ok)throw n
  View empty=new View();Motion.press(empty);check(((android.graphics.drawable.RippleDrawable)empty.getBackground()).content!=null,"Empty background receives a valid ripple base");
  check(!button.listener.onTouch(button,new MotionEvent(0)),"Touch is not consumed: native click and scrolling remain available");
  check(button.scaleX<1,"Clickable press has feedback");button.listener.onTouch(button,new MotionEvent(3));check(button.scaleX==1 && button.scaleY==1,"Scroll cancellation restores dimensions");
+ Design.active=true;button.listener.onTouch(button,new MotionEvent(0));check(button.scaleX>1,"Glass expands toward the finger");
+ check(!button.listener.onTouch(button,new MotionEvent(3)) && button.scaleX==1 && button.scaleY==1,"Glass scrolling cancellation restores dimensions without consuming input");
+ android.animation.ValueAnimator.enabled=false;button.listener.onTouch(button,new MotionEvent(0));check(button.scaleX==1,"Glass respects reduced motion");
+ android.animation.ValueAnimator.enabled=true;Design.active=false;
+ Design.fluentActive=true;button.listener.onTouch(button,new MotionEvent(0));check(button.scaleX<1 && button.scaleX>.99f,"Fluent uses restrained feedback");
+ button.listener.onTouch(button,new MotionEvent(3));check(button.scaleX==1 && button.scaleY==1,"Fluent restores dimensions after scrolling");Design.fluentActive=false;
  button.clickable=false;button.listener.onTouch(button,new MotionEvent(0));check(button.scaleX==1,"Non-clickable preview cannot get stuck compressed without an Up event");
  button.clickable=true;android.animation.ValueAnimator.enabled=false;button.listener.onTouch(button,new MotionEvent(0));check(button.scaleX==1,"Disabled motion has no compression");
  int[] changes={0};Motion.navigate(button,1,()->changes[0]++);check(changes[0]==1 && button.alpha==1,"Reduced motion changes section directly");

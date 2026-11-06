@@ -34,9 +34,9 @@ import dalvik.system.DexClassLoader;
  * icon. Installing one unpacks it into the app's own files; switching it on
  * loads its dex with `DexClassLoader` and calls the hooks in `MargyPlugin`.
  *
- * Margy's plugins are Python, and these are not, for a reason that is about
- * repacking rather than taste: Margy is a fork and builds its own apk, so a
- * Python runtime goes in at build time. MargyT edits an apk somebody else
+ * TikTok Mi's plugins are Java, and these are not, for a reason that is about
+ * repacking rather than taste: an older fork built its own apk, so a Python
+ * runtime could go in at build time. TikTok Mi edits an apk somebody else
  * built, and a Python runtime would mean carrying CPython's native libraries
  * and its standard library into a 340 MB archive whose alignment is not ours to
  * decide. `DexClassLoader` is an ordinary Android API that costs nothing and
@@ -307,7 +307,7 @@ public final class Plugins {
                     folder);
             if (!info.entry.matches("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)+")) info.trouble = "manifest has no valid entry class";
             if (info.minApi > MargyPlugin.API) {
-                info.trouble = "wants MargyT plugin api " + info.minApi
+                info.trouble = "wants TikTok Mi plugin api " + info.minApi
                         + ", this one is " + MargyPlugin.API;
             }
             // a plugin that names the TikTok it was written against is not run
@@ -666,7 +666,7 @@ public final class Plugins {
             if(info.trouble!=null)throw new Exception(info.trouble);
             if (info.minApi > MargyPlugin.API) {
                 throw new Exception("the plugin wants api " + info.minApi
-                        + " and this MargyT has " + MargyPlugin.API);
+                        + " and this TikTok Mi has " + MargyPlugin.API);
             }
             if (info.tiktok.length() > 0 && !info.tiktok.equals(Version.TIKTOK)) {
                 throw new Exception("the plugin was written for TikTok " + info.tiktok

@@ -8,7 +8,7 @@ import android.os.SystemClock;
  * "It lags" has a cause, and the cause is some piece of the mod running more
  * often or for longer than anybody meant. Each piece worth suspecting is
  * timed, and every couple of seconds the totals go to the system log, where
- * `adb logcat -s MargyT` reads them while the phone is simply being used.
+ * `adb logcat -s TikTok Mi` reads them while the phone is simply being used.
  *
  * Only in a test build. TEST is a constant, so in a release every call here
  * is an `if (false)` the compiler has already thrown away.
@@ -65,7 +65,7 @@ final class Probe {
         }
         if (all >= 1000000L) {
             // as an error, because this phone keeps nothing quieter from an app
-            android.util.Log.e("MargyT", "in " + since + "ms the mod took "
+            android.util.Log.e("TikTok Mi", "in " + since + "ms the mod took "
                     + all / 100000L / 10f + "ms: " + line);
         }
     }

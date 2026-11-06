@@ -14,7 +14,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 
 /**
- * The MargyT row, as a row of TikTok's settings like any other.
+ * The TikTok Mi row, as a row of TikTok's settings like any other.
  *
  * TikTok's settings screen is drawn by Compose, a row a function, and there
  * is no list in it to add a view to; so the row used to sit above the whole
@@ -28,7 +28,7 @@ import java.lang.reflect.Proxy;
  * row. And where the first group draws its first row, it calls `draw` just
  * before, which draws the copy. What the copy is given to draw is a state of
  * the same kind the Display row has, made here, whose one live part is what
- * happens on a tap -- and that opens MargyT's settings.
+ * happens on a tap -- and that opens TikTok Mi's settings.
  *
  * Everything that can fail does so before the row is drawn, and then the
  * old row above the screen is used as it always was. A failure inside
@@ -78,7 +78,7 @@ public final class SettingsCell {
     /**
      * Called from TikTok's code as it is about to draw the first row of the
      * first group, with whether that row is the first of its group and what
-     * it draws with. Draws the MargyT row there, and says whether the row
+     * it draws with. Draws the TikTok Mi row there, and says whether the row
      * after it is still the first: it is not, once this one has been drawn.
      */
     public static boolean draw(boolean first, Object composer) {

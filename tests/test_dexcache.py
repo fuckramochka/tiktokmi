@@ -137,8 +137,8 @@ class DexCacheTest(unittest.TestCase):
 
     def test_how_many_at_once(self):
         self.assertEqual(dexcache.workers(1), 1)
-        os.environ["MARGYT_WORKERS"] = "3"
-        self.addCleanup(os.environ.pop, "MARGYT_WORKERS", None)
+        os.environ["TIKTOKMI_WORKERS"] = "3"
+        self.addCleanup(os.environ.pop, "TIKTOKMI_WORKERS", None)
         self.assertEqual(dexcache.workers(40), 3)
         self.assertEqual(dexcache.workers(2), 2)
 

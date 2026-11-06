@@ -143,13 +143,24 @@ final class NavBar {
 
     /** Whether this is a bar the capsule is on, and so one whose background is not to be put back. */
     static boolean wears(View view) {
-        Capsule capsule = BARS.get(view);
+        Capsule capsule = capsuleOf(view);
         return capsule != null && capsule.worn;
     }
 
     // ----------------------------------------------------------- finding the bar
 
-    private static final WeakHashMap<View, Capsule> BARS = new WeakHashMap<View, Capsule>();
+    /**
+     * The bars the capsule is on. The capsule itself is on the bar, as a tag:
+     * it is a drawable, and a drawable keeps the view it is drawn on, so as a
+     * value here it kept every bar and its screen alive for good.
+     */
+    private static final WeakHashMap<View, Boolean> BARS = new WeakHashMap<View, Boolean>();
+    private static final int CAPSULE = 0x4D41634E;  // "MAcN"
+
+    private static Capsule capsuleOf(View bar) {
+        Object held = bar == null ? null : bar.getTag(CAPSULE);
+        return held instanceof Capsule ? (Capsule) held : null;
+    }
     private static WeakReference<ViewTreeObserver> watched = new WeakReference<ViewTreeObserver>(null);
     private static WeakReference<View> screen = new WeakReference<View>(null);
     private static long looked;
@@ -157,12 +168,12 @@ final class NavBar {
     private static final ViewTreeObserver.OnPreDrawListener EVERY_FRAME = () -> {
         try {
             boolean on = isEnabled(), any = false;
-            for (java.util.Map.Entry<View, Capsule> entry : BARS.entrySet()) {
-                View bar = entry.getKey();
-                if (bar == null || !bar.isAttachedToWindow()) continue;
+            for (View bar : BARS.keySet().toArray(new View[0])) {
+                Capsule capsule = capsuleOf(bar);
+                if (capsule == null || !bar.isAttachedToWindow()) continue;
                 any = true;
-                if (on) entry.getValue().settle((ViewGroup) bar);
-                else entry.getValue().leave((ViewGroup) bar);
+                if (on) capsule.settle((ViewGroup) bar);
+                else capsule.leave((ViewGroup) bar);
             }
             // TikTok builds the bar again now and then without the screen changing
             View root = screen.get();
@@ -190,8 +201,9 @@ final class NavBar {
         try {
             ViewGroup bar = find(root, root, 0);
             if (bar != null) {
-                if (!BARS.containsKey(bar)) {
-                    BARS.put(bar, new Capsule(bar.getResources().getDisplayMetrics().density));
+                if (capsuleOf(bar) == null) {
+                    bar.setTag(CAPSULE, new Capsule(bar.getResources().getDisplayMetrics().density));
+                    BARS.put(bar, Boolean.TRUE);
                     Diary.detail("nav bar: " + bar.getChildCount() + " tabs");
                 }
                 screen = new WeakReference<View>(root);
@@ -383,6 +395,7 @@ final class NavBar {
     // ----------------------------------------------------------- the capsule
 
     private static final class Capsule extends Drawable {
+        private WeakReference<View> glassHost=new WeakReference<View>(null);
         private final float unit;
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -428,6 +441,7 @@ final class NavBar {
         private static final long READ_EVERY = 250L;
 
         void settle(ViewGroup bar) {
+            glassHost=new WeakReference<View>(bar);
             long now = SystemClock.uptimeMillis();
             boolean changed = gather(bar);
             boolean moving = false;
@@ -686,6 +700,7 @@ final class NavBar {
 
         @Override
         public void draw(Canvas canvas) {
+            if(GlassBackdrop.capturing)return;
             if (tabs.length == 0 || body.isEmpty() || away >= 1f) return;
             int veil = away > 0f ? canvas.saveLayerAlpha(body.left - unit, body.top - 8f * unit, body.right + unit,
                     body.bottom + unit, Math.round(255f * (1f - away))) : -1;
@@ -695,21 +710,26 @@ final class NavBar {
             int lit = mix(accent | 0xFF000000, ink, 0.40f);
             int quiet = mix(shell, ink, 0.80f);
 
-            float round = body.height() / 2f;
+            // a pill unless the style gives the bar corners of its own
+            float round = Design.style().bar<0?body.height()/2f:Design.style().bar*unit;
             fill.setColor(shell);
-            canvas.drawRoundRect(body, round, round, fill);
+            if(!Design.draw(canvas,this,glassHost.get(),body,round,round,shell,0))canvas.drawRoundRect(body, round, round, fill);
             line.setStrokeWidth(unit);
             line.setColor(edge);
             box.set(body);
             box.inset(unit / 2f, unit / 2f);
-            canvas.drawRoundRect(box, round, round, line);
+            if(!Design.frosted())canvas.drawRoundRect(box, round, round, line);
 
             float middle = body.centerY(), icon = 24f * unit, gap = 6f * unit;
+            // brought back by a touch, the bar comes back whole: at the strongest
+            // dimming the tabs themselves are see-through and it used to come back empty
+            boolean peeking = SystemClock.uptimeMillis() < peekUntil;
             for (Tab tab : tabs) {
                 int saved = -1;
-                if (tab.shown < 0.99f) {
+                float seen = peeking ? 1f : tab.shown;
+                if (seen < 0.99f) {
                     saved = canvas.saveLayerAlpha(tab.left, body.top, tab.right, body.bottom,
-                            Math.round(tab.shown * 255f));
+                            Math.round(seen * 255f));
                 }
                 float centre = (tab.left + tab.right) / 2f;
                 if (tab.kind == CREATE) {
@@ -720,7 +740,11 @@ final class NavBar {
                         box.set(centre - half, body.top + 4f * unit, centre + half, body.bottom - 4f * unit);
                         fill.setColor(pill);
                         fill.setAlpha(Math.round(255f * Math.min(1f, tab.open * 1.5f)));
-                        canvas.drawRoundRect(box, box.height() / 2f, box.height() / 2f, fill);
+                        if(Design.frosted()){
+                            fill.setColor((pill&0xffffff)|0x66000000);
+                            float inside=Design.style().bar<0?box.height()/2f:Design.style().bar*.5f*unit;
+                            canvas.drawRoundRect(box,inside,inside,fill);
+                        }else canvas.drawRoundRect(box, box.height() / 2f, box.height() / 2f, fill);
                     }
                     // a name too long for its tab is set a little smaller before it is cut short
                     float badge = badge(tab);

@@ -1,0 +1,20 @@
+{
+  "mtui": 1,
+  "name": "Aero",
+  "author": "fuckramochka",
+  "description": "Стекло помягче: крупные скругления, сильнее размытие, почти без радуги по краю, переключатели как во Fluent.",
+  "base": "glass",
+  "controls": "fluent",
+  "corners": { "card": 20, "inner": 6, "sheet": 24, "small": 14, "bar": -1 },
+  "gap": 3,
+  "material": {
+    "blur": 2.2,
+    "tint": 0.3,
+    "refraction": 0.6,
+    "dispersion": 0.02,
+    "grain": 0.003,
+    "windowBlur": 32
+  },
+  "motion": { "duration": 240, "bounce": 0.8, "press": 0.98 },
+  "page": { "neutral": false, "cardLift": 0.06 }
+}

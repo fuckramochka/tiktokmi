@@ -9,7 +9,8 @@ class ArchivePlayerTest(unittest.TestCase):
   sources['android/content/SharedPreferences.java']=sources['android/content/SharedPreferences.java'].replace('boolean contains(String k);','float getFloat(String k,float d);boolean contains(String k);')
   sources['android/content/Context.java']=sources['android/content/Context.java'].replace('public boolean contains(String k){','public float getFloat(String k,float d){return values.containsKey(k)?((Number)values.get(k)).floatValue():d;}public boolean contains(String k){')
   sources.update({
- 'android/os/Looper.java':'package android.os;public class Looper{public static Looper getMainLooper(){return new Looper();}}',
+ 'android/os/Looper.java':'package android.os;public class Looper{static final Looper MAIN=new Looper();public static Looper getMainLooper(){return MAIN;}public static Looper myLooper(){return MAIN;}}',
+ 'mi/tiktokmi/SponsorBlock.java':'package mi.tiktokmi;class SponsorBlock{static void playing(String aid){}}',
  'android/os/SystemClock.java':'package android.os;public class SystemClock{public static long now;public static long uptimeMillis(){return now;}}',
  'android/os/Handler.java':'package android.os;public class Handler{public static java.util.List<Runnable> queue=new java.util.ArrayList<>();public Handler(Looper l){}public void post(Runnable r){r.run();}public void postDelayed(Runnable r,long d){queue.add(r);}public void removeCallbacks(Runnable r){queue.remove(r);}public static void tick(long now){SystemClock.now=now;java.util.List<Runnable> old=new java.util.ArrayList<>(queue);queue.clear();for(Runnable r:old)r.run();}}',
  'android/text/InputType.java':'package android.text;public class InputType{public static int TYPE_CLASS_NUMBER=2,TYPE_NUMBER_FLAG_DECIMAL=8192;}',

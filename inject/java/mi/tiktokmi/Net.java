@@ -83,7 +83,7 @@ public final class Net {
             link.setInstanceFollowRedirects(false);
             link.setConnectTimeout(15000);
             link.setReadTimeout(20000);
-            link.setRequestProperty("User-Agent", "MargyT");
+            link.setRequestProperty("User-Agent", "TikTok Mi");
             if (tag != null && tag.length() > 0) {
                 link.setRequestProperty("If-None-Match", tag);
             }
@@ -139,7 +139,7 @@ public final class Net {
             link.setRequestMethod("POST");
             link.setDoOutput(true);
             link.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            link.setRequestProperty("User-Agent", "MargyT");
+            link.setRequestProperty("User-Agent", "TikTok Mi");
 
             byte[] body = json.getBytes("UTF-8");
             link.setFixedLengthStreamingMode(body.length);
@@ -201,7 +201,7 @@ public final class Net {
             link.setRequestMethod("POST");
             link.setDoOutput(true);
             link.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            link.setRequestProperty("User-Agent", "MargyT");
+            link.setRequestProperty("User-Agent", "TikTok Mi");
 
             byte[] body = json.getBytes("UTF-8");
             link.setFixedLengthStreamingMode(body.length);
@@ -246,7 +246,7 @@ public final class Net {
             link.setRequestMethod("POST");
             link.setDoOutput(true);
             link.setRequestProperty("Content-Type", kind);
-            link.setRequestProperty("User-Agent", "MargyT");
+            link.setRequestProperty("User-Agent", "TikTok Mi");
             link.setFixedLengthStreamingMode(body.length);
             java.io.OutputStream out = link.getOutputStream();
             out.write(body);
@@ -278,7 +278,7 @@ public final class Net {
             connection.setConnectTimeout(TIMEOUT);
             connection.setReadTimeout(TIMEOUT);
             connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("User-Agent", "MargyT");
+            connection.setRequestProperty("User-Agent", "TikTok Mi");
             if (connection.getResponseCode() / 100 != 2) return null;
 
             InputStream in = connection.getInputStream();
@@ -337,7 +337,7 @@ public final class Net {
                 connection.setConnectTimeout(TIMEOUT);
                 connection.setReadTimeout(TIMEOUT);
                 connection.setInstanceFollowRedirects(false);
-                connection.setRequestProperty("User-Agent", "MargyT");
+                connection.setRequestProperty("User-Agent", "TikTok Mi");
                 int code = connection.getResponseCode();
                 if (code / 100 == 2) break;
                 if (!(code == 301 || code == 302 || code == 303

@@ -1,8 +1,8 @@
 {
-  "_comment": "What the app checks to know whether it is out of date. It reads this from the project's own git server at startup and every five minutes; the badges come from the same box.",
-  "version": "2.0.6",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.0.6/tiktokmi.apk",
-  "notes": "Updated channels, CryptoBot donation support, new website, and TikTok Mi branding.",
-  "notes_ru": "Обновлены каналы, поддержка через CryptoBot, новый сайт и ребрендинг TikTok Mi.",
-  "notes_uk": "Оновлено канали, підтримку через CryptoBot, новий сайт та ребрендинг TikTok Mi."
+  "_comment": "What the app checks to know whether it is out of date. It reads this from the project's own GitHub repository at startup and every five minutes; the badges come from the same project.",
+  "version": "2.2.0",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.2.0/tiktokmi.apk",
+  "notes": "Sponsor block skips adverts read out by authors and recognises the same advert by its sound. Ghost mode, chat folders, a cleaner inbox, removing every repost, the typing animation and long comments. The mod uses less battery.",
+  "notes_ru": "Спонсор-блок пропускает рекламу, которую читают авторы, и узнаёт её же по звуку. Режим призрака, папки чатов, чистая «Входящие», удаление всех репостов, анимация набора текста и длинные комментарии. Мод тратит меньше батареи.",
+  "notes_uk": "Спонсор-блок пропускає рекламу, яку читають автори, і впізнає її за звуком. Режим привида, папки чатів, чиста «Вхідні», видалення всіх репостів, анімація набору тексту й довгі коментарі. Мод витрачає менше батареї."
 }

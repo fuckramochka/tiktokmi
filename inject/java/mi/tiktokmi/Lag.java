@@ -77,6 +77,29 @@ public final class Lag {
 
     private Lag() {}
 
+    static final String KEY = "lag_watch";
+
+    /**
+     * Whether the app's stalls and frames are watched at all. The watcher wakes twenty times a
+     * second and every frame is timed, which a phone pays for in battery: so only in a test build,
+     * in developer mode, or when switched on for a report.
+     */
+    static boolean wanted() {
+        if (Version.TEST || DevMode.isOn()) return true;
+        try {
+            return AccountAppearance.prefs(Margy.context()).getBoolean(KEY, false);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    static void setWanted(boolean on) {
+        try {
+            AccountAppearance.prefs(Margy.context()).edit().putBoolean(KEY, on).apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
     public static void watch() {
         try {
             Thread watcher = new Thread(Lag::look, "margyt-lag");
@@ -94,13 +117,14 @@ public final class Lag {
         final Runnable answer = Lag::answered;
         while (true) {
             try {
-                if (Watch.here() == null) {
-                    // nothing of the app is on screen: nothing to stutter
-                    Thread.sleep(1000);
+                if (Watch.here() == null || !wanted()) {
+                    // nothing of the app is on screen, or nobody asked: nothing to watch
+                    Thread.sleep(wanted() ? 1000 : 5000);
                     continue;
                 }
                 Thread.sleep(LOOK);
                 if (Probe.ON) sample(main.getStackTrace());
+                if (Probe.ON) HeapShot.tick(Lag::profile);
                 long now = SystemClock.uptimeMillis(), since = asked;
                 if (since == 0) {
                     early = null;
@@ -197,7 +221,7 @@ public final class Lag {
 
     /** A screen came up: its frames are timed from here on. */
     static void frames(Activity activity) {
-        if (Build.VERSION.SDK_INT < 24 || activity == null) return;
+        if (Build.VERSION.SDK_INT < 24 || activity == null || !wanted()) return;
         try {
             Window window = activity.getWindow();
             View decor = window == null ? null : window.getDecorView();
@@ -250,7 +274,26 @@ public final class Lag {
         // being opened, whatever its numbers say.
         long watched = (SystemClock.elapsedRealtime() - BEGAN) / 1000L;
         return "since the app started: " + watched / 60L + " min " + watched % 60L + " s\n"
-                + TALLY.report() + (Probe.ON ? profile() : "");
+                + memory() + TALLY.report() + (Probe.ON ? profile() : "");
+    }
+
+    /**
+     * How full the heap is and how much the collector has had to stop the app.
+     * Stalls that land on adding to a string or copying an array are not those
+     * things being slow: the app was waiting for memory, and this says so.
+     */
+    static String memory() {
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            long used = (runtime.totalMemory() - runtime.freeMemory()) >> 20, most = runtime.maxMemory() >> 20;
+            return "memory: " + used + " of " + most + " MB; collections "
+                    + android.os.Debug.getRuntimeStat("art.gc.gc-count") + " ("
+                    + android.os.Debug.getRuntimeStat("art.gc.gc-time") + " ms), stopping the app "
+                    + android.os.Debug.getRuntimeStat("art.gc.blocking-gc-count") + " ("
+                    + android.os.Debug.getRuntimeStat("art.gc.blocking-gc-time") + " ms)\n";
+        } catch (Throwable error) {
+            return "";
+        }
     }
 
     private static final long BEGAN = SystemClock.elapsedRealtime();

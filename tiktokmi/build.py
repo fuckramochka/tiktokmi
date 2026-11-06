@@ -47,7 +47,7 @@ ALARM_ACTIONS = [
     PACKAGE + ".STREAK_FIRE",
 ]
 
-# The screen the MargyT row is put at the top of. The row itself is added to
+# The screen the TikTok Mi row is put at the top of. The row itself is added to
 # the view tree while the screen is drawn -- nothing patches the code that
 # builds the list -- but the screen has to still be called this for the mod to
 # recognise it, so the build checks rather than hopes.
@@ -245,6 +245,13 @@ class Build:
             self.detail("%s declared, reached from TikTok's own settings" % SETTINGS_ACTIVITY)
         manifest_module.add_activity(manifest, STORE_ACTIVITY, SETTINGS_LABEL, theme)
         manifest_module.add_activity(manifest, PACKAGE + ".PluginEditorActivity", SETTINGS_LABEL, theme)
+        # a .mtp opened from a file manager comes to the mod (Theme.NoDisplay: it only hands the file on)
+        manifest_module.add_file_opener(manifest, PACKAGE + ".PluginOpenActivity", "Плагин TikTok Mi", 0x01030055, "mtp", ["application/octet-stream", "application/zip", "application/x-zip-compressed"])
+        # and a .mtui, an interface style somebody made (UiStyle)
+        manifest_module.add_file_opener(manifest, PACKAGE + ".StyleOpenActivity", "Стиль TikTok Mi", 0x01030055, "mtui", ["application/octet-stream", "application/json", "text/plain"])
+        # the patcher is the app that reads this mod's version: without this
+        # Android 11 and later will not tell it whether the mod is there at all
+        manifest_module.add_queries(manifest, ["cat.narezany.patcher"])
         self.detail("%s declared, the plugin store" % STORE_ACTIVITY)
 
         if not self.lite and not manifest_module.has_activity(manifest, TIKTOK_SETTINGS):
@@ -317,6 +324,12 @@ class Build:
         self.detail("the mod's classes go in as %s" % name)
 
         self.say("Writing the apk")
+        # TikTok's shipped ART profile describes the original dex checksums.
+        # After patching it is invalid; let ART profile the installed mod normally.
+        for profile in ("assets/dexopt/baseline.prof", "assets/dexopt/baseline.profm"):
+            if apk.has(profile):
+                apk.remove(profile)
+                self.detail("dropped stale %s" % profile)
         for gone in apk.drop_signature():
             self.detail("dropped %s" % gone)
         # deflated by the compressor the patcher app carries, so that the app
@@ -556,9 +569,13 @@ class Build:
         asset_root = os.path.join(self.root, "assets")
         entries = emoji_asset_entries(asset_root)
         entries.append(("assets/tiktokmi/meow.ogg", os.path.join(asset_root, "meow.ogg")))
+        entries.append(("assets/tiktokmi/licenses/liquid-glass-MIT.txt",
+                        os.path.join(self.root, "third_party", "liquid-glass", "LICENSE")))
         # the anti-burn eye: two small transparent PNGs, drawn as they are
         for eye in ("burn_eye_open.png", "burn_eye_closed.png"):
             entries.append(("assets/tiktokmi/" + eye, os.path.join(asset_root, eye)))
+        # the fat tilcayo cut out of its background, for the running cats (TilcayoRun)
+        entries.append(("assets/tiktokmi/tilcayo_run.png", os.path.join(asset_root, "tilcayo_run.png")))
         for destination, path in entries:
             with open(path, "rb") as handle:
                 raw = handle.read()
@@ -570,7 +587,7 @@ class Build:
     def add_prerecoloured(self, apk: Apk) -> None:
         """Like animations recoloured for the palette now, not on the phone.
 
-        See margyt/prerecolour.py. One that cannot be handled here (an
+        See tiktokmi/prerecolour.py. One that cannot be handled here (an
         unsupported PNG, an oversized file) is skipped and keeps the runtime
         path, so this can only add speed, never remove a heart.
         """
@@ -624,6 +641,11 @@ class Build:
         ("govno", "че за говно"),
         ("glamour", "Гламурная"),
         ("tilcayo", "Толстый тилкайо"),
+        # redrawn in 2.1.0. New ones go at the end: a launcher entry is named
+        # by its place here, and a place that changed would change the icon of
+        # whoever had picked it. The old two stay as they were, under Legacy
+        ("margyrialyou", "Material You (старая)"),
+        ("margyrial3", "Material 3 (старая)"),
     ]
 
     ICON_PACKAGE = 0x30
@@ -821,7 +843,7 @@ class Build:
         feature_hits["native offline row"]=0
         feature_hits["native offline count accepted"]=0
         feature_hits["native offline comments response"]=0
-        for feature in ("native repost","native repost avatar","native profile layout","native message timestamps","native notification guide","native friends order","native notification filters","native author date slot"):feature_hits[feature]=0
+        for feature in ("native repost","native repost avatar","native profile layout","native message timestamps","native notification guide","native notification filters","native author date slot"):feature_hits[feature]=0
         total = 0
         patched_dex_count = 0
         # all of them at once, as many side by side as the machine has room
@@ -866,7 +888,6 @@ class Build:
             feature_hits["native offline comments response"] += counts.get("native offline comments response",0)
             for feature in ("native repost","native repost avatar","native profile layout","native message timestamps","native notification guide"):feature_hits[feature]+=counts.get(feature,0)
             feature_hits["native author date slot"]+=counts.get("native author date slot",0)
-            feature_hits["native friends order"]+=sum(v for key,v in counts.items() if "FriendsListResponse" in key and "getUserList" in key)
             feature_hits["native notification filters"]+=sum(v for key,v in counts.items() if "NotificationManager" in key and "notify" in key)
             feature_hits["visible publication date"] += counts.get("visible publication date",0)
             feature_hits["ads"] += sum(v for key,v in counts.items() if "FeedItemList" in key and "getItems" in key)

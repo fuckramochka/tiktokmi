@@ -19,7 +19,7 @@ final class ShareProbe {
   String text=said.toString();
   if(!(text.equals("Жалоба")||text.equals("Скачать")||text.equals("Неинтересно")||text.equals("Report")||text.equals("Download")))return;
   told++;
-  android.util.Log.e("MargyT","share cell: theme dark "+Themes.isDark()+" text "+Integer.toHexString(Themes.text())+" ground "+Integer.toHexString(Themes.backgroundInUse()));
+  android.util.Log.e("TikTok Mi","share cell: theme dark "+Themes.isDark()+" text "+Integer.toHexString(Themes.text())+" ground "+Integer.toHexString(Themes.backgroundInUse()));
   describe(view.getParent() instanceof View?(View)view.getParent():view,0);
  }
  private static String filterColour(android.graphics.ColorFilter filter){
@@ -40,7 +40,7 @@ final class ShareProbe {
   if(back!=null){out.append(" background ").append(back.getClass().getName());
    if(back instanceof android.graphics.drawable.ColorDrawable)out.append(' ').append(Integer.toHexString(((android.graphics.drawable.ColorDrawable)back).getColor()));
    if(back instanceof android.graphics.drawable.GradientDrawable&&android.os.Build.VERSION.SDK_INT>=24&&((android.graphics.drawable.GradientDrawable)back).getColor()!=null)out.append(' ').append(Integer.toHexString(((android.graphics.drawable.GradientDrawable)back).getColor().getDefaultColor()));}
-  android.util.Log.e("MargyT",out.toString());
+  android.util.Log.e("TikTok Mi",out.toString());
   if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)describe(group.getChildAt(i),depth+1);}
  }
 }

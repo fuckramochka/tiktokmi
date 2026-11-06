@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render assets/banner.png.
 
-Same layout and palette as the Margy banner: mint field, white glyph on the
+Same layout and palette as the TikTok Mi banner: mint field, white glyph on the
 left inside a faint rounded outline, wordmark and subtitle on the right.
 The glyph is a beamed note rather than a paper plane -- same family, different
 app.
@@ -22,7 +22,7 @@ WHITE = (255, 255, 255)
 BOLD = "/usr/share/fonts/noto/NotoSans-Bold.ttf"
 REGULAR = "/usr/share/fonts/noto/NotoSans-Regular.ttf"
 
-WORDMARK = "MargyT"
+WORDMARK = "TikTok Mi"
 SUBTITLE = "a TikTok mod for Android"
 
 
@@ -43,7 +43,7 @@ def main():
     im = Image.new("RGB", (W, H), MINT)
     d = ImageDraw.Draw(im)
 
-    # faint rounded outline around the glyph, as on the Margy banner
+    # faint rounded outline around the glyph, as on the TikTok Mi banner
     d.rounded_rectangle(
         [65, 32, 250, 217], radius=58, outline=(0x9E, 0xD8, 0xBC), width=2
     )

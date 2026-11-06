@@ -10,7 +10,7 @@ Built from the official apk with the patches in this repository.
 [![forum](https://img.shields.io/badge/forum-dkamegram-8DD1B0?style=flat-square)](https://t.me/dkamegram)
 [![site](https://img.shields.io/badge/site-github%20pages-8DD1B0?style=flat-square)](https://fuckramochka.github.io/tiktokmi/)
 [![plugins](https://img.shields.io/badge/plugins-docs-8DD1B0?style=flat-square)](docs/plugins.md)
-[![licence](https://img.shields.io/badge/licence-MIT-8DD1B0?style=flat-square)](#licence)
+[![licence](https://img.shields.io/badge/licence-GPL--3.0-8DD1B0?style=flat-square)](#licence)
 
 </div>
 
@@ -490,8 +490,8 @@ The builds after it are shorter, because three things are kept in
 made from what was rewritten in it, and which of those a given set of rules
 led to. Change only the mod's Java and no dex is opened at all; change one
 hook and every dex is rewritten again but only the ones that came out
-different are reassembled. `MARGYT_NO_CACHE=1` ignores all of it,
-`MARGYT_WORKERS` says how many dex files to do at once.
+different are reassembled. `TIKTOKMI_NO_CACHE=1` ignores all of it,
+`TIKTOKMI_WORKERS` says how many dex files to do at once.
 
 ```
 ==> Opening the apk
@@ -566,7 +566,7 @@ only thing here that wants aapt2.
 | `tiktokmi/vector.py` | vector drawables, compiled without aapt2 |
 | `tiktokmi/plugin.py` | packs a folder into an `.mtp`, with the same pinned toolchain |
 | `inject/java/` | the mod itself: its screen, and the methods the rewrites land in |
-| `badges.json` | the badges, read from here by every install |
+| `site/api/badges.json` | the badges, read from GitHub Pages by every install |
 | `version.json` | what the latest release is, read from here by every install |
 | `docs/plugins.md` | the plugin format, the hooks, and the honest part about safety |
 | `examples/hello/` | a plugin small enough to read in a minute |
@@ -577,6 +577,15 @@ only thing here that wants aapt2.
 `tiktokmi/dexpatch.py` is the file to read before moving the mod to a newer
 TikTok. Everything else is either ours outright or finds its own targets; the
 rewrites are the part that has to find them again in a rebuilt apk.
+
+## Credits
+
+TikTok Mi is a fork of **MargyT**, originally written by **narezany**
+([github.com/narezany/MargyT](https://github.com/narezany/MargyT)). The original
+project's copyright notices and GPL-3.0 additional terms are kept in
+[ADDITIONAL-TERMS.md](ADDITIONAL-TERMS.md). This fork is maintained by
+**fuckramochka**; the app, site and release links in this repository are the
+fork's own.
 
 ## Licence
 

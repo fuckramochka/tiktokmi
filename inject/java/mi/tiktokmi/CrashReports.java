@@ -39,7 +39,7 @@ final class CrashReports {
    finally{if(previous!=null)previous.uncaughtException(thread,error);else{android.os.Process.killProcess(android.os.Process.myPid());System.exit(10);}}});
   flush();
  }
- private static File directory(){return new File(app.getFilesDir(),"margyt-crashes");}
+ private static File directory(){return new File(app.getFilesDir(),"tiktokmi-crashes");}
 
  /**
   * The report as json, cut down until it fits what the server accepts.

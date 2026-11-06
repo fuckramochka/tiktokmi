@@ -3,7 +3,7 @@ package mi.tiktokmi;
 import android.content.Context;
 
 /**
- * The developer switch: five taps in a row on the "MargyT" heading.
+ * The developer switch: five taps in a row on the "TikTok Mi" heading.
  *
  * It changes nothing for an ordinary person. Switched on, the diary keeps a lot
  * more lines, writes the detailed ones too, and the settings show and copy a

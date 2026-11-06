@@ -19,7 +19,7 @@ import android.widget.TextView;
 import java.util.Locale;
 
 /**
- * The MargyT row, at the top of TikTok's own settings screen.
+ * The TikTok Mi row, at the top of TikTok's own settings screen.
  *
  * It is put there while the screen is drawn, not written into the code that
  * builds it. That code is Jetpack Compose: the whole screen, title and back
@@ -55,7 +55,25 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         long probe = Probe.start();
         Plugins.onActivityResumed(activity);
         Plugins.screen(activity);
+        FlagGuard.shown();
+        Rubble.resumed(activity);
+        TilcayoRun.resumed(activity);
+        SimpleFeed.attach(activity);
+        WavySeek.attach(activity);
+        Avariyka.resumed(activity);
+        // TikTok's theme is read off its own screen, and only while one is on top. Read here,
+        // once the screen has drawn, so the mod's settings opened next already know it: they
+        // used to come up in the old theme after a switch until a TikTok screen was looked at.
+        if (!activity.getClass().getName().startsWith("mi.tiktokmi.")) {
+            View decor = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
+            if (decor != null) decor.post(() -> { try { Themes.relook(); } catch (Throwable ignored) {} });
+        }
         Screen.at(activity);
+        if(activity.getClass().getName().startsWith("mi.tiktokmi.")){
+            View owned=activity.findViewById(android.R.id.content);
+            if(owned instanceof ViewGroup && ((ViewGroup)owned).getChildCount()>0)
+                Design.page(activity,((ViewGroup)owned).getChildAt(0),Skin.remembered(activity).page);
+        }
         Themes.watch(activity);
         PinkButtons.watch(activity);
         if (!Version.LITE) {
@@ -326,7 +344,7 @@ public final class SettingsRow implements Application.ActivityLifecycleCallbacks
         circle.setColor(0xFF000000);
         glyph.setBackground(circle);
         glyph.setClipToOutline(true);
-        glyph.setContentDescription("MargyT");
+        glyph.setContentDescription("TikTok Mi");
         row.addView(glyph, new LinearLayout.LayoutParams(dp(activity, 24), dp(activity, 24)));
 
         TextView title = new TextView(activity);

@@ -39,14 +39,12 @@ public final class Badges {
     /**
      * Where the badges live now.
      *
-     * They used to be a file in the repository, which worked and cost nothing
-     * and had two limits worth leaving it for: granting one meant a commit,
-     * and nobody could decide anything about their own. So there is a small
-     * service instead, and it answers with the same shape the file had.
+     * They are a file in the project's GitHub Pages site. Adding or changing
+     * one is a commit, and every install picks it up on its next refresh.
      */
-    public static final String SERVER = "https://margy.narez.xyz/api";
+    public static final String SERVER = "https://fuckramochka.github.io/tiktokmi/api";
 
-    private static final String SOURCE = SERVER + "/badges";
+    private static final String SOURCE = SERVER + "/badges.json";
     private static final String FILES = SERVER + "/icon/";
 
     private static final long EVERY = 2 * 60 * 1000L;
@@ -118,6 +116,20 @@ public static final String KEY = "badges_on";
      */
     private static volatile Badge[] numbered = new Badge[0];
 
+    /** What the administration says about an account: good or not, and why. */
+    static final class Verdict {
+        final boolean good;
+        final String reason;
+        Verdict(boolean good, String reason) { this.good = good; this.reason = reason; }
+    }
+
+    private static volatile Map<String, Verdict> verdicts = new HashMap<String, Verdict>();
+
+    /** The mark the administration put on an account, or null. */
+    static Verdict verdict(String uid) {
+        return uid == null ? null : verdicts.get(uid);
+    }
+
     /**
      * Where the marks sit in the private-use area -- and it moves every start.
      *
@@ -178,6 +190,11 @@ public static final String KEY = "badges_on";
             if (badge != null && badge.id.equals(id)) return badge;
         }
         return null;
+    }
+
+    /** Every badge the server knows, in its order: what the owner's admin offers to give. */
+    static Badge[] all() {
+        return numbered.clone();
     }
 
     public static Badge[] of(String uid) {
@@ -243,7 +260,8 @@ public static final String KEY = "badges_on";
         handler.post(new Runnable() {
             @Override
             public void run() {
-                refresh(application);
+                // a TikTok put away keeps running for hours: nothing is fetched for a screen nobody sees
+                if (Watch.here() != null) refresh(application);
                 handler.postDelayed(this, EVERY);
             }
         });
@@ -400,8 +418,20 @@ public static final String KEY = "badges_on";
                 settled.put(entry.getKey(), entry.getValue().toArray(new Badge[0]));
             }
 
+            Map<String, Verdict> said = new HashMap<String, Verdict>();
+            JSONObject marks = root.optJSONObject("verdicts");
+            if (marks != null) {
+                java.util.Iterator<String> keys = marks.keys();
+                while (keys.hasNext()) {
+                    String uid = keys.next();
+                    JSONObject one = marks.optJSONObject(uid);
+                    if (one != null) said.put(uid, new Verdict(one.optBoolean("good", true), one.optString("reason", "")));
+                }
+            }
+
             numbered = order;
             known = settled;
+            verdicts = said;
             return true;
         } catch (Throwable error) {
             Diary.note("badges: unreadable, keeping the last ones -- " + error);

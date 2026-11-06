@@ -86,7 +86,7 @@ about a plugin is what the phone will load.
 
 > **Примечание:** Бот временно выключен.
 
-`@margy_robot` (временно отключён). Ранее работал через long polling. Он
+`@tiktokmi_bot` (временно отключён). Ранее работал через long polling. Он
 выполнял две вещи:
 
     профиль <ник в тиктоке или айди>    the name, the picture and the badges

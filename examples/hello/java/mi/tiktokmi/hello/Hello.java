@@ -2,7 +2,7 @@ package mi.tiktokmi.hello;
 
 import android.content.Context;
 
-import mi.tiktokmi.plugin.MargyPlugin;
+import mi.tiktokmi.plugin.TikTokMiPlugin;
 
 /**
  * The smallest plugin that does something you can see.
@@ -15,19 +15,19 @@ import mi.tiktokmi.plugin.MargyPlugin;
  *
  *     python3 -m tiktokmi.plugin examples/hello
  *
- * and install the .mtp through Settings and privacy -> MargyT -> Plugins.
+ * and install the .mtp through Settings and privacy -> TikTok Mi -> Plugins.
  */
-public final class Hello extends MargyPlugin {
+public final class Hello extends TikTokMiPlugin {
 
     private static final String STARTS = "starts";
 
     @Override
     public void onStart(Context context) {
-        int starts = margyt().prefs().getInt(STARTS, 0) + 1;
-        margyt().prefs().edit().putInt(STARTS, starts).apply();
-        if (margyt().getBoolean("log_starts", true)) {
-            for (int i = 0; i < margyt().getInt("repeat", 1); i++)
-                margyt().log(margyt().getInt("style", 0) == 0
+        int starts = tiktokmi().prefs().getInt(STARTS, 0) + 1;
+        tiktokmi().prefs().edit().putInt(STARTS, starts).apply();
+        if (tiktokmi().getBoolean("log_starts", true)) {
+            for (int i = 0; i < tiktokmi().getInt("repeat", 1); i++)
+                tiktokmi().log(tiktokmi().getInt("style", 0) == 0
                         ? "hello #" + starts
                         : "hello -- this is start number " + starts);
         }
@@ -35,12 +35,12 @@ public final class Hello extends MargyPlugin {
         // Settings of the plugin's own (API 3): they appear in the mod's
         // settings under "Hello" while the plugin is on, and are read back
         // with getBoolean / getInt.
-        margyt().addSettingsSection("Diary");
-        margyt().addSettingsToggle("Log every start", "Writes a line on each launch",
+        tiktokmi().addSettingsSection("Diary");
+        tiktokmi().addSettingsToggle("Log every start", "Writes a line on each launch",
                 "log_starts", true);
-        margyt().addSettingsChoice("Style", null, "style",
+        tiktokmi().addSettingsChoice("Style", null, "style",
                 new String[] {"Short", "Verbose"}, 0);
-        margyt().addSettingsSlider("Repeat", "Lines per start", "repeat", 1, 5, 1);
+        tiktokmi().addSettingsSlider("Repeat", "Lines per start", "repeat", 1, 5, 1);
     }
 
     /**

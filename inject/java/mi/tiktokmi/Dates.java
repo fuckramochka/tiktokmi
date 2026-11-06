@@ -80,6 +80,11 @@ public final class Dates {
     static String label(long seconds,long now) {
         if (seconds>100000000000L) seconds/=1000L;
         if (seconds<1000000000L || seconds>now+86400L) return null;
+        // a fresh video says how long ago; a week and older, the date
+        long ago=Math.max(0L,now-seconds);
+        if(ago<3600L)return Text.minutesAgo((int)Math.max(1L,ago/60L));
+        if(ago<86400L)return Text.hoursAgo((int)(ago/3600L));
+        if(ago<7L*86400L)return Text.daysAgo((int)(ago/86400L));
         return new java.text.SimpleDateFormat("dd.MM.yyyy",java.util.Locale.getDefault())
                 .format(new java.util.Date(seconds*1000L));
     }

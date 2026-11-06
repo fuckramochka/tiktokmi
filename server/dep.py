@@ -6,10 +6,11 @@ having if it cannot be typed into a settings file, so nothing about the money
 is decided on the phone. The balance lives here, the reels are turned here,
 the cards are dealt here, and the phone is told how it came out.
 
-Every game is a little worse than even, on purpose. Coins arrive once a day
-and by borrowing, and what is borrowed has to be paid back before anything can
-be bought -- so the only way to the badge is to be lucky for a long time, which
-is the joke.
+The reels are even and the table games a little worse than even. Coins arrive
+once a day and by borrowing, and what is borrowed has to be paid back before
+anything can be bought. The badge used to cost a million and in a week of
+everybody trying one person got there; 35 000 was then too easy, so it costs
+75 000: about a week of luck, not a month.
 
 Only a proved account plays. The key is the one `/prove/check` hands out, so
 nobody can stake coins in somebody else's name.
@@ -20,14 +21,14 @@ import secrets
 import time
 
 #: what an account starts with, and what it is given the first time it looks in each day
-START = 1000
-DAILY = 1000
+START = 2000
+DAILY = 2000
 #: one loan, and how much may be owed at once
 LOAN = 1000
 MOST_OWED = 10000
 #: the badge, and what it costs with nothing owed
 BADGE = "calculator"
-PRICE = 1000000
+PRICE = 75000
 #: the least time between two turns, so a script gains nothing over a thumb
 PAUSE = 0.3
 SYMBOLS = 6
@@ -69,12 +70,12 @@ def prepare(db):
 def pays(a, b, c):
     """What three reels pay, as a multiple of the stake.
 
-    Sixty for sevens, twelve for any other three alike, the stake back for a
-    pair. Out of 216 ways the reels can stop that comes to 210 stakes paid
-    for 216 taken, which is the house's three in a hundred.
+    Sixty-six for sevens, twelve for any other three alike, the stake back for
+    a pair. Out of 216 ways the reels can stop that comes to 216 stakes paid
+    for 216 taken: the reels are even.
     """
     if a == b == c:
-        return 60 if a == SYMBOLS - 1 else 12
+        return 66 if a == SYMBOLS - 1 else 12
     if a == b or b == c or a == c:
         return 1
     return 0

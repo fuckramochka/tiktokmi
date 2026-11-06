@@ -27,6 +27,7 @@ STUBS = {
         public BaseCommentCell(String b){comment=new com.ss.android.ugc.aweme.comment.model.Comment(b);}
         public com.ss.android.ugc.aweme.comment.model.Comment D6(){return comment;} }''',
 }
+STUBS['mi/tiktokmi/Text.java']='package mi.tiktokmi;class Text{static String minutesAgo(int n){return n+" min";}static String hoursAgo(int n){return n+" h";}static String daysAgo(int n){return n+" d";}}'
 STUBS['mi/tiktokmi/DateInfo.java']='package mi.tiktokmi;class DateInfo{static final int CELL_TAG=0x7e0d0335;static class Data{static Data of(Object p){return null;}}static void open(android.view.View r,android.view.View c){}}'
 STUBS['mi/tiktokmi/VideoActions.java']='package mi.tiktokmi;class VideoActions{static void accountChanged(){} static void bindNative(Object c){} static void selected(Object c,Object p){}}'
 STUBS['mi/tiktokmi/NativeRead.java']='package mi.tiktokmi;class NativeRead {static long number(Object o){return o instanceof Number?((Number)o).longValue():0;}static Object get(Object o,String name){try{return o.getClass().getMethod(name).invoke(o);}catch(Throwable e){return null;}}static Object item(Object o){return get(o,"getItem");}static String aid(Object post){Object v=get(post,"getAid");return v instanceof String?(String)v:"";}}'
@@ -71,6 +72,7 @@ public class FeedHarness {
         check("".equals(Dates.getDesc(new Post("",1609459200L))),"Empty caption still has a date");
         check("Original".equals(Dates.getDesc(new Post("Original",0))),"Unknown timestamp has no invented date");
         check(Dates.label(Long.MAX_VALUE,1700000000L)==null,"Overflow timestamp rejected");
+        check("56 min".equals(Dates.label(1700000000L-56*60,1700000000L))&&"6 h".equals(Dates.label(1700000000L-6*3600,1700000000L))&&"3 d".equals(Dates.label(1700000000L-3*86400,1700000000L)),"A fresh video says how long ago");
         System.out.println("Seek modes, comment identity and publication dates passed");
     }
 }'''
