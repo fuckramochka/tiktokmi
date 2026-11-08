@@ -1,5 +1,5 @@
 {
- "_comment": "What TikTok Mi Patcher reads to know which mods there are, what each is made from and where the patch is. Read from raw.githubusercontent.com, so a link here can be changed for everybody without an update.",
+ "_comment": "What TikTok Mi Patcher reads to know which mods there are and where the finished apk is. Read from raw.githubusercontent.com, so a link here can be changed for everybody without an update.",
  "patcher": null,
  "channel": "https://t.me/dktiktokmi",
  "mods": [
@@ -13,78 +13,34 @@
     "uk": "Мод TikTok: оформлення Material 3, завантаження без водяного знака, підміна регіону, значки та багато іншого.",
     "en": "A TikTok mod: Material 3 looks, downloads without a watermark, a region of your choice, badges and a lot more."
    },
-   "releases": [
+   "releases": [],
+   "apks": [
+    {
+     "version": "2.2.0",
+     "beta": false,
+     "apk": {
+      "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.2.0/tiktokmi.apk",
+      "sha256": "09646192effe47fd06fa6fb96076ebacb36f0a8183732869b5840abe3594f516",
+      "size": 395163055
+     },
+     "notes": {
+      "ru": "Спонсор-блок пропускает рекламу, которую читают авторы, и узнаёт её же по звуку. Режим призрака, папки чатов, чистая «Входящие», удаление всех репостов, анимация набора текста и длинные комментарии. Мод тратит меньше батареи.",
+      "uk": "Спонсор-блок пропускає рекламу, яку читають автори, і впізнає її за звуком. Режим привида, папки чатів, чиста «Вхідні», видалення всіх репостів, анімація набору тексту й довгі коментарі. Мод витрачає менше батареї.",
+      "en": "Sponsor block skips adverts read out by authors and recognises the same advert by its sound. Ghost mode, chat folders, a cleaner inbox, removing every repost, the typing animation and long comments. The mod uses less battery."
+     }
+    },
     {
      "version": "2.0.5",
      "beta": false,
-     "base": {
-      "name": "TikTok 47.2.41",
-      "sha256": "4bcad2a15ac82da68d373629a9520f855781c3ec46f0e2937e605040285ba75c",
-      "size": 346017026,
-      "sources": [
-       {
-        "name": "GitHub Releases",
-        "url": "https://github.com/fuckramochka/tiktokmi/releases/download/official-47.2.41/com.zhiliaoapp.musically_47.2.41-2024702410_minAPI23.arm64-v8a.nodpi.apk",
-        "direct": true
-       }
-      ]
-     },
-     "patch": {
+     "apk": {
       "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.0.5/tiktokmi.apk",
-      "sha256": "b200084e75ca80633f37c416eca44f916a8416724c4fccd832c584685329b48d",
-      "size": 71795912
-     },
-     "result": {
-      "sha256": "f0d4e8e462daaad2ceb51f7d867dd1260f96cda84cc8c8544b5140ec9e6f6f51",
-      "size": 395031582
+      "sha256": "f94b790110582018a421f64d8d16445107e825005422fe04eca3f7974a9ecd24",
+      "size": 395035910
      },
      "notes": {
       "ru": "Меньше подлагов: мод больше не обходит экран перед каждым кадром. Убран «скрытый режим» с чёрным окном в недавних. Отчёт о лагах называет плагин, который тормозит.",
       "uk": "Менше підлагів: мод більше не обходить екран перед кожним кадром. Прибрано «прихований режим» із чорним вікном у недавніх. Звіт про лаги називає плагін, який гальмує.",
       "en": "Less stutter: the mod no longer goes over the screen before every frame. No more blacked-out window in recents. A lag report names the plugin that is holding the app up."
-     }
-    }
-   ]
-  },
-  {
-   "id": "tiktokmi-lite",
-   "name": "TikTok Mi Lite",
-   "icon": "tiktokmi-lite",
-   "package": "com.zhiliaoapp.musically.go",
-   "about": {
-    "ru": "Лёгкий мод на TikTok Lite: подмена региона, тема и акцент, значки.",
-    "uk": "Легкий мод на TikTok Lite: підміна регіону, тема й акцент, значки.",
-    "en": "A light mod of TikTok Lite: a region of your choice, theme and accent, badges."
-   },
-   "releases": [
-    {
-     "version": "0.1",
-     "beta": false,
-     "base": {
-      "name": "TikTok Lite 47.1.4",
-      "sha256": "634c596e9f2c54b4e77600d4d1bdd96f1d0adad8bb661476a9df7cd21d3c6057",
-      "size": 90464759,
-      "sources": [
-       {
-        "name": "GitHub Releases",
-        "url": "https://github.com/fuckramochka/tiktokmi/releases/download/official-47.2.41/tiktok-lite-47-1-4.apk",
-        "direct": true
-       }
-      ]
-     },
-     "patch": {
-      "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.0.5/tiktokmi.apk",
-      "sha256": "73dfad5b880930720d0486ba4620d1e6c3ab3ae6a4c2802fe641519496a80646",
-      "size": 32509991
-     },
-     "result": {
-      "sha256": "e49672e4873c94e61124550dc022f9b3143bca92fdcbfb9efae4c9dbc4e94c94",
-      "size": 121579916
-     },
-     "notes": {
-      "ru": "Первая бета. Подмена региона, тема по цветам телефона, акцент, значки.",
-      "uk": "Перша бета. Підміна регіону, тема за кольорами телефона, акцент, значки.",
-      "en": "The first beta. A region of your choice, a theme in the phone's colours, an accent, badges."
      }
     }
    ]
