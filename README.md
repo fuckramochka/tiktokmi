@@ -222,10 +222,10 @@ the mark. `getNickname()` comes back with one invisible character on the end,
 the text is caught on its way into a `TextView`, and the character becomes a
 picture.
 
-The badges themselves are **[badges.json](badges.json)** in this repository,
-read at startup and again every five minutes, and kept on disk so they are
-there before the network answers. Adding one is editing that file — no new
-build, no update for anybody.
+The badges themselves are **[site/api/badges.json](site/api/badges.json)**,
+served from GitHub Pages and read at startup and again every five minutes, and
+kept on disk so they are there before the network answers. Adding one is
+editing that file — no new build, no update for anybody.
 </details>
 
 <details>
