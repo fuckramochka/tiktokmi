@@ -26,6 +26,9 @@ jobs:
           path: tools
           key: toolchain-${{ hashFiles('tiktokmi/toolchain.py') }}
 
+      - name: install test dependencies
+        run: python -m pip install cryptography
+
       - name: unit tests
         run: python -m unittest discover tests
 
