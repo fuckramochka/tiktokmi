@@ -15,12 +15,13 @@ public final class PlayerTools {
    post=new WeakReference<Object>(playing);
    Object manager=NativeRead.get(controller,"getPlayerManager");if(manager==null)return;
    current=new WeakReference<Object>(manager);
+   VolumeBooster.apply();
    if(next.equals(aid)){SponsorBlock.playing(next);return;}
    aid=next;cancelSmooth();
    SponsorBlock.playing(next);
   }catch(Throwable error){Diary.note("default speed: "+error);}
  }
- static void accountChanged(){aid="";current=new WeakReference<Object>(null);cancelSmooth();}
+ static void accountChanged(){aid="";current=new WeakReference<Object>(null);cancelSmooth();VolumeBooster.reloadSettings();}
  /**
   * Any playback event, not only a resume after a pause: a video that starts playing is known at
   * once, its player with it. Resumes alone left a video nobody had paused unknown.
@@ -28,7 +29,7 @@ public final class PlayerTools {
  public static void heard(Object controller,String eventAid){
   if(eventAid==null||eventAid.length()==0)return;
   if(android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()){handler.post(()->heard(controller,eventAid));return;}
-  if(eventAid.equals(aid)&&current.get()!=null){SponsorBlock.playing(eventAid);return;}
+  if(eventAid.equals(aid)&&current.get()!=null){SponsorBlock.playing(eventAid);VolumeBooster.apply();return;}
   resumed(controller,eventAid);
  }
  /** For the skipping of adverts: the player of the video playing, which video it is, where it is and how long. */

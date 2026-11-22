@@ -720,6 +720,14 @@ public class SettingsActivity extends Activity {
             Sound.setEnabled(on);
             soundArt.set(on);
         }));
+        sound.addView(line());
+        sound.addView(toggleRow("volume_up", Text.VOLUME_BOOST, VolumeBooster.isEnabled(), on -> {
+            VolumeBooster.setEnabled(on);
+        }));
+        sound.addView(caption(Text.VOLUME_BOOST_NOTE));
+        sound.addView(segmented(VolumeBooster.GAIN_LABELS, VolumeBooster.gainIndex(), index -> {
+            VolumeBooster.setGainIndex(index);
+        }));
         column.addView(wrap(sound));
 
         LinearLayout bright = card();

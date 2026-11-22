@@ -52,6 +52,11 @@ final class Text {
     static final String PHOTO_NOT_AVAILABLE=pick("Фото недоступно для скачивания","Фото недоступне для завантаження","Photo is unavailable");
     static final String MEDIA_FAILED=pick("Не удалось сохранить файл. Подробности в диагностике","Не вдалося зберегти файл. Подробиці в діагностиці","Could not save the file. See diagnostics");
     static final String DOWNLOADING=pick("Загрузка","Завантаження","Downloading");
+    static final String SAVE_PHOTO_VIDEO=pick("Скачать как видео","Завантажити як відео","Download as video");
+    static final String SAVE_PHOTO_VIDEO_HINT=pick("Фото со звуком как видео","Фото зі звуком як відео","Photo with audio as video");
+    static final String VOLUME_BOOST=pick("Усилитель звука","Підсилювач звуку","Volume booster");
+    static final String VOLUME_BOOST_NOTE=pick("Увеличивает громкость звука видео выше максимума","Збільшує гучність звуку відео вище максимуму","Boosts video volume above the system maximum");
+    static final String VOLUME_BOOST_OFF=pick("Выключен","Вимкнено","Off");
     static final String PLAYER_SPEED=pick("Скорость удержания","Швидкість утримання","Hold speed");
     static final String CUSTOM_SPEED=pick("Своё значение","Власне значення","Custom value");
     static final String SPEED_RANGE=pick("Допустимая скорость: 0.5–3×","Допустима швидкість: 0.5–3×","Speed must be between 0.5 and 3×");

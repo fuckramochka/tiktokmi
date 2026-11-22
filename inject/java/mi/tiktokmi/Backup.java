@@ -38,7 +38,7 @@ public final class Backup {
             "rail_show_like","rail_show_comment","rail_show_fav","rail_show_share",
             "streak_send_minute","repost_btn","repost_pos","profile_layout","friends_pinned","message_times","notify_messages","notify_promos","notify_other","notify_no_prompts",
             "dl_quality","frame_quality","player_default_speed","player_seek_step","player_reverse_rate","feed_blocked_authors","feed_blocked_cards",Feed.KEY_STORIES,Feed.KEY_SUGGESTIONS,
-            Sound.KEY, Seekbar.KEY, Dates.KEY,
+            Sound.KEY, VolumeBooster.KEY, VolumeBooster.KEY_GAIN, Seekbar.KEY, Dates.KEY,
             Dim.KEY_ON, Dim.KEY_HOW, 
             Download.KEY, Download.KEY_ALWAYS, Avatars.KEY, Stickers.KEY,
             Comments.KEY_COPY,
@@ -198,7 +198,7 @@ public final class Backup {
                 "profile_layout"
         };
         else if (group == 2) keys = new String[] {
-                Sound.KEY, Seekbar.KEY, Dates.KEY, Dim.KEY_ON, Dim.KEY_HOW,
+                Sound.KEY, VolumeBooster.KEY, VolumeBooster.KEY_GAIN, Seekbar.KEY, Dates.KEY, Dim.KEY_ON, Dim.KEY_HOW,
                 "message_times","friends_pinned","dl_quality","frame_quality","player_default_speed","player_seek_step","player_reverse_rate",
                 Download.KEY, Download.KEY_ALWAYS, Avatars.KEY,
                 Stickers.KEY, Comments.KEY_COPY, Streaks.KEY_ON, Streaks.KEY_MODE, Streaks.KEY_TEXT

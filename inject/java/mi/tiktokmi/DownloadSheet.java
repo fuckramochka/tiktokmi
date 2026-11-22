@@ -13,6 +13,9 @@ final class DownloadSheet {
  interface Picks {void on(List<DownloadQuality.Choice> choices);}
  private DownloadSheet(){}
  static void show(Context c,List<DownloadQuality.Choice> videos,List<DownloadQuality.Choice> photos,boolean nativeOnly,final Panel.Click nativeSave,final Pick video,final Picks photo,final Panel.Click audio){
+  show(c,videos,photos,nativeOnly,nativeSave,video,photo,audio,null);
+ }
+ static void show(Context c,List<DownloadQuality.Choice> videos,List<DownloadQuality.Choice> photos,boolean nativeOnly,final Panel.Click nativeSave,final Pick video,final Picks photo,final Panel.Click audio,final Picks photoVideo){
   final Skin skin=Skin.remembered(c);
   final boolean photoPost=photos!=null&&!photos.isEmpty();
   final Panel panel=Panel.with(c,skin,photoPost?Text.SHEET_POST_TITLE:Text.SHEET_PICK_QUALITY).compact();
@@ -24,7 +27,10 @@ final class DownloadSheet {
   for(DownloadQuality.Choice v:rest){boolean same=best!=null&&best.height>0&&v.height==best.height;if(!same)list.add(v);}
   final TextView[] save={null};final java.util.TreeSet<Integer> picked=new java.util.TreeSet<>();
   if(photoPost){
-   if(photos.size()==1){panel.hero("image",Text.SAVE_IMAGE,null,"download",()->photo.on(photos));}
+   if(photos.size()==1){
+    panel.hero("image",Text.SAVE_IMAGE,null,"download",()->photo.on(photos));
+    if(photoVideo!=null)panel.item("play_circle",Text.SAVE_PHOTO_VIDEO,Text.SAVE_PHOTO_VIDEO_HINT,"download",()->photoVideo.on(photos));
+   }
    else panel.view(PhotoGrid.make(c,skin,photos,picked,()->{if(save[0]!=null)save[0].setText(picked.isEmpty()?Text.allPhotos(photos.size()):Text.pickedPhotos(picked.size()));}));
   }else if(!list.isEmpty()){
    for(int i=0;i<list.size();i++){
@@ -40,6 +46,13 @@ final class DownloadSheet {
   }
   // no heading: the row says what it is, and a heading only costs another line of height
   panel.section(null);
+  if(photoPost&&photos.size()>1&&photoVideo!=null){
+   panel.item("play_circle",Text.SAVE_PHOTO_VIDEO,Text.SAVE_PHOTO_VIDEO_HINT,"download",()->{
+    java.util.ArrayList<DownloadQuality.Choice> chosen=new java.util.ArrayList<>();
+    if(picked.isEmpty())chosen.addAll(photos);else for(int i:picked)chosen.add(photos.get(i));
+    panel.close();photoVideo.on(chosen);
+   });
+  }
   panel.item("music_note",Text.DL_AUDIO,null,"download",()->audio.on());
   if(photoPost&&photos.size()>1){
    // the button stays put below the grid however far the photos scroll

@@ -98,4 +98,10 @@ def with_mod(sources):
     if 'GlassOptics.' in everything:
         sources.setdefault('mi/tiktokmi/GlassOptics.java',
             'package mi.tiktokmi;final class GlassOptics{static float viewTouchX,viewTouchY;}')
+    if 'VolumeBooster.' in everything:
+        sources.setdefault('mi/tiktokmi/VolumeBooster.java',
+            'package mi.tiktokmi;final class VolumeBooster{static void apply(){}static void reloadSettings(){}static String label(){return "Off";}static void choose(android.content.Context c){}}')
+    if 'PhotoVideo.' in everything:
+        sources.setdefault('mi/tiktokmi/PhotoVideo.java',
+            'package mi.tiktokmi;final class PhotoVideo{static void create(android.content.Context c,java.util.List i,java.io.File a,java.io.File o,DownloadTasks.Control ctrl)throws Exception{}}')
     return sources

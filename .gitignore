@@ -6,6 +6,7 @@ build/
 
 # Downloaded tooling
 tools/
+MargyT/
 
 # Packed plugins: the sources are here, the zip is a build artefact
 *.mtp

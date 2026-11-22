@@ -79,6 +79,7 @@ public final class VideoActions {
  }
  static void playback(Context c){Panel panel=Panel.with(c,Skin.remembered(c),Text.ACT_PLAYBACK);
   panel.item("speed",Text.PLAYER_SPEED,null,()->PlayerTools.choose(c));
+  panel.item("volume_up",Text.VOLUME_BOOST,VolumeBooster.label(),()->VolumeBooster.choose(c));
   panel.item("fast_rewind",Text.SEEK_BACK,PlayerTools.step()+Local.of(" с"),null,()->PlayerTools.seek(false,false));
   panel.item("fast_forward",Text.SEEK_FORWARD,PlayerTools.step()+Local.of(" с"),null,()->PlayerTools.seek(true,false));
   panel.item("timeline",Text.SEEK_SMOOTH,null,null,()->PlayerTools.seek(false,true));panel.quiet(Text.CLOSE,null).show();
@@ -117,7 +118,7 @@ public final class VideoActions {
    if(!qualities.isEmpty()&&qualities.get(0).best)qualities.get(0).alts=DownloadQuality.all(base);
    try{Diary.note("download sizes offered: "+qualities.size());}catch(Throwable ignored){}
   }
-  DownloadSheet.show(c,qualities,photos,video!=null&&qualities.isEmpty(),()->save(post,0),choice->saveAddress(post,choice),chosen->{if(chosen.size()==1)savePhoto(post,chosen.get(0));else saveAllPhotos(post,chosen);},()->save(post,3));
+  DownloadSheet.show(c,qualities,photos,video!=null&&qualities.isEmpty(),()->save(post,0),choice->saveAddress(post,choice),chosen->{if(chosen.size()==1)savePhoto(post,chosen.get(0));else saveAllPhotos(post,chosen);},()->save(post,3),chosen->savePhotoAsVideo(post,chosen));
  }
  static void save(Object post,boolean forceAudio){
   save(post,forceAudio?3:0);
@@ -198,6 +199,62 @@ public final class VideoActions {
     if(!success&&!control.cancelled())throw new java.io.IOException("Download failed or cancelled");
    }catch(Throwable error){Diary.note("media save: "+error);if(!control.cancelled())Screen.say(Text.MEDIA_FAILED);}
    finally{temporary.delete();DownloadTasks.finish(key,success);if(success)Screen.progressDone(key,savedTo);else Screen.progressGone(key);}
+  });
+  if(!queued){DownloadTasks.finish(key,false);Screen.progressGone(key);Screen.say(Text.MEDIA_FAILED);}
+ }
+ private static void savePhotoAsVideo(Object post,java.util.List<DownloadQuality.Choice> photos){
+  if(post==null||photos==null||photos.isEmpty()){Screen.say(Text.PHOTO_NOT_AVAILABLE);return;}
+  Context context=Margy.context();if(context==null)return;
+  final Context c=context.getApplicationContext();
+  final String aid=NativeRead.aid(post);
+  final String audioAddress=DownloadQuality.audio(post,null);
+  if(audioAddress==null||audioAddress.length()==0){Screen.say(Text.AUDIO_NOT_AVAILABLE);return;}
+  final java.util.List<DownloadQuality.Choice> list=new java.util.ArrayList<>(photos);
+  final String key="media_"+java.util.UUID.randomUUID();
+  final DownloadTasks.Control control=DownloadTasks.begin(key,Text.SAVE_PHOTO_VIDEO,"margyt",()->savePhotoAsVideo(post,list));
+  control.limit=320L*1024L*1024L;Screen.progress(key,Text.DOWNLOADING,0);
+  boolean queued=MediaQueue.add(()->{
+   boolean success=false;String savedTo=null;
+   java.util.List<java.io.File> imageTemps=new java.util.ArrayList<>();
+   java.io.File audioTemp=new java.io.File(c.getCacheDir(),key+"_audio.media");
+   java.io.File videoTemp=new java.io.File(c.getCacheDir(),key+"_video.mp4");
+   try{
+    if(!Net.download(audioAddress,audioTemp,(percent,got,size)->{int p=percent/3;DownloadTasks.progress(key,p);Screen.progress(key,Text.DOWNLOADING,p);},control)){
+     throw new java.io.IOException("Audio download failed");
+    }
+    for(int i=0;i<list.size()&&!control.cancelled();i++){
+     java.io.File imgTemp=new java.io.File(c.getCacheDir(),key+"_img_"+i+".media");
+     imageTemps.add(imgTemp);
+     boolean got=false;
+     final int slot=i,count=list.size();
+     for(String addr:list.get(i).candidates()){
+      if(control.cancelled())break;
+      try{
+       imgTemp.delete();
+       if(Net.download(addr,imgTemp,(percent,g,s)->{int p=33+(slot*33+percent*33/100)/count;DownloadTasks.progress(key,p);Screen.progress(key,Text.DOWNLOADING,p);},control)){got=true;break;}
+      }catch(Throwable ignored){}
+     }
+     if(!got&&!control.cancelled())throw new java.io.IOException("Photo download failed");
+    }
+    if(control.cancelled())throw new java.io.IOException("Cancelled");
+    Screen.progress(key,Text.DOWNLOADING,75);
+    DownloadTasks.progress(key,75);
+    PhotoVideo.create(c,imageTemps,audioTemp,videoTemp,control);
+    if(control.cancelled())throw new java.io.IOException("Cancelled");
+    Screen.progress(key,Text.DOWNLOADING,95);
+    DownloadTasks.progress(key,95);
+    String base=aid==null||aid.length()==0?"post":aid.replaceAll("[^A-Za-z0-9_-]","_");
+    savedTo=MediaFiles.save(c,videoTemp,"margyt_"+base+"_video_"+java.util.UUID.randomUUID()+".mp4","video/mp4",control);
+    success=savedTo!=null;
+   }catch(Throwable error){
+    Diary.note("photo as video failed: "+error);
+    if(!control.cancelled())Screen.say(Text.MEDIA_FAILED);
+   }finally{
+    audioTemp.delete();videoTemp.delete();
+    for(java.io.File f:imageTemps)f.delete();
+    DownloadTasks.finish(key,success);
+    if(success)Screen.progressDone(key,savedTo);else Screen.progressGone(key);
+   }
   });
   if(!queued){DownloadTasks.finish(key,false);Screen.progressGone(key);Screen.say(Text.MEDIA_FAILED);}
  }
