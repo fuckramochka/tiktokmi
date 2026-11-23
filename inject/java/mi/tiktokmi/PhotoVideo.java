@@ -3,6 +3,9 @@ package mi.tiktokmi;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.RectF;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaExtractor;
@@ -24,10 +27,12 @@ public final class PhotoVideo {
 
     public static void create(Context context, List<File> imageFiles, File audioFile, File outputFile, DownloadTasks.Control control) throws Exception {
         if (imageFiles == null || imageFiles.isEmpty()) throw new IllegalArgumentException("No images provided");
-        if (audioFile == null || !audioFile.exists()) throw new IllegalArgumentException("Audio file missing");
+        if (outputFile == null) throw new IllegalArgumentException("Output file missing");
 
         long durationUs = getAudioDurationUs(audioFile);
-        if (durationUs <= 0) durationUs = 15_000_000L;
+        if (durationUs <= 0) {
+            durationUs = Math.max(15_000_000L, imageFiles.size() * 3_000_000L);
+        }
 
         BitmapFactory.Options bounds = new BitmapFactory.Options();
         bounds.inJustDecodeBounds = true;
@@ -35,17 +40,10 @@ public final class PhotoVideo {
         int origW = bounds.outWidth > 0 ? bounds.outWidth : 720;
         int origH = bounds.outHeight > 0 ? bounds.outHeight : 1280;
 
-        int targetW = origW;
-        int targetH = origH;
-        if (targetW > 1080 || targetH > 1920) {
-            float scale = Math.min(1080f / targetW, 1920f / targetH);
-            targetW = Math.round(targetW * scale);
-            targetH = Math.round(targetH * scale);
-        }
-        targetW = Math.max(16, (targetW / 2) * 2);
-        targetH = Math.max(16, (targetH / 2) * 2);
+        final int targetW = (origW > origH) ? 1280 : 720;
+        final int targetH = (origW > origH) ? 720 : 1280;
 
-        MediaCodec videoEncoder = MediaCodec.createEncoderByType("video/avc");
+        MediaCodec videoEncoder = createVideoEncoder();
         int colorFormat = selectColorFormat(videoEncoder);
         boolean semiPlanar = colorFormat != MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
 
@@ -60,40 +58,60 @@ public final class PhotoVideo {
 
         File readyAudioFile = audioFile;
         File tempTranscodedAudio = null;
-        try {
-            if (!isAacAudio(audioFile)) {
-                tempTranscodedAudio = new File(context.getCacheDir(), "transcoded_" + System.currentTimeMillis() + ".m4a");
-                transcodeAudioToAac(audioFile, tempTranscodedAudio, control);
-                readyAudioFile = tempTranscodedAudio;
+        if (audioFile != null && audioFile.exists() && audioFile.length() > 0) {
+            try {
+                if (!isDirectlyMuxableAac(audioFile)) {
+                    tempTranscodedAudio = new File(context.getCacheDir(), "transcoded_" + System.currentTimeMillis() + ".m4a");
+                    transcodeAudioToAac(audioFile, tempTranscodedAudio, control);
+                    readyAudioFile = tempTranscodedAudio;
+                }
+            } catch (Throwable transcodeErr) {
+                Diary.note("photo-video audio transcode fallback: " + transcodeErr);
+                readyAudioFile = null;
             }
+        } else {
+            readyAudioFile = null;
+        }
 
-            int fps = 10;
+        try {
+            int fps = 25;
             long frameDurationUs = 1_000_000L / fps;
             int totalFrames = (int) Math.max(1, (durationUs + frameDurationUs - 1) / frameDurationUs);
 
             MediaFormat vFormat = MediaFormat.createVideoFormat("video/avc", targetW, targetH);
             vFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, colorFormat);
-            vFormat.setInteger(MediaFormat.KEY_BIT_RATE, Math.min(4_000_000, targetW * targetH * 4));
+            vFormat.setInteger(MediaFormat.KEY_BIT_RATE, Math.min(3_000_000, targetW * targetH * 3));
             vFormat.setInteger(MediaFormat.KEY_FRAME_RATE, fps);
             vFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
 
             videoEncoder.configure(vFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
             videoEncoder.start();
 
-            MediaExtractor audioExtractor = new MediaExtractor();
-            audioExtractor.setDataSource(readyAudioFile.getAbsolutePath());
+            MediaExtractor audioExtractor = null;
             int audioTrackIndex = -1;
             MediaFormat aFormat = null;
-            for (int i = 0; i < audioExtractor.getTrackCount(); i++) {
-                MediaFormat fmt = audioExtractor.getTrackFormat(i);
-                String mime = fmt.getString(MediaFormat.KEY_MIME);
-                if (mime != null && mime.startsWith("audio/")) {
-                    audioTrackIndex = i;
-                    aFormat = fmt;
-                    break;
+            if (readyAudioFile != null && readyAudioFile.exists() && readyAudioFile.length() > 0) {
+                try {
+                    audioExtractor = new MediaExtractor();
+                    audioExtractor.setDataSource(readyAudioFile.getAbsolutePath());
+                    for (int i = 0; i < audioExtractor.getTrackCount(); i++) {
+                        MediaFormat fmt = audioExtractor.getTrackFormat(i);
+                        String mime = fmt.getString(MediaFormat.KEY_MIME);
+                        if (mime != null && mime.startsWith("audio/")) {
+                            audioTrackIndex = i;
+                            aFormat = fmt;
+                            break;
+                        }
+                    }
+                    if (audioTrackIndex >= 0) audioExtractor.selectTrack(audioTrackIndex);
+                } catch (Throwable e) {
+                    Diary.note("audio extractor failed: " + e);
+                    if (audioExtractor != null) {
+                        try { audioExtractor.release(); } catch (Throwable ignored) {}
+                        audioExtractor = null;
+                    }
                 }
             }
-            if (audioTrackIndex >= 0) audioExtractor.selectTrack(audioTrackIndex);
 
             MediaMuxer muxer = new MediaMuxer(outputFile.getAbsolutePath(), MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             int muxerVideoTrack = -1;
@@ -110,16 +128,17 @@ public final class PhotoVideo {
                     if (control != null && control.cancelled()) throw new IOException("Cancelled");
 
                     if (!inputDone) {
-                        int inIndex = videoEncoder.dequeueInputBuffer(10000);
+                        int inIndex = videoEncoder.dequeueInputBuffer(5000);
                         if (inIndex >= 0) {
                             ByteBuffer inBuf = videoEncoder.getInputBuffer(inIndex);
                             inBuf.clear();
                             if (frameIndex < totalFrames) {
                                 int imgIdx = (int) ((long) frameIndex * yuvFrames.length / totalFrames);
                                 byte[] yuv = yuvFrames[Math.min(imgIdx, yuvFrames.length - 1)];
-                                inBuf.put(yuv);
+                                int toPut = Math.min(yuv.length, inBuf.remaining());
+                                inBuf.put(yuv, 0, toPut);
                                 long pts = frameIndex * frameDurationUs;
-                                videoEncoder.queueInputBuffer(inIndex, 0, yuv.length, pts, 0);
+                                videoEncoder.queueInputBuffer(inIndex, 0, toPut, pts, 0);
                                 frameIndex++;
                             } else {
                                 videoEncoder.queueInputBuffer(inIndex, 0, 0, frameIndex * frameDurationUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
@@ -128,7 +147,7 @@ public final class PhotoVideo {
                         }
                     }
 
-                    int outIndex = videoEncoder.dequeueOutputBuffer(bufferInfo, 10000);
+                    int outIndex = videoEncoder.dequeueOutputBuffer(bufferInfo, 5000);
                     if (outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                         MediaFormat videoOutputFormat = videoEncoder.getOutputFormat();
                         muxerVideoTrack = muxer.addTrack(videoOutputFormat);
@@ -154,7 +173,7 @@ public final class PhotoVideo {
                     }
                 }
 
-                if (muxerAudioTrack >= 0 && muxerStarted) {
+                if (muxerAudioTrack >= 0 && muxerStarted && audioExtractor != null) {
                     ByteBuffer aBuf = ByteBuffer.allocate(65536);
                     MediaCodec.BufferInfo aInfo = new MediaCodec.BufferInfo();
                     audioExtractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
@@ -178,7 +197,9 @@ public final class PhotoVideo {
                     try { muxer.stop(); } catch (Throwable ignored) {}
                 }
                 try { muxer.release(); } catch (Throwable ignored) {}
-                try { audioExtractor.release(); } catch (Throwable ignored) {}
+                if (audioExtractor != null) {
+                    try { audioExtractor.release(); } catch (Throwable ignored) {}
+                }
             }
         } finally {
             try { videoEncoder.stop(); } catch (Throwable ignored) {}
@@ -187,7 +208,17 @@ public final class PhotoVideo {
         }
     }
 
-    private static boolean isAacAudio(File audioFile) {
+    private static MediaCodec createVideoEncoder() throws IOException {
+        for (String name : new String[]{"c2.android.avc.encoder", "OMX.google.h264.encoder"}) {
+            try {
+                return MediaCodec.createByCodecName(name);
+            } catch (Throwable ignored) {}
+        }
+        return MediaCodec.createEncoderByType("video/avc");
+    }
+
+    private static boolean isDirectlyMuxableAac(File audioFile) {
+        if (audioFile == null || !audioFile.exists() || audioFile.length() == 0) return false;
         MediaExtractor probe = new MediaExtractor();
         try {
             probe.setDataSource(audioFile.getAbsolutePath());
@@ -195,7 +226,9 @@ public final class PhotoVideo {
                 MediaFormat fmt = probe.getTrackFormat(i);
                 String mime = fmt.getString(MediaFormat.KEY_MIME);
                 if (mime != null && (mime.equalsIgnoreCase("audio/mp4a-latm") || mime.equalsIgnoreCase("audio/aac"))) {
-                    return true;
+                    if (fmt.containsKey("csd-0")) {
+                        return true;
+                    }
                 }
             }
         } catch (Throwable ignored) {
@@ -227,6 +260,8 @@ public final class PhotoVideo {
 
         int sampleRate = inputFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE) ? inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE) : 44100;
         int channelCount = inputFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT) ? inputFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT) : 2;
+        if (channelCount < 1) channelCount = 1;
+        if (channelCount > 2) channelCount = 2;
 
         MediaCodec decoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME));
         decoder.configure(inputFormat, null, null, 0);
@@ -235,6 +270,9 @@ public final class PhotoVideo {
         MediaFormat aacFormat = MediaFormat.createAudioFormat("audio/mp4a-latm", sampleRate, channelCount);
         aacFormat.setInteger(MediaFormat.KEY_BIT_RATE, 128000);
         aacFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+        aacFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, channelCount);
+        aacFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, sampleRate);
+
         MediaCodec encoder = MediaCodec.createEncoderByType("audio/mp4a-latm");
         encoder.configure(aacFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         encoder.start();
@@ -249,13 +287,18 @@ public final class PhotoVideo {
         boolean extractorDone = false;
         boolean decoderDone = false;
         boolean encoderDone = false;
+        boolean encoderInputEos = false;
+
+        byte[] pcmBuffer = new byte[65536];
+        int pcmBuffered = 0;
+        long pcmPresentationTimeUs = 0;
 
         try {
             while (!encoderDone) {
                 if (control != null && control.cancelled()) throw new IOException("Cancelled");
 
                 if (!extractorDone) {
-                    int inIndex = decoder.dequeueInputBuffer(5000);
+                    int inIndex = decoder.dequeueInputBuffer(2000);
                     if (inIndex >= 0) {
                         ByteBuffer inBuf = decoder.getInputBuffer(inIndex);
                         inBuf.clear();
@@ -270,32 +313,56 @@ public final class PhotoVideo {
                     }
                 }
 
-                if (!decoderDone) {
-                    int decOut = decoder.dequeueOutputBuffer(decInfo, 5000);
+                if (!decoderDone && pcmBuffered < pcmBuffer.length) {
+                    int decOut = decoder.dequeueOutputBuffer(decInfo, 2000);
                     if (decOut >= 0) {
                         ByteBuffer outBuf = decoder.getOutputBuffer(decOut);
-                        int encIn = encoder.dequeueInputBuffer(5000);
+                        if (decInfo.size > 0) {
+                            outBuf.position(decInfo.offset);
+                            outBuf.limit(decInfo.offset + decInfo.size);
+                            if (pcmBuffered + decInfo.size > pcmBuffer.length) {
+                                byte[] expanded = new byte[Math.max(pcmBuffer.length * 2, pcmBuffered + decInfo.size)];
+                                System.arraycopy(pcmBuffer, 0, expanded, 0, pcmBuffered);
+                                pcmBuffer = expanded;
+                            }
+                            outBuf.get(pcmBuffer, pcmBuffered, decInfo.size);
+                            pcmBuffered += decInfo.size;
+                        }
+                        if ((decInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                            decoderDone = true;
+                        }
+                        decoder.releaseOutputBuffer(decOut, false);
+                    }
+                }
+
+                if (!encoderInputEos) {
+                    if (pcmBuffered > 0) {
+                        int encIn = encoder.dequeueInputBuffer(2000);
                         if (encIn >= 0) {
                             ByteBuffer encInBuf = encoder.getInputBuffer(encIn);
                             encInBuf.clear();
-                            if (decInfo.size > 0) {
-                                outBuf.position(decInfo.offset);
-                                outBuf.limit(decInfo.offset + decInfo.size);
-                                encInBuf.put(outBuf);
+                            int toSend = Math.min(pcmBuffered, encInBuf.remaining());
+                            encInBuf.put(pcmBuffer, 0, toSend);
+                            if (toSend < pcmBuffered) {
+                                System.arraycopy(pcmBuffer, toSend, pcmBuffer, 0, pcmBuffered - toSend);
                             }
-                            int flags = (decInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0;
-                            encoder.queueInputBuffer(encIn, 0, decInfo.size, decInfo.presentationTimeUs, flags);
-                            decoder.releaseOutputBuffer(decOut, false);
-                            if (flags != 0) decoderDone = true;
-                        } else {
-                            decoder.releaseOutputBuffer(decOut, false);
+                            pcmBuffered -= toSend;
+                            encoder.queueInputBuffer(encIn, 0, toSend, pcmPresentationTimeUs, 0);
+                            pcmPresentationTimeUs += ((long) toSend / (channelCount * 2)) * 1_000_000L / sampleRate;
+                        }
+                    } else if (decoderDone) {
+                        int encIn = encoder.dequeueInputBuffer(2000);
+                        if (encIn >= 0) {
+                            encoder.queueInputBuffer(encIn, 0, 0, pcmPresentationTimeUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                            encoderInputEos = true;
                         }
                     }
                 }
 
-                int encOut = encoder.dequeueOutputBuffer(encInfo, 5000);
+                int encOut = encoder.dequeueOutputBuffer(encInfo, 2000);
                 if (encOut == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                    muxerTrack = muxer.addTrack(encoder.getOutputFormat());
+                    MediaFormat outputFormat = encoder.getOutputFormat();
+                    muxerTrack = muxer.addTrack(outputFormat);
                     muxer.start();
                     muxerStarted = true;
                 } else if (encOut >= 0) {
@@ -326,6 +393,7 @@ public final class PhotoVideo {
     }
 
     private static long getAudioDurationUs(File audioFile) {
+        if (audioFile == null || !audioFile.exists() || audioFile.length() == 0) return 0;
         long durationUs = 0;
         try {
             MediaMetadataRetriever mmr = new MediaMetadataRetriever();
@@ -372,19 +440,30 @@ public final class PhotoVideo {
         return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
     }
 
-    private static byte[] loadYuv(File file, int width, int height, boolean semiPlanar) throws Exception {
+    private static byte[] loadYuv(File file, int targetW, int targetH, boolean semiPlanar) throws Exception {
         BitmapFactory.Options opts = new BitmapFactory.Options();
         opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        Bitmap bmp = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
-        if (bmp == null) throw new IOException("Cannot decode image: " + file);
-        Bitmap scaled = (bmp.getWidth() == width && bmp.getHeight() == height)
-                ? bmp
-                : Bitmap.createScaledBitmap(bmp, width, height, true);
-        int[] pixels = new int[width * height];
-        scaled.getPixels(pixels, 0, width, 0, 0, width, height);
-        if (scaled != bmp) scaled.recycle();
-        bmp.recycle();
-        return rgbToYuv(pixels, width, height, semiPlanar);
+        Bitmap src = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
+        if (src == null) throw new IOException("Cannot decode image: " + file);
+
+        Bitmap canvasBitmap = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(canvasBitmap);
+        canvas.drawColor(Color.BLACK);
+
+        float scale = Math.min((float) targetW / src.getWidth(), (float) targetH / src.getHeight());
+        float scaledW = scale * src.getWidth();
+        float scaledH = scale * src.getHeight();
+        float left = (targetW - scaledW) / 2.0f;
+        float top = (targetH - scaledH) / 2.0f;
+
+        RectF dstRect = new RectF(left, top, left + scaledW, top + scaledH);
+        canvas.drawBitmap(src, null, dstRect, null);
+        src.recycle();
+
+        int[] pixels = new int[targetW * targetH];
+        canvasBitmap.getPixels(pixels, 0, targetW, 0, 0, targetW, targetH);
+        canvasBitmap.recycle();
+        return rgbToYuv(pixels, targetW, targetH, semiPlanar);
     }
 
     static byte[] rgbToYuv(int[] argb, int width, int height, boolean semiPlanar) {

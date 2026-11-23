@@ -121,6 +121,24 @@ public class TestYuv {
             int y = blackNv12[i] & 0xFF;
             check(y <= 20, "black Y is low: " + y);
         }
+
+        // Test create execution
+        java.util.List<java.io.File> imgs = new java.util.ArrayList<>();
+        java.io.File img = new java.io.File("test_img.jpg");
+        try { img.createNewFile(); } catch (Exception ignored) {}
+        imgs.add(img);
+        java.io.File audio = new java.io.File("test_audio.mp3");
+        try { audio.createNewFile(); } catch (Exception ignored) {}
+        java.io.File out = new java.io.File("test_out.mp4");
+        try {
+            PhotoVideo.create(new android.content.Context(), imgs, audio, out, null);
+        } catch (Exception e) {
+            throw new RuntimeException("PhotoVideo.create failed: " + e, e);
+        } finally {
+            img.delete();
+            audio.delete();
+            out.delete();
+        }
     }
 }'''
         }
@@ -129,15 +147,20 @@ public class TestYuv {
         # Add minimal stubs for PhotoVideo dependencies
         sources.update({
             'android/content/Context.java': 'package android.content; public class Context { public java.io.File getCacheDir() { return new java.io.File("."); } }',
-            'android/graphics/Bitmap.java': 'package android.graphics; public class Bitmap { public int getWidth(){return 100;} public int getHeight(){return 100;} public void getPixels(int[] p,int o,int s,int x,int y,int w,int h){} public void recycle(){} public static Bitmap createScaledBitmap(Bitmap b,int w,int h,boolean f){return b;} public static enum Config { ARGB_8888 } }',
+            'android/graphics/Bitmap.java': 'package android.graphics; public class Bitmap { public int getWidth(){return 100;} public int getHeight(){return 100;} public void getPixels(int[] p,int o,int s,int x,int y,int w,int h){} public void recycle(){} public static Bitmap createScaledBitmap(Bitmap b,int w,int h,boolean f){return b;} public static Bitmap createBitmap(int w, int h, Config c){return new Bitmap();} public static enum Config { ARGB_8888 } }',
             'android/graphics/BitmapFactory.java': 'package android.graphics; public class BitmapFactory { public static class Options { public boolean inJustDecodeBounds; public int outWidth=100, outHeight=100; public Bitmap.Config inPreferredConfig; } public static Bitmap decodeFile(String path, Options opts){ return new Bitmap(); } }',
-            'android/media/MediaCodec.java': 'package android.media; public class MediaCodec { public static final int BUFFER_FLAG_END_OF_STREAM=4, BUFFER_FLAG_CODEC_CONFIG=2, CONFIGURE_FLAG_ENCODE=1, INFO_OUTPUT_FORMAT_CHANGED=-2; public static class BufferInfo { public int offset, size, flags; public long presentationTimeUs; } public static MediaCodec createEncoderByType(String type){return new MediaCodec();} public static MediaCodec createDecoderByType(String type){return new MediaCodec();} public MediaCodecInfo getCodecInfo(){return new MediaCodecInfo();} public void configure(MediaFormat f, Object s, Object c, int flags){} public void start(){} public void stop(){} public void release(){} public int dequeueInputBuffer(long t){return -1;} public int dequeueOutputBuffer(BufferInfo info, long t){return -1;} public java.nio.ByteBuffer getInputBuffer(int idx){return java.nio.ByteBuffer.allocate(100);} public java.nio.ByteBuffer getOutputBuffer(int idx){return java.nio.ByteBuffer.allocate(100);} public void queueInputBuffer(int idx, int offset, int size, long pts, int flags){} public void releaseOutputBuffer(int idx, boolean render){} public MediaFormat getOutputFormat(){return new MediaFormat();} }',
+            'android/graphics/Canvas.java': 'package android.graphics; public class Canvas { public Canvas(Bitmap b){} public void drawColor(int c){} public void drawBitmap(Bitmap b, Rect src, RectF dst, Object p){} }',
+            'android/graphics/Color.java': 'package android.graphics; public class Color { public static final int BLACK = 0xFF000000; }',
+            'android/graphics/Rect.java': 'package android.graphics; public class Rect {}',
+            'android/graphics/RectF.java': 'package android.graphics; public class RectF { public RectF(float l, float t, float r, float b){} }',
+            'android/media/MediaCodec.java': 'package android.media; public class MediaCodec { public static final int BUFFER_FLAG_END_OF_STREAM=4, BUFFER_FLAG_CODEC_CONFIG=2, CONFIGURE_FLAG_ENCODE=1, INFO_OUTPUT_FORMAT_CHANGED=-2; public static class BufferInfo { public int offset, size, flags; public long presentationTimeUs; } public static MediaCodec createEncoderByType(String type){return new MediaCodec();} public static MediaCodec createDecoderByType(String type){return new MediaCodec();} public static MediaCodec createByCodecName(String name){return new MediaCodec();} public MediaCodecInfo getCodecInfo(){return new MediaCodecInfo();} public void configure(MediaFormat f, Object s, Object c, int flags){} public void start(){} public void stop(){} public void release(){} public int inCount=0, outCount=0; public int dequeueInputBuffer(long t){ return inCount++ < 5 ? 0 : -1; } public int dequeueOutputBuffer(BufferInfo info, long t){ if(outCount == 0){ outCount++; return INFO_OUTPUT_FORMAT_CHANGED; } if(outCount == 1){ outCount++; info.flags = BUFFER_FLAG_END_OF_STREAM; return 0; } return -1; } public java.nio.ByteBuffer getInputBuffer(int idx){return java.nio.ByteBuffer.allocate(10000000);} public java.nio.ByteBuffer getOutputBuffer(int idx){return java.nio.ByteBuffer.allocate(10000000);} public void queueInputBuffer(int idx, int offset, int size, long pts, int flags){} public void releaseOutputBuffer(int idx, boolean render){} public MediaFormat getOutputFormat(){return new MediaFormat();} }',
             'android/media/MediaCodecInfo.java': 'package android.media; public class MediaCodecInfo { public static class CodecCapabilities { public static final int COLOR_FormatYUV420Planar=19, COLOR_FormatYUV420SemiPlanar=21; public int[] colorFormats = {21}; } public static class CodecProfileLevel { public static final int AACObjectLC=2; } public CodecCapabilities getCapabilitiesForType(String type){return new CodecCapabilities();} }',
             'android/media/MediaExtractor.java': 'package android.media; public class MediaExtractor { public static final int SEEK_TO_CLOSEST_SYNC=2; public void setDataSource(String p){} public int getTrackCount(){return 0;} public MediaFormat getTrackFormat(int i){return new MediaFormat();} public void selectTrack(int i){} public void seekTo(long t, int mode){} public int readSampleData(java.nio.ByteBuffer buf, int offset){return -1;} public long getSampleTime(){return 0;} public int getSampleFlags(){return 0;} public boolean advance(){return false;} public void release(){} }',
             'android/media/MediaFormat.java': 'package android.media; public class MediaFormat { public static final String KEY_MIME="mime", KEY_COLOR_FORMAT="color-format", KEY_BIT_RATE="bitrate", KEY_FRAME_RATE="frame-rate", KEY_I_FRAME_INTERVAL="i-frame-interval", KEY_DURATION="durationUs", KEY_SAMPLE_RATE="sample-rate", KEY_CHANNEL_COUNT="channel-count", KEY_AAC_PROFILE="aac-profile"; public static MediaFormat createVideoFormat(String m, int w, int h){return new MediaFormat();} public static MediaFormat createAudioFormat(String m, int r, int c){return new MediaFormat();} public void setInteger(String k, int v){} public int getInteger(String k){return 0;} public String getString(String k){return "audio/mp4a-latm";} public long getLong(String k){return 1000000L;} public boolean containsKey(String k){return true;} }',
             'android/media/MediaMetadataRetriever.java': 'package android.media; public class MediaMetadataRetriever { public static final int METADATA_KEY_DURATION=9; public void setDataSource(String p){} public String extractMetadata(int k){return "10000";} public void release(){} }',
             'android/media/MediaMuxer.java': 'package android.media; public class MediaMuxer { public static class OutputFormat { public static final int MUXER_OUTPUT_MPEG_4=0; } public MediaMuxer(String p, int f){} public int addTrack(MediaFormat fmt){return 0;} public void start(){} public void stop(){} public void release(){} public void writeSampleData(int t, java.nio.ByteBuffer b, MediaCodec.BufferInfo info){} }',
-            'mi/tiktokmi/DownloadTasks.java': 'package mi.tiktokmi; public class DownloadTasks { public static class Control { public boolean cancelled(){return false;} } }'
+            'mi/tiktokmi/DownloadTasks.java': 'package mi.tiktokmi; public class DownloadTasks { public static class Control { public boolean cancelled(){return false;} } }',
+            'mi/tiktokmi/Diary.java': 'package mi.tiktokmi; public class Diary { public static void note(String s){} }'
         })
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)

@@ -12,6 +12,7 @@ public final class DownloadQuality {
  }
  private static String musicAddress(Object url){
   if(url==null)return null;
+  if(url instanceof String){String direct=secureAddress(url);if(direct!=null)return direct;}
   Object list=NativeRead.get(url,"getUrlList");if(!(list instanceof List))list=NativeRead.field(url,"urlList");
   if(list instanceof List)for(Object value:(List)list){String candidate=secureAddress(value);if(candidate!=null)return candidate;}
   String candidate=secureAddress(NativeRead.get(url,"getUri"));if(candidate!=null)return candidate;
@@ -110,11 +111,17 @@ public final class DownloadQuality {
   if(music==null)return null;
   String address=musicAddress(NativeRead.get(music,"getPlayUrl"));
   if(address!=null)return address;
-  return musicAddress(NativeRead.get(music,"getReuseAudioPlayUrl"));
+  address=musicAddress(NativeRead.field(music,"playUrl"));
+  if(address!=null)return address;
+  address=musicAddress(NativeRead.get(music,"getReuseAudioPlayUrl"));
+  if(address!=null)return address;
+  return musicAddress(NativeRead.field(music,"reuseAudioPlayUrl"));
  }
  static String audio(Object video){
   if(video==null)return null;
-  Object list=NativeRead.field(video,"bitRateAudio");if(!(list instanceof List))return null;
+  Object list=NativeRead.get(video,"getBitRateAudio");
+  if(!(list instanceof List))list=NativeRead.field(video,"bitRateAudio");
+  if(!(list instanceof List))return null;
   long score=-1;String chosen=null;int count=0;
   for(Object option:(List)list){
    if(count++>=128)break;

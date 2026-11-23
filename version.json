@@ -1,8 +1,8 @@
 {
   "_comment": "What the app checks to know whether it is out of date. It reads this from the project's own GitHub repository at startup and every five minutes; the badges come from the same project.",
-  "version": "2.2.1",
-  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.2.1/tiktokmi.apk",
-  "notes": "Download photo posts with audio as video. Digital volume booster (+5 to +20 dB) with in-player and settings controls. Performance and stability improvements.",
-  "notes_ru": "Скачивание фото-постов со звуком как видео. Цифровой усилитель звука (от +5 до +20 dB) с управлением в плеере и настройках. Улучшения производительности и стабильности.",
-  "notes_uk": "Завантаження фото-постів з музикою як відео. Цифровий підсилювач звуку (від +5 до +20 dB) із керуванням у плеєрі та налаштуваннях. Покращення швидкодії та стабільності."
+  "version": "2.2.2",
+  "url": "https://github.com/fuckramochka/tiktokmi/releases/download/2.2.2/tiktokmi.apk",
+  "notes": "Fix photo-with-audio video download and saving. Universal AAC audio transcoding and standard 720p video canvas alignment.",
+  "notes_ru": "Исправлено скачивание и сохранение фото со звуком как видео. Универсальное транскодирование звука в AAC и центрирование на холсте 720p.",
+  "notes_uk": "Виправлено збереження фото зі звуком як відео. Універсальне перекодування звуку в AAC та центрування на полотні 720p."
 }

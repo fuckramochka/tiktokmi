@@ -207,8 +207,7 @@ public final class VideoActions {
   Context context=Margy.context();if(context==null)return;
   final Context c=context.getApplicationContext();
   final String aid=NativeRead.aid(post);
-  final String audioAddress=DownloadQuality.audio(post,null);
-  if(audioAddress==null||audioAddress.length()==0){Screen.say(Text.AUDIO_NOT_AVAILABLE);return;}
+  final String audioAddress=DownloadQuality.audio(post,NativeRead.get(post,"getVideo"));
   final java.util.List<DownloadQuality.Choice> list=new java.util.ArrayList<>(photos);
   final String key="media_"+java.util.UUID.randomUUID();
   final DownloadTasks.Control control=DownloadTasks.begin(key,Text.SAVE_PHOTO_VIDEO,"margyt",()->savePhotoAsVideo(post,list));
@@ -219,8 +218,11 @@ public final class VideoActions {
    java.io.File audioTemp=new java.io.File(c.getCacheDir(),key+"_audio.media");
    java.io.File videoTemp=new java.io.File(c.getCacheDir(),key+"_video.mp4");
    try{
-    if(!Net.download(audioAddress,audioTemp,(percent,got,size)->{int p=percent/3;DownloadTasks.progress(key,p);Screen.progress(key,Text.DOWNLOADING,p);},control)){
-     throw new java.io.IOException("Audio download failed");
+    boolean hasAudio=false;
+    if(audioAddress!=null&&audioAddress.length()>0){
+     try{
+      hasAudio=Net.download(audioAddress,audioTemp,(percent,got,size)->{int p=percent/4;DownloadTasks.progress(key,p);Screen.progress(key,Text.DOWNLOADING,p);},control);
+     }catch(Throwable e){Diary.note("audio dl: "+e);}
     }
     for(int i=0;i<list.size()&&!control.cancelled();i++){
      java.io.File imgTemp=new java.io.File(c.getCacheDir(),key+"_img_"+i+".media");
@@ -231,16 +233,17 @@ public final class VideoActions {
       if(control.cancelled())break;
       try{
        imgTemp.delete();
-       if(Net.download(addr,imgTemp,(percent,g,s)->{int p=33+(slot*33+percent*33/100)/count;DownloadTasks.progress(key,p);Screen.progress(key,Text.DOWNLOADING,p);},control)){got=true;break;}
+       if(Net.download(addr,imgTemp,(percent,g,s)->{int p=25+(slot*50+percent*50/100)/count;DownloadTasks.progress(key,p);Screen.progress(key,Text.DOWNLOADING,p);},control)){got=true;break;}
       }catch(Throwable ignored){}
      }
      if(!got&&!control.cancelled())throw new java.io.IOException("Photo download failed");
     }
     if(control.cancelled())throw new java.io.IOException("Cancelled");
-    Screen.progress(key,Text.DOWNLOADING,75);
-    DownloadTasks.progress(key,75);
-    PhotoVideo.create(c,imageTemps,audioTemp,videoTemp,control);
+    Screen.progress(key,Text.DOWNLOADING,80);
+    DownloadTasks.progress(key,80);
+    PhotoVideo.create(c,imageTemps,hasAudio&&audioTemp.exists()&&audioTemp.length()>0?audioTemp:null,videoTemp,control);
     if(control.cancelled())throw new java.io.IOException("Cancelled");
+    if(!videoTemp.exists()||videoTemp.length()==0)throw new java.io.IOException("Generated video empty");
     Screen.progress(key,Text.DOWNLOADING,95);
     DownloadTasks.progress(key,95);
     String base=aid==null||aid.length()==0?"post":aid.replaceAll("[^A-Za-z0-9_-]","_");
